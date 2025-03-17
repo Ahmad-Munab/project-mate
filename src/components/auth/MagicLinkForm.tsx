@@ -3,10 +3,12 @@ import { useForm } from "react-hook-form";
 import { signInWithMagicLink } from "@/actions/auth";
 
 export function MagicLinkForm() {
+  // Initialize react-hook-form for form handling
   const { register } = useForm();
 
   return (
     <form action={signInWithMagicLink} className="flex flex-col gap-4">
+      {/* Email input field */}
       <div>
         <label htmlFor="email" className="block text-sm font-medium">
           Email
@@ -18,6 +20,8 @@ export function MagicLinkForm() {
           placeholder="you@example.com"
         />
       </div>
+
+      {/* Submit button */}
       <button
         type="submit"
         className="w-full rounded-md bg-primary px-4 py-2 text-white hover:bg-primary-dark"

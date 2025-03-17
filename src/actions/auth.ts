@@ -1,4 +1,4 @@
-"use server";
+"use server"; // Marks this file as server-side only code
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -9,36 +9,55 @@ import { redirect } from "next/navigation";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 
+// Define validation schema for email/password authentication
 const emailSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.string().email(), // Must be valid email format
+  password: z.string().min(6), // Password must be at least 6 characters
 });
 
+/**
+ * Handles email/password login
+ * @param formData - Contains email and password from login form
+ */
 export async function emailLogin(formData: FormData) {
+  // Create new Supabase client for server-side operations
   const supabase = createClient();
+  
+  // Convert FormData to object and validate against schema
   const parsed = emailSchema.safeParse(Object.fromEntries(formData));
 
+  // If validation fails, redirect with error
   if (!parsed.success) {
     return redirect("/login?error=Invalid input");
   }
 
+  // Attempt to sign in with Supabase
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
+  // Handle authentication error
   if (error) {
     return redirect("/login?error=Could not authenticate");
   }
 
+  // Success - redirect to dashboard
   return redirect("/dashboard");
 }
 
+/**
+ * Handles new user registration
+ * @param formData - Contains email and password from signup form
+ */
 export async function signup(formData: FormData) {
   const supabase = createClient();
+  
+  // Validate input data
   const parsed = emailSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
     return redirect("/signup?error=Invalid input");
   }
 
+  // Attempt to create new user in Supabase
   const {
     data: { user },
     error,
@@ -48,25 +67,34 @@ export async function signup(formData: FormData) {
     return redirect("/signup?error=Signup failed");
   }
 
-  // Insert user into Drizzle table
+  // If successful, store user in our database
+  // Using Drizzle ORM to handle database operations
   await db
     .insert(users)
     .values({
       id: user.id,
       email: user.email!,
     })
-    .onConflictDoUpdate({
+    .onConflictDoUpdate({ // If user exists, update their email
       target: users.id,
       set: { email: user.email! },
     });
 
+  // Redirect to login page with success message
   return redirect("/login?success=Check your email to confirm");
 }
 
+/**
+ * Handles OAuth authentication (Google/GitHub)
+ * @param provider - The OAuth provider ("google" or "github")
+ */
 export async function oAuthSignIn(provider: Provider) { 
   const supabase = createClient();
+  
+  // Initialize OAuth flow with specified provider
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
+    // Specify where to redirect after successful OAuth
     options: { redirectTo: `${getURL()}/auth/callback` },
   });
 
@@ -74,17 +102,23 @@ export async function oAuthSignIn(provider: Provider) {
     return redirect("/login?error=OAuth failed");
   }
 
+  // Redirect to provider's OAuth page
   return redirect(data.url);
 }
 
-// actions/auth.ts
+/**
+ * Handles magic link (passwordless) authentication
+ * @param formData - Contains email for magic link
+ */
 export async function signInWithMagicLink(formData: FormData) {
   const supabase = createClient();
   const email = formData.get("email") as string;
   
+  // Send one-time password (OTP) to user's email
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
+      // Where to redirect after clicking email link
       emailRedirectTo: `${getURL()}/auth/callback`,
     }
   });
@@ -96,13 +130,17 @@ export async function signInWithMagicLink(formData: FormData) {
   return redirect("/login?success=Check your email for the login link!");
 }
 
-// Update handleAuthCallback
+/**
+ * Handles authentication callback from OAuth and magic links
+ * @param request - Next.js request object containing callback parameters
+ */
 export async function handleAuthCallback(request?: NextRequest) {
   const supabase = createClient();
   const searchParams = request?.nextUrl?.searchParams;
   const token_hash = searchParams?.get("token_hash");
   const type = searchParams?.get("type");
 
+  // Handle magic link authentication
   if (token_hash && type === "magiclink") {
     const { error } = await supabase.auth.verifyOtp({
       type,
@@ -114,12 +152,14 @@ export async function handleAuthCallback(request?: NextRequest) {
     }
   }
 
+  // Get authenticated user details
   const { data: { user }, error } = await supabase.auth.getUser();
 
   if (error || !user) {
     return redirect("/login?error=Authentication failed");
   }
 
+  // Store or update user in our database
   await db.insert(users).values({
     id: user.id,
     email: user.email!,
@@ -128,5 +168,6 @@ export async function handleAuthCallback(request?: NextRequest) {
     set: { email: user.email! }
   });
 
+  // Redirect to dashboard after successful authentication
   return redirect("/dashboard");
 }
