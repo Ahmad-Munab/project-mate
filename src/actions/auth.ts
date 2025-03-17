@@ -88,22 +88,39 @@ export async function signup(formData: FormData) {
  * Handles OAuth authentication (Google/GitHub)
  * @param provider - The OAuth provider ("google" or "github")
  */
-export async function oAuthSignIn(provider: Provider) { 
-  const supabase = createClient();
-  
-  // Initialize OAuth flow with specified provider
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    // Specify where to redirect after successful OAuth
-    options: { redirectTo: `${getURL()}/auth/callback` },
-  });
+export async function oAuthSignIn(provider: Provider) {
+  try {
+    const supabase = await createClient();
+    
+    if (!supabase || !supabase.auth) {
+      throw new Error("Failed to initialize Supabase client");
+    }
 
-  if (error || !data.url) {
-    return redirect("/login?error=OAuth failed");
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${getURL()}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data?.url) {
+      throw new Error("No OAuth URL returned");
+    }
+
+    // Return the URL instead of redirecting
+    return { url: data.url };
+  } catch (err) {
+    console.error('OAuth error:', err);
+    throw err;
   }
-
-  // Redirect to provider's OAuth page
-  return redirect(data.url);
 }
 
 /**
