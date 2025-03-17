@@ -7,69 +7,127 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signup, emailLogin } from "@/actions/auth";
-import { useSearchParams, usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().optional() // Make confirmPassword optional for login
+}).refine((data) => {
+  // Only validate confirmPassword if it exists (signup form)
+  if (data.confirmPassword && data.password !== data.confirmPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 export function EmailPasswordForm() {
-  const [mounted, setMounted] = useState(false);
-  const searchParams = useSearchParams();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const router = useRouter();
   const pathname = usePathname();
-  const message = searchParams.get("message");
-  const error = searchParams.get("error");
+  const searchParams = useSearchParams();
 
-  // Handle hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Fix the isSignUp check to be more explicit
+  const isSignUp = pathname?.startsWith('/signup') ?? false;
 
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
+    watch
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
+    mode: "onChange",
+    // Add default values to ensure form fields are not undefined
+    defaultValues: {
+      email: '',
+      password: '',
+      confirmPassword: isSignUp ? '' : undefined
+    }
   });
 
-  const isLogin = pathname === "/login";
-
   const onSubmit = async (data: FormValues) => {
-    const formData = new FormData();
-    formData.append("email", data.email);
-    formData.append("password", data.password);
-
     try {
-      if (isLogin) {
-        await emailLogin(formData);
+      setIsLoading(true);
+      setFormError(null);
+
+      const formData = new FormData();
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+
+      if (isSignUp) {
+        const result = await signup(formData);
+        if (result.error) {
+          setFormError(result.error);
+        } else {
+          router.push('/login?message=Check your email to confirm your account');
+        }
       } else {
-        await signup(formData);
+        // Handle login
+        const result = await emailLogin(formData);
+        
+        if (result.error) {
+          setFormError(result.error);
+          // If account not found, show option to sign up
+          if (result.showSignUp) {
+            setTimeout(() => {
+              router.push('/signup');
+            }, 2000); // Wait 2 seconds before redirecting to signup
+          }
+        } else if (result.success) {
+          // Redirect to dashboard on successful login
+          router.push('/dashboard');
+          router.refresh();
+        }
       }
     } catch (err) {
-      console.error("Authentication error:", err);
+      console.error("Form submission error:", err);
+      setFormError("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (!mounted) {
-    return null; // or a loading spinner
-  }
+  // Show success message from URL params
+  const message = searchParams.get('message');
+
+  // Add this debug log
+  console.log("Current form state:", { 
+    isSignUp, 
+    errors, 
+    isLoading 
+  });
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form 
+      onSubmit={handleSubmit(onSubmit)} 
+      className="space-y-4"
+      // Add this to debug form submission
+      onClick={(e) => console.log("Form clicked", e.target)}
+    >
+      {message && (
+        <div className="p-3 bg-green-100 border border-green-300 rounded text-green-700 text-sm">
+          {message}
+        </div>
+      )}
+
       <div>
         <Label htmlFor="email">Email</Label>
         <Input
-          {...register("email")}
           id="email"
           type="email"
-          placeholder="you@example.com"
-          className="mt-1"
+          autoComplete={isSignUp ? "email" : "username"}
+          disabled={isLoading}
+          {...register("email")}
+          className={errors.email ? "border-red-500" : ""}
         />
         {errors.email && (
           <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
@@ -79,46 +137,73 @@ export function EmailPasswordForm() {
       <div>
         <Label htmlFor="password">Password</Label>
         <Input
-          {...register("password")}
           id="password"
           type="password"
-          placeholder="••••••••"
-          className="mt-1"
+          autoComplete={isSignUp ? "new-password" : "current-password"}
+          disabled={isLoading}
+          {...register("password")}
+          className={errors.password ? "border-red-500" : ""}
         />
         {errors.password && (
           <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
         )}
       </div>
 
-      {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-
-      {message && (
-        <p className="text-sm text-green-500 text-center">{message}</p>
+      {isSignUp && (
+        <div>
+          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            disabled={isLoading}
+            {...register("confirmPassword")}
+            className={errors.confirmPassword ? "border-red-500" : ""}
+          />
+          {errors.confirmPassword && (
+            <p className="text-sm text-red-500 mt-1">{errors.confirmPassword.message}</p>
+          )}
+        </div>
       )}
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting
-          ? "Processing..."
-          : isLogin
-          ? "Sign In"
-          : "Create Account"}
+      {formError && (
+        <div className="p-3 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
+          {formError}
+        </div>
+      )}
+
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={isLoading}
+        variant="default"
+      >
+        {isLoading ? (
+          <span className="flex items-center justify-center">
+            <span className="mr-2">Processing...</span>
+          </span>
+        ) : (
+          isSignUp ? "Create Account" : "Sign In"
+        )}
       </Button>
 
-      {isLogin ? (
-        <p className="text-sm text-center mt-4">
-          {"Don't have an account? "}
-          <Link href="/signup" className="text-primary hover:underline">
-            Sign up
-          </Link>
-        </p>
-      ) : (
-        <p className="text-sm text-center mt-4">
-          Already have an account?{" "}
-          <Link href="/login" className="text-primary hover:underline">
-            Sign in
-          </Link>
-        </p>
-      )}
+      <p className="text-sm text-center mt-4">
+        {isSignUp ? (
+          <>
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Sign in
+            </Link>
+          </>
+        ) : (
+          <>
+            Don't have an account?{" "}
+            <Link href="/signup" className="text-primary hover:underline">
+              Sign up
+            </Link>
+          </>
+        )}
+      </p>
     </form>
   );
 }
