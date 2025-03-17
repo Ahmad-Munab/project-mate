@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signup, emailLogin } from "@/actions/auth";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -17,9 +19,16 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export function EmailPasswordForm() {
+  const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const message = searchParams.get("message");
   const error = searchParams.get("error");
+
+  // Handle hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     register,
@@ -29,7 +38,7 @@ export function EmailPasswordForm() {
     resolver: zodResolver(formSchema),
   });
 
-  const isLogin = window.location.pathname === "/login";
+  const isLogin = pathname === "/login";
 
   const onSubmit = async (data: FormValues) => {
     const formData = new FormData();
@@ -46,6 +55,10 @@ export function EmailPasswordForm() {
       console.error("Authentication error:", err);
     }
   };
+
+  if (!mounted) {
+    return null; // or a loading spinner
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -94,16 +107,16 @@ export function EmailPasswordForm() {
       {isLogin ? (
         <p className="text-sm text-center mt-4">
           {"Don't have an account? "}
-          <a href="/signup" className="text-primary hover:underline">
+          <Link href="/signup" className="text-primary hover:underline">
             Sign up
-          </a>
+          </Link>
         </p>
       ) : (
         <p className="text-sm text-center mt-4">
           Already have an account?{" "}
-          <a href="/login" className="text-primary hover:underline">
+          <Link href="/login" className="text-primary hover:underline">
             Sign in
-          </a>
+          </Link>
         </p>
       )}
     </form>
