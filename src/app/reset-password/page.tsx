@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const resetSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -61,7 +62,14 @@ export default function ResetPasswordPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
-        <h1 className="text-center text-2xl font-bold">Reset Password</h1>
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold">
+            <span className="bg-primary/10 px-2 py-1 rounded">Reset Password</span>
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your new password below
+          </p>
+        </div>
         
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
@@ -70,10 +78,11 @@ export default function ResetPasswordPage() {
               id="password"
               type="password"
               {...register("password")}
-              className={errors.password ? "border-red-500" : ""}
+              className={errors.password ? "border-destructive" : ""}
+              aria-invalid={!!errors.password}
             />
             {errors.password && (
-              <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+              <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
             )}
           </div>
 
@@ -83,15 +92,16 @@ export default function ResetPasswordPage() {
               id="confirmPassword"
               type="password"
               {...register("confirmPassword")}
-              className={errors.confirmPassword ? "border-red-500" : ""}
+              className={errors.confirmPassword ? "border-destructive" : ""}
+              aria-invalid={!!errors.confirmPassword}
             />
             {errors.confirmPassword && (
-              <p className="text-sm text-red-500 mt-1">{errors.confirmPassword.message}</p>
+              <p className="text-sm text-destructive mt-1">{errors.confirmPassword.message}</p>
             )}
           </div>
 
           {error && (
-            <div className="p-3 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded text-destructive text-sm">
               {error}
             </div>
           )}
@@ -103,6 +113,15 @@ export default function ResetPasswordPage() {
           >
             {isLoading ? "Resetting..." : "Reset Password"}
           </Button>
+
+          <div className="text-sm text-center">
+            <Link 
+              href="/login" 
+              className="bg-primary/10 px-2 py-1 rounded hover:bg-primary/20"
+            >
+              Back to login
+            </Link>
+          </div>
         </form>
       </div>
     </div>

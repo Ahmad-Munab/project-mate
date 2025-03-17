@@ -6,6 +6,7 @@ import { Provider } from "@/types/auth";
 import { getURL } from "@/utils/helpers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 
 // Define validation schema for email/password authentication
@@ -154,11 +155,8 @@ export async function signup(formData: FormData) {
  */
 export async function oAuthSignIn(provider: Provider) {
   try {
+    // Await the client creation
     const supabase = await createClient();
-    
-    if (!supabase || !supabase.auth) {
-      throw new Error("Failed to initialize Supabase client");
-    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -179,7 +177,6 @@ export async function oAuthSignIn(provider: Provider) {
       throw new Error("No OAuth URL returned");
     }
 
-    // Return the URL instead of redirecting
     return { url: data.url };
   } catch (err) {
     console.error('OAuth error:', err);
@@ -225,7 +222,8 @@ export async function signInWithMagicLink(formData: FormData) {
  * @param request - Next.js request object containing callback parameters
  */
 export async function handleAuthCallback(request?: NextRequest) {
-  const supabase = createClient();
+  // Await the client creation
+  const supabase = await createClient();
   const searchParams = request?.nextUrl?.searchParams;
   const token_hash = searchParams?.get("token_hash");
   const type = searchParams?.get("type");

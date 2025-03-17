@@ -152,7 +152,7 @@ export function EmailPasswordForm() {
       onClick={(e) => console.log("Form clicked", e.target)}
     >
       {message && (
-        <div className="p-3 bg-green-100 border border-green-300 rounded text-green-700 text-sm">
+        <div className="p-3 bg-green-100 border border-green-200 rounded text-green-700 text-sm">
           {message}
         </div>
       )}
@@ -165,10 +165,11 @@ export function EmailPasswordForm() {
           autoComplete={isSignUp ? "email" : "username"}
           disabled={isLoading}
           {...register("email")}
-          className={errors.email ? "border-red-500" : ""}
+          aria-invalid={!!errors.email}
+          className={errors.email ? "border-destructive" : ""}
         />
         {errors.email && (
-          <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>
+          <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
         )}
       </div>
 
@@ -180,10 +181,11 @@ export function EmailPasswordForm() {
           autoComplete={isSignUp ? "new-password" : "current-password"}
           disabled={isLoading}
           {...register("password")}
-          className={errors.password ? "border-red-500" : ""}
+          aria-invalid={!!errors.password}
+          className={errors.password ? "border-destructive" : ""}
         />
         {errors.password && (
-          <p className="text-sm text-red-500 mt-1">{errors.password.message}</p>
+          <p className="text-sm text-destructive mt-1">{errors.password.message}</p>
         )}
       </div>
 
@@ -196,22 +198,23 @@ export function EmailPasswordForm() {
             autoComplete="new-password"
             disabled={isLoading}
             {...register("confirmPassword")}
-            className={errors.confirmPassword ? "border-red-500" : ""}
+            aria-invalid={!!errors.confirmPassword}
+            className={errors.confirmPassword ? "border-destructive" : ""}
           />
           {errors.confirmPassword && (
-            <p className="text-sm text-red-500 mt-1">{errors.confirmPassword.message}</p>
+            <p className="text-sm text-destructive mt-1">{errors.confirmPassword.message}</p>
           )}
         </div>
       )}
 
       {formError && (
-        <div className="p-3 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
+        <div className="p-3 bg-destructive/10 border border-destructive/20 rounded text-destructive text-sm">
           {formError}
           {showForgotPassword && (
             <button
               type="button"
               onClick={handleForgotPassword}
-              className="ml-2 text-primary hover:underline"
+              className="ml-2 font-medium text-primary hover:text-primary/80 hover:underline"
             >
               Reset Password
             </button>
@@ -223,7 +226,6 @@ export function EmailPasswordForm() {
         type="submit" 
         className="w-full" 
         disabled={isLoading}
-        variant="default"
       >
         {isLoading ? (
           <span className="flex items-center justify-center">
@@ -246,30 +248,24 @@ export function EmailPasswordForm() {
               }
               handleForgotPassword();
             }}
-            className="text-primary hover:underline"
+            className="font-medium text-primary hover:text-primary/80 hover:underline"
           >
             Forgot your password?
           </button>
         </div>
       )}
 
-      <p className="text-sm text-center mt-4">
-        {isSignUp ? (
-          <>
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign in
-            </Link>
-          </>
-        ) : (
-          <>
-            Don't have an account?{" "}
-            <Link href="/signup" className="text-primary hover:underline">
-              Sign up
-            </Link>
-          </>
-        )}
-      </p>
+      <div className="text-sm text-center space-y-1">
+        <p className="text-muted-foreground">
+          {isSignUp ? "Already have an account?" : "Don't have an account?"}
+        </p>
+        <Link 
+          href={isSignUp ? "/login" : "/signup"} 
+          className="font-semibold text-primary hover:text-primary/80 hover:underline"
+        >
+          {isSignUp ? "Sign in" : "Create new account"}
+        </Link>
+      </div>
     </form>
   );
 }

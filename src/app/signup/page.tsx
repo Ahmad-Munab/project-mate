@@ -5,9 +5,9 @@ export default function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Create your account</h1>
-          <p className="mt-2 text-sm text-gray-600">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold text-primary">Create your account</h1>
+          <p className="text-sm text-muted-foreground">
             Join Project Mate to start managing your projects
           </p>
         </div>
@@ -19,7 +19,9 @@ export default function SignUpPage() {
             <div className="w-full border-t border-gray-300" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            <span className="bg-white px-2 text-muted-foreground">
+              Or continue with
+            </span>
           </div>
         </div>
 
