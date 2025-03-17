@@ -6,9 +6,9 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signup, emailLogin } from "@/actions/auth";
+import { signup, emailLogin, forgotPassword } from "@/actions/auth";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 const formSchema = z.object({
@@ -31,6 +31,7 @@ type FormValues = z.infer<typeof formSchema>;
 export function EmailPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -42,11 +43,11 @@ export function EmailPasswordForm() {
     register,
     handleSubmit,
     formState: { errors },
-    watch
+    watch,
+    getValues
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     mode: "onChange",
-    // Add default values to ensure form fields are not undefined
     defaultValues: {
       email: '',
       password: '',
@@ -54,10 +55,44 @@ export function EmailPasswordForm() {
     }
   });
 
+  // Add this useEffect to handle URL parameters
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error?.includes('expired')) {
+      setFormError(error);
+      setShowForgotPassword(true);
+    }
+  }, [searchParams]);
+
+  const handleForgotPassword = async () => {
+    try {
+      setIsLoading(true);
+      const email = getValues("email");
+      if (!email) {
+        setFormError("Please enter your email address");
+        return;
+      }
+
+      const result = await forgotPassword(email);
+      if (result.error) {
+        setFormError(result.error);
+      } else {
+        setFormError(null);
+        router.push(`/login?message=${result.message}`);
+      }
+    } catch (err) {
+      console.error("Forgot password error:", err);
+      setFormError("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const onSubmit = async (data: FormValues) => {
     try {
       setIsLoading(true);
       setFormError(null);
+      setShowForgotPassword(false);
 
       const formData = new FormData();
       formData.append("email", data.email);
@@ -76,14 +111,17 @@ export function EmailPasswordForm() {
         
         if (result.error) {
           setFormError(result.error);
+          // Show forgot password option if password is incorrect
+          if (result.error === "Incorrect password") {
+            setShowForgotPassword(true);
+          }
           // If account not found, show option to sign up
           if (result.showSignUp) {
             setTimeout(() => {
               router.push('/signup');
-            }, 2000); // Wait 2 seconds before redirecting to signup
+            }, 2000);
           }
         } else if (result.success) {
-          // Redirect to dashboard on successful login
           router.push('/dashboard');
           router.refresh();
         }
@@ -169,6 +207,15 @@ export function EmailPasswordForm() {
       {formError && (
         <div className="p-3 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
           {formError}
+          {showForgotPassword && (
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="ml-2 text-primary hover:underline"
+            >
+              Reset Password
+            </button>
+          )}
         </div>
       )}
 
@@ -186,6 +233,25 @@ export function EmailPasswordForm() {
           isSignUp ? "Create Account" : "Sign In"
         )}
       </Button>
+
+      {!isSignUp && (
+        <div className="text-sm text-center">
+          <button
+            type="button"
+            onClick={() => {
+              const email = getValues("email");
+              if (!email) {
+                setFormError("Please enter your email address first");
+                return;
+              }
+              handleForgotPassword();
+            }}
+            className="text-primary hover:underline"
+          >
+            Forgot your password?
+          </button>
+        </div>
+      )}
 
       <p className="text-sm text-center mt-4">
         {isSignUp ? (

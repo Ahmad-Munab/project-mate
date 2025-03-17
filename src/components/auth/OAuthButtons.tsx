@@ -29,7 +29,7 @@ export function OAuthButtons() {
   };
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="flex flex-col space-y-4">
       {/* GitHub OAuth Button */}
       <Button
         variant="outline"
@@ -43,13 +43,19 @@ export function OAuthButtons() {
 
       {/* Google OAuth Button */}
       <Button
+        type="button"
         variant="outline"
         onClick={() => handleOAuthSignIn("google")}
         disabled={isLoading === "google"}
-        className="gap-2"
       >
-        <Image src="/icons/google.svg" alt="Google" width={16} height={16} />
-        {isLoading === "google" ? "Loading..." : "Continue with Google"}
+        <Image
+          src="/icons/google.svg"
+          alt="Google"
+          width={20}
+          height={20}
+          className="mr-2"
+        />
+        {isLoading === "google" ? "Signing in..." : "Continue with Google"}
       </Button>
     </div>
   );

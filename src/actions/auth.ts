@@ -56,14 +56,20 @@ export async function emailLogin(formData: FormData) {
       return { error: "No user found" };
     }
 
-    // Store user in database
-    await db.insert(users).values({
-      id: data.user.id,
-      email: data.user.email!,
-    }).onConflictDoUpdate({
-      target: users.id,
-      set: { email: data.user.email! }
-    });
+    try {
+      // Try to insert/update user in database
+      await db.insert(users).values({
+        id: data.user.id,
+        email: data.user.email!,
+      }).onConflictDoUpdate({
+        target: [users.email],
+        set: { id: data.user.id }
+      });
+    } catch (dbError) {
+      // If there's a database error, log it but don't fail the login
+      console.error("Database sync error:", dbError);
+      // We can still continue since the auth was successful
+    }
 
     // Return success with session
     return { 
@@ -267,5 +273,29 @@ export async function handleAuthCallback(request?: NextRequest) {
   } catch (error) {
     console.error("Auth callback error:", error);
     return redirect("/login?error=Authentication failed");
+  }
+}
+/**
+ * Handles password reset request
+ */
+export async function forgotPassword(email: string) {
+  try {
+    const supabase = await createClient();
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${getURL()}/auth/callback?type=recovery`,
+    });
+
+    if (error) {
+      return { error: "Failed to send password reset email" };
+    }
+
+    return { 
+      success: true, 
+      message: "Password reset instructions sent to your email" 
+    };
+  } catch (error) {
+    console.error("Password reset error:", error);
+    return { error: "An unexpected error occurred" };
   }
 }
