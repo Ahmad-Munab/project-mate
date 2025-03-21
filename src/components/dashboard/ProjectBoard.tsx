@@ -122,6 +122,14 @@ export default function ProjectBoard({
     }
   };
 
+  const handleTaskUpdate = (updatedTask: Task) => {
+    setProjectTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === updatedTask.id ? updatedTask : task
+      )
+    );
+  };
+
   return (
     <div className="h-full p-6">
       <DragDropContext onDragEnd={onDragEnd}>
@@ -156,7 +164,10 @@ export default function ProjectBoard({
                               {...provided.dragHandleProps}
                               className={`${snapshot.isDragging ? 'opacity-50' : ''}`}
                             >
-                              <TaskCard task={task} />
+                              <TaskCard 
+                                task={task} 
+                                onTaskUpdate={handleTaskUpdate}
+                              />
                             </div>
                           )}
                         </Draggable>
