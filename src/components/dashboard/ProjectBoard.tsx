@@ -214,6 +214,10 @@ export default function ProjectBoard({
     setProjectTasks(prevTasks => [...prevTasks, newTask]);
   };
 
+  const handleTaskDelete = (taskId: string) => {
+    setProjectTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between p-6 border-b">
@@ -324,6 +328,7 @@ export default function ProjectBoard({
                                 <TaskCard 
                                   task={task} 
                                   onTaskUpdate={handleTaskUpdate}
+                                  onTaskDelete={handleTaskDelete}
                                 />
                               </div>
                             )}

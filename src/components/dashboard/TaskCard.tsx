@@ -3,13 +3,29 @@
 import { useState } from "react";
 import { tasks } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
-import { Calendar, AlertCircle, Pencil, GripVertical } from "lucide-react";
+import { Calendar, AlertCircle, Pencil, GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TaskEditDialog from "./TaskEditDialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Task = InferSelectModel<typeof tasks>;
+
+interface TaskCardProps {
+  task: Task;
+  onTaskUpdate?: (updatedTask: Task) => void;
+  onTaskDelete?: (taskId: string) => void;
+}
 
 const priorityConfig = {
   LOW: {
@@ -34,12 +50,30 @@ const priorityConfig = {
   },
 };
 
-export default function TaskCard({ task, onTaskUpdate }: { 
-  task: Task;
-  onTaskUpdate?: (updatedTask: Task) => void;
-}) {
+export default function TaskCard({ task, onTaskUpdate, onTaskDelete }: TaskCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const priorityStyle = priorityConfig[task.priority];
+
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(`/api/tasks/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ taskId: task.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+
+      onTaskDelete?.(task.id);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
 
   return (
     <>
@@ -49,14 +83,24 @@ export default function TaskCard({ task, onTaskUpdate }: {
             <div className="flex-1">
               <h4 className="font-medium line-clamp-2">{task.title}</h4>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 -mt-1 -mr-1"
-              onClick={() => setIsEditDialogOpen(true)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 -mt-1"
+                onClick={() => setIsEditDialogOpen(true)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 -mt-1 text-destructive hover:text-destructive"
+                onClick={() => setIsDeleteDialogOpen(true)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
 
           {task.description && (
@@ -99,12 +143,28 @@ export default function TaskCard({ task, onTaskUpdate }: {
         task={task}
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
-        onTaskUpdate={(updatedTask) => {
-          if (onTaskUpdate) {
-            onTaskUpdate(updatedTask);
-          }
-        }}
+        onTaskUpdate={onTaskUpdate}
       />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{task.title}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive  hover:bg-red-800"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
