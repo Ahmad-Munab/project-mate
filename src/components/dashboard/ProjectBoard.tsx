@@ -41,6 +41,19 @@ async function updateTaskStatus(taskId: string, newStatus: string) {
   }
 }
 
+async function fetchProjectTasks(projectId: string) {
+  try {
+    const response = await fetch(`/api/projects/${projectId}/tasks`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch tasks');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    return [];
+  }
+}
+
 export default function ProjectBoard({
   projectId,
   initialTasks,
@@ -49,11 +62,29 @@ export default function ProjectBoard({
   initialTasks: Task[];
 }) {
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (projectId) {
+      setIsLoading(true);
+      fetchProjectTasks(projectId)
+        .then(tasks => setProjectTasks(tasks))
+        .finally(() => setIsLoading(false));
+    }
+  }, [projectId]);
 
   if (!projectId) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
         <p>Select a project to view tasks</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }

@@ -24,12 +24,17 @@ async function getProjectTasks(projectId: string) {
   }
 }
 
+type SearchParams = {
+  project?: string;
+};
+
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: { project?: string };
+  searchParams: Promise<SearchParams> | SearchParams;
 }) {
-  const projectId = searchParams.project;
+  const resolvedParams = await Promise.resolve(searchParams);
+  const projectId = resolvedParams.project;
   const initialTasks = projectId ? await getProjectTasks(projectId) : [];
 
   return (
