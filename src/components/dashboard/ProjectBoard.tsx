@@ -2,19 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { Plus, MoreVertical } from "lucide-react";
+import { Plus, MoreVertical, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import TaskCard from "./TaskCard";
 import { tasks } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
+import TaskCreateDialog from "./TaskCreateDialog";
 
 type Task = InferSelectModel<typeof tasks>;
+type SortOption = 'title' | 'priority' | 'dueDate' | 'none';
 
 const columnColors = {
   BACKLOG: "bg-gray-50 dark:bg-gray-900",
@@ -28,6 +31,13 @@ const columnHeaders = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
   DONE: "Done",
+};
+
+const priorityOrder = {
+  URGENT: 0,
+  HIGH: 1,
+  MEDIUM: 2,
+  LOW: 3,
 };
 
 async function updateTaskStatus(taskId: string, newStatus: string) {
@@ -74,6 +84,65 @@ export default function ProjectBoard({
 }) {
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('none');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+  };
+
+  const sortTasks = (tasks: Task[]): Task[] => {
+    const sortedTasks = [...tasks];
+    
+    switch (sortBy) {
+      case 'title':
+        sortedTasks.sort((a, b) => {
+          const comparison = a.title.localeCompare(b.title);
+          return sortDirection === 'asc' ? comparison : -comparison;
+        });
+        break;
+      
+      case 'priority':
+        sortedTasks.sort((a, b) => {
+          const priorityA = priorityOrder[a.priority];
+          const priorityB = priorityOrder[b.priority];
+          const comparison = priorityA - priorityB;
+          return sortDirection === 'asc' ? comparison : -comparison;
+        });
+        break;
+      
+      case 'dueDate':
+        sortedTasks.sort((a, b) => {
+          // Handle null dates
+          if (!a.due_date && !b.due_date) return 0;
+          if (!a.due_date) return sortDirection === 'asc' ? 1 : -1;
+          if (!b.due_date) return sortDirection === 'asc' ? -1 : 1;
+          
+          const dateA = new Date(a.due_date).getTime();
+          const dateB = new Date(b.due_date).getTime();
+          const comparison = dateA - dateB;
+          return sortDirection === 'asc' ? comparison : -comparison;
+        });
+        break;
+      
+      default:
+        // Default to sorting by creation date
+        sortedTasks.sort((a, b) => {
+          const dateA = new Date(a.created_at).getTime();
+          const dateB = new Date(b.created_at).getTime();
+          const comparison = dateA - dateB;
+          return sortDirection === 'asc' ? comparison : -comparison;
+        });
+    }
+    
+    return sortedTasks;
+  };
+
+  // Apply sorting whenever sort options or tasks change
+  useEffect(() => {
+    setProjectTasks(prev => sortTasks([...prev]));
+  }, [sortBy, sortDirection]);
 
   useEffect(() => {
     if (projectId) {
@@ -134,11 +203,15 @@ export default function ProjectBoard({
   };
 
   const handleTaskUpdate = (updatedTask: Task) => {
-    setProjectTasks(prevTasks =>
-      prevTasks.map(task =>
+    setProjectTasks(prev =>
+      sortTasks(prev.map(task =>
         task.id === updatedTask.id ? updatedTask : task
-      )
+      ))
     );
+  };
+
+  const handleTaskCreate = (newTask: Task) => {
+    setProjectTasks(prevTasks => [...prevTasks, newTask]);
   };
 
   return (
@@ -151,24 +224,55 @@ export default function ProjectBoard({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Task
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
-                <MoreVertical className="h-4 w-4" />
+                <ArrowUpDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem>Sort by Priority</DropdownMenuItem>
-              <DropdownMenuItem>Sort by Due Date</DropdownMenuItem>
-              <DropdownMenuItem>Export Board</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setSortBy('title');
+                toggleSortDirection();
+              }}>
+                Sort by A-Z {sortBy === 'title' && `(${sortDirection.toUpperCase()})`}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setSortBy('priority');
+                toggleSortDirection();
+              }}>
+                Sort by Priority {sortBy === 'priority' && `(${sortDirection.toUpperCase()})`}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setSortBy('dueDate');
+                toggleSortDirection();
+              }}>
+                Sort by Due Date {sortBy === 'dueDate' && `(${sortDirection.toUpperCase()})`}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => {
+                setSortBy('none');
+                setSortDirection('asc');
+              }}>
+                Reset Sort
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
+
+      {projectId && (
+        <TaskCreateDialog
+          projectId={projectId}
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          onTaskCreate={handleTaskCreate}
+        />
+      )}
 
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
