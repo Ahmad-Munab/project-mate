@@ -1,28 +1,10 @@
 import { Suspense } from "react";
+import { getProjectTasks } from "@/lib/tasks";
 import ProjectBoard from "@/components/dashboard/ProjectBoard";
 import ProjectsList from "@/components/dashboard/ProjectsList";
 import ProjectSkeleton from "@/components/dashboard/ProjectSkeleton";
-import { db } from "@/db";
-import { tasks } from "@/db/schema";
-import { eq } from "drizzle-orm";
-
-async function getProjectTasks(projectId: string) {
-  if (!projectId) {
-    return [];
-  }
-
-  try {
-    const projectTasks = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.project_id, projectId));
-
-    return projectTasks;
-  } catch (error) {
-    console.error("Error fetching project tasks:", error);
-    return [];
-  }
-}
+import { UserNav } from "@/components/dashboard/UserNav";
+import { Search } from "@/components/dashboard/Search";
 
 type SearchParams = {
   project?: string;
@@ -39,8 +21,8 @@ export default async function DashboardPage({
 
   return (
     <div className="flex h-screen bg-background">
-      <aside className="w-64 border-r border-border bg-sidebar">
-        <div className="p-4 border-b border-border">
+      <aside className="w-64 border-r bg-card">
+        <div className="flex h-16 items-center px-4 border-b">
           <h2 className="text-lg font-semibold">Projects</h2>
         </div>
         <Suspense fallback={<ProjectSkeleton />}>
@@ -48,9 +30,16 @@ export default async function DashboardPage({
         </Suspense>
       </aside>
 
-      <main className="flex-1 overflow-hidden">
-        <ProjectBoard projectId={projectId} initialTasks={initialTasks} />
-      </main>
+      <div className="flex-1 flex flex-col">
+        <header className="h-16 border-b bg-card px-6 flex items-center justify-between">
+          <Search />
+          <UserNav />
+        </header>
+        
+        <main className="flex-1 overflow-hidden">
+          <ProjectBoard projectId={projectId} initialTasks={initialTasks} />
+        </main>
+      </div>
     </div>
   );
 }

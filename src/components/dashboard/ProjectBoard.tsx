@@ -1,22 +1,33 @@
 'use client';
 
-import { db } from "@/db";
-import { tasks, taskStatusEnum } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import TaskCard from "./TaskCard";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useState, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { Plus, MoreVertical } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import TaskCard from "./TaskCard";
+import { tasks } from "@/db/schema";
+import type { InferSelectModel } from "drizzle-orm";
 
-type Task = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: "BACKLOG" | "TODO" | "IN_PROGRESS" | "DONE";
-  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  project_id: string;
-  created_by: string;
-  created_at: Date | null;
-  due_date: Date | null;
+type Task = InferSelectModel<typeof tasks>;
+
+const columnColors = {
+  BACKLOG: "bg-gray-50 dark:bg-gray-900",
+  TODO: "bg-neutral-50 dark:bg-neutral-900",
+  IN_PROGRESS: "bg-blue-50 dark:bg-blue-900/20",
+  DONE: "bg-green-50 dark:bg-green-900/20",
+};
+
+const columnHeaders = {
+  BACKLOG: "Backlog",
+  TODO: "To Do",
+  IN_PROGRESS: "In Progress",
+  DONE: "Done",
 };
 
 async function updateTaskStatus(taskId: string, newStatus: string) {
@@ -89,7 +100,7 @@ export default function ProjectBoard({
     );
   }
 
-  const columns = Object.values(taskStatusEnum.enumValues);
+  const columns = Object.keys(columnHeaders) as Array<keyof typeof columnHeaders>;
 
   const onDragEnd = async (result: any) => {
     const { destination, source, draggableId } = result;
@@ -131,53 +142,96 @@ export default function ProjectBoard({
   };
 
   return (
-    <div className="h-full p-6">
+    <div className="h-full flex flex-col">
+      <div className="flex items-center justify-between p-6 border-b">
+        <div>
+          <h1 className="text-2xl font-semibold">Project Board</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage and track your project tasks
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Task
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem>Sort by Priority</DropdownMenuItem>
+              <DropdownMenuItem>Sort by Due Date</DropdownMenuItem>
+              <DropdownMenuItem>Export Board</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex h-full gap-4">
-          {columns.map((status) => (
-            <div
-              key={status}
-              className="flex-1 min-w-[280px] bg-card rounded-lg p-4"
-            >
-              <h3 className="font-medium mb-4 text-muted-foreground">
-                {status.replace(/_/g, " ")}
-              </h3>
-              <Droppable droppableId={status}>
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="space-y-3 min-h-[200px]"
-                  >
-                    {projectTasks
-                      .filter((task) => task.status === status)
-                      .map((task, index) => (
-                        <Draggable
-                          key={task.id}
-                          draggableId={task.id}
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={`${snapshot.isDragging ? 'opacity-50' : ''}`}
-                            >
-                              <TaskCard 
-                                task={task} 
-                                onTaskUpdate={handleTaskUpdate}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                    {provided.placeholder}
+        <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
+          <div className="flex h-full gap-6">
+            {columns.map((status) => (
+              <div
+                key={status}
+                className="flex-1 min-w-[320px] flex flex-col rounded-lg"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <h3 className="font-semibold text-sm">
+                      {columnHeaders[status]}
+                    </h3>
+                    <span className="ml-2 text-xs bg-background rounded-full px-2 py-1">
+                      {projectTasks.filter((task) => task.status === status).length}
+                    </span>
                   </div>
-                )}
-              </Droppable>
-            </div>
-          ))}
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                <Droppable droppableId={status}>
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[status]}`}
+                    >
+                      {projectTasks
+                        .filter((task) => task.status === status)
+                        .map((task, index) => (
+                          <Draggable
+                            key={task.id}
+                            draggableId={task.id}
+                            index={index}
+                          >
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={`
+                                  transform transition-transform duration-150
+                                  ${snapshot.isDragging ? 'rotate-2 scale-105' : ''}
+                                `}
+                              >
+                                <TaskCard 
+                                  task={task} 
+                                  onTaskUpdate={handleTaskUpdate}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            ))}
+          </div>
         </div>
       </DragDropContext>
     </div>
