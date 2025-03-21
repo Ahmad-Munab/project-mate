@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 async function getProjects() {
   const supabase = await createClient();
@@ -35,39 +37,45 @@ async function getProjects() {
 export default async function ProjectsList() {
   const userProjects = await getProjects();
 
-  if (userProjects.length === 0) {
-    return (
-      <div className="p-4 text-center text-muted-foreground">
-        <p>No projects found.</p>
-        <Link 
-          href="/projects/new" 
-          className="text-primary hover:underline mt-2 block"
-        >
-          Create your first project
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b">
+        <Link href="/projects/new">
+          <Button className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Create New Project
+          </Button>
         </Link>
       </div>
-    );
-  }
 
-  return (
-    <div className="p-4">
-      <ul className="space-y-2">
-        {userProjects.map((project) => (
-          <li key={project.id}>
-            <Link
-              href={`/dashboard?project=${project.id}`}
-              className="block p-3 rounded-lg hover:bg-sidebar-accent transition-colors"
-            >
-              <h3 className="font-medium">{project.name}</h3>
-              {project.description && (
-                <p className="text-sm text-muted-foreground truncate">
-                  {project.description}
-                </p>
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {userProjects.length === 0 ? (
+        <div className="p-4 text-center text-muted-foreground flex-1 flex items-center justify-center">
+          <div>
+            <p>No projects found.</p>
+            <p className="text-sm mt-1">Create your first project to get started.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 overflow-y-auto">
+          <ul className="space-y-2">
+            {userProjects.map((project) => (
+              <li key={project.id}>
+                <Link
+                  href={`/dashboard?project=${project.id}`}
+                  className="block p-3 rounded-lg hover:bg-sidebar-accent transition-colors"
+                >
+                  <h3 className="font-medium">{project.name}</h3>
+                  {project.description && (
+                    <p className="text-sm text-muted-foreground truncate">
+                      {project.description}
+                    </p>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
