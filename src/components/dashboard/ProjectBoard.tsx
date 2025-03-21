@@ -88,9 +88,33 @@ async function updateTaskStatus(taskId: string, newStatus: string) {
   }
 }
 
-const sortTasks = (tasks: Task[]) => {
-  // Your sorting logic here
-  return tasks;
+const sortTasks = (tasks: Task[], sortBy: string, sortDirection: 'asc' | 'desc') => {
+  return [...tasks].sort((a, b) => {
+    switch (sortBy) {
+      case 'title':
+        return sortDirection === 'asc' 
+          ? (a.title || '').localeCompare(b.title || '')
+          : (b.title || '').localeCompare(a.title || '');
+      
+      case 'priority':
+        const aValue = priorityOrder[a.priority] || 0;
+        const bValue = priorityOrder[b.priority] || 0;
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      
+      case 'dueDate':
+        if (!a.due_date && !b.due_date) return 0;
+        if (!a.due_date) return sortDirection === 'asc' ? 1 : -1;
+        if (!b.due_date) return sortDirection === 'asc' ? -1 : 1;
+        const aDate = new Date(a.due_date).getTime();
+        const bDate = new Date(b.due_date).getTime();
+        return sortDirection === 'asc' ? aDate - bDate : bDate - aDate;
+      
+      default: // createdAt
+        const aTime = new Date(a.created_at || 0).getTime();
+        const bTime = new Date(b.created_at || 0).getTime();
+        return sortDirection === 'asc' ? aTime - bTime : bTime - aTime;
+    }
+  });
 };
 
 export default function ProjectBoard({ 
@@ -108,6 +132,8 @@ export default function ProjectBoard({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteRole, setInviteRole] = useState<'MEMBER' | 'MANAGER'>('MEMBER');
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
   // Add function to handle invite link creation
@@ -146,7 +172,7 @@ export default function ProjectBoard({
   };
 
   useEffect(() => {
-    setProjectTasks(prev => sortTasks([...prev]));
+    setProjectTasks(prev => sortTasks(prev, sortBy, sortDirection));
   }, [sortBy, sortDirection]);
 
   useEffect(() => {
@@ -160,14 +186,16 @@ export default function ProjectBoard({
 
   const handleTaskUpdate = (updatedTask: Task) => {
     setProjectTasks(prev =>
-      sortTasks(prev.map(task =>
-        task.id === updatedTask.id ? updatedTask : task
-      ))
+      sortTasks(
+        prev.map(task => task.id === updatedTask.id ? updatedTask : task),
+        sortBy,
+        sortDirection
+      )
     );
   };
 
   const handleTaskCreate = (newTask: Task) => {
-    setProjectTasks(prevTasks => [...prevTasks, newTask]);
+    setProjectTasks(prev => sortTasks([...prev, newTask], sortBy, sortDirection));
   };
 
   const handleTaskDelete = (taskId: string) => {
@@ -199,6 +227,44 @@ export default function ProjectBoard({
     } catch (error) {
       console.error('Failed to update task status:', error);
       setProjectTasks(initialTasks);
+    }
+  };
+
+  // Handle drag start
+  const handleDragStart = (taskId: string) => {
+    setIsDragging(true);
+    setDraggedTaskId(taskId);
+    
+    // If you're using real-time collaboration, you might want to broadcast this state
+    const supabase = createClient();
+    if (projectId) {
+      supabase.channel(`project-${projectId}`).send({
+        type: 'broadcast',
+        event: 'cursor',
+        payload: {
+          isDragging: true,
+          draggedTaskId: taskId,
+        },
+      });
+    }
+  };
+
+  // Handle drag end
+  const handleDragEnd = () => {
+    setIsDragging(false);
+    setDraggedTaskId(null);
+    
+    // If you're using real-time collaboration, broadcast the end state
+    const supabase = createClient();
+    if (projectId) {
+      supabase.channel(`project-${projectId}`).send({
+        type: 'broadcast',
+        event: 'cursor',
+        payload: {
+          isDragging: false,
+          draggedTaskId: null,
+        },
+      });
     }
   };
 
