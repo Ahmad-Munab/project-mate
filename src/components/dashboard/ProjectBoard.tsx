@@ -275,12 +275,12 @@ export default function ProjectBoard({
       )}
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex-1 overflow-x-auto overflow-y-hidden p-6">
-          <div className="flex h-full gap-6">
+        <div className="flex-1 overflow-x-auto p-6">
+          <div className="flex h-full gap-6 min-w-fit">
             {columns.map((status) => (
               <div
                 key={status}
-                className="flex-1 min-w-[320px] flex flex-col rounded-lg"
+                className="flex-1 min-w-[320px] max-w-[400px] flex flex-col h-full"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center">
@@ -301,7 +301,7 @@ export default function ProjectBoard({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[status]}`}
+                      className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[status]} overflow-y-auto min-h-[200px] max-h-[calc(100vh-220px)]`}
                     >
                       {projectTasks
                         .filter((task) => task.status === status)
