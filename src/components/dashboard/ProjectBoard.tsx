@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { Plus, MoreVertical, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,14 +11,26 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Select } from "@/components/ui/select";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { toast } from "sonner";
 import TaskCard from "./TaskCard";
 import { tasks } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import TaskCreateDialog from "./TaskCreateDialog";
+import { createClient } from "@/utils/supabase/client";
+import { LiveCursor } from "@/components/collaboration/LiveCursor";
 
 type Task = InferSelectModel<typeof tasks>;
 type SortOption = 'title' | 'priority' | 'dueDate' | 'none';
 
+// Constants
 const columnColors = {
   BACKLOG: "bg-gray-50 dark:bg-gray-900",
   TODO: "bg-neutral-50 dark:bg-neutral-900",
@@ -39,6 +51,20 @@ const priorityOrder = {
   MEDIUM: 2,
   LOW: 3,
 };
+
+// Helper functions
+async function fetchProjectTasks(projectId: string) {
+  try {
+    const response = await fetch(`/api/projects/${projectId}/tasks`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch tasks');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    return [];
+  }
+}
 
 async function updateTaskStatus(taskId: string, newStatus: string) {
   try {
@@ -62,84 +88,63 @@ async function updateTaskStatus(taskId: string, newStatus: string) {
   }
 }
 
-async function fetchProjectTasks(projectId: string) {
-  try {
-    const response = await fetch(`/api/projects/${projectId}/tasks`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch tasks');
-    }
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching tasks:', error);
-    return [];
-  }
-}
+const sortTasks = (tasks: Task[]) => {
+  // Your sorting logic here
+  return tasks;
+};
 
-export default function ProjectBoard({
-  projectId,
-  initialTasks,
-}: {
+export default function ProjectBoard({ 
+  projectId, 
+  initialTasks 
+}: { 
   projectId?: string;
   initialTasks: Task[];
 }) {
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [cursors, setCursors] = useState<Record<string, any>>({});
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('none');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [inviteRole, setInviteRole] = useState<'MEMBER' | 'MANAGER'>('MEMBER');
+  const boardRef = useRef<HTMLDivElement>(null);
 
+  // Add function to handle invite link creation
+  const createInviteLink = async () => {
+    if (!projectId) return;
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: inviteRole }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create invite link');
+      }
+
+      const { inviteUrl } = await response.json();
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(inviteUrl);
+      toast.success('Invite link copied to clipboard');
+      
+      setIsInviteDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating invite:', error);
+      toast.error('Failed to create invite link');
+    }
+  };
+
+  // Toggle sort direction helper
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
-  const sortTasks = (tasks: Task[]): Task[] => {
-    const sortedTasks = [...tasks];
-    
-    switch (sortBy) {
-      case 'title':
-        sortedTasks.sort((a, b) => {
-          const comparison = a.title.localeCompare(b.title);
-          return sortDirection === 'asc' ? comparison : -comparison;
-        });
-        break;
-      
-      case 'priority':
-        sortedTasks.sort((a, b) => {
-          const priorityA = priorityOrder[a.priority];
-          const priorityB = priorityOrder[b.priority];
-          const comparison = priorityA - priorityB;
-          return sortDirection === 'asc' ? comparison : -comparison;
-        });
-        break;
-      
-      case 'dueDate':
-        sortedTasks.sort((a, b) => {
-          // Handle null dates
-          if (!a.due_date && !b.due_date) return 0;
-          if (!a.due_date) return sortDirection === 'asc' ? 1 : -1;
-          if (!b.due_date) return sortDirection === 'asc' ? -1 : 1;
-          
-          const dateA = new Date(a.due_date).getTime();
-          const dateB = new Date(b.due_date).getTime();
-          const comparison = dateA - dateB;
-          return sortDirection === 'asc' ? comparison : -comparison;
-        });
-        break;
-      
-      default:
-        // Default to sorting by creation date
-        sortedTasks.sort((a, b) => {
-          const dateA = new Date(a.created_at).getTime();
-          const dateB = new Date(b.created_at).getTime();
-          const comparison = dateA - dateB;
-          return sortDirection === 'asc' ? comparison : -comparison;
-        });
-    }
-    
-    return sortedTasks;
-  };
-
-  // Apply sorting whenever sort options or tasks change
   useEffect(() => {
     setProjectTasks(prev => sortTasks([...prev]));
   }, [sortBy, sortDirection]);
@@ -152,55 +157,6 @@ export default function ProjectBoard({
         .finally(() => setIsLoading(false));
     }
   }, [projectId]);
-
-  if (!projectId) {
-    return (
-      <div className="h-full flex items-center justify-center text-muted-foreground">
-        <p>Select a project to view tasks</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  const columns = Object.keys(columnHeaders) as Array<keyof typeof columnHeaders>;
-
-  const onDragEnd = async (result: any) => {
-    const { destination, source, draggableId } = result;
-
-    if (!destination || 
-        (destination.droppableId === source.droppableId && 
-         destination.index === source.index)) {
-      return;
-    }
-
-    const newStatus = destination.droppableId;
-    const taskId = draggableId;
-
-    try {
-      // Optimistically update the UI
-      setProjectTasks(prevTasks => 
-        prevTasks.map(task => 
-          task.id === taskId 
-            ? { ...task, status: newStatus as Task['status'] }
-            : task
-        )
-      );
-
-      // Make the API call to persist the change
-      await updateTaskStatus(taskId, newStatus);
-    } catch (error) {
-      // Revert the UI if the API call fails
-      console.error('Failed to update task status:', error);
-      setProjectTasks(initialTasks);
-    }
-  };
 
   const handleTaskUpdate = (updatedTask: Task) => {
     setProjectTasks(prev =>
@@ -218,8 +174,54 @@ export default function ProjectBoard({
     setProjectTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
   };
 
+  const onDragEnd = async (result: any) => {
+    const { destination, source, draggableId } = result;
+
+    if (!destination || 
+        (destination.droppableId === source.droppableId && 
+         destination.index === source.index)) {
+      return;
+    }
+
+    const newStatus = destination.droppableId;
+    const taskId = draggableId;
+
+    try {
+      setProjectTasks(prevTasks => 
+        prevTasks.map(task => 
+          task.id === taskId 
+            ? { ...task, status: newStatus as Task['status'] }
+            : task
+        )
+      );
+
+      await updateTaskStatus(taskId, newStatus);
+    } catch (error) {
+      console.error('Failed to update task status:', error);
+      setProjectTasks(initialTasks);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!projectId) {
+    return (
+      <div className="h-full flex items-center justify-center text-muted-foreground">
+        <p>Select a project to view tasks</p>
+      </div>
+    );
+  }
+
+  const columns = Object.keys(columnHeaders) as Array<keyof typeof columnHeaders>;
+
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" ref={boardRef}>
       <div className="flex items-center justify-between p-6 border-b">
         <div>
           <h1 className="text-2xl font-semibold">Project Board</h1>
@@ -232,6 +234,26 @@ export default function ProjectBoard({
             <Plus className="mr-2 h-4 w-4" />
             Add Task
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsInviteDialogOpen(true)}
+          >
+            Invite Members
+          </Button>
+          
+          {/* Active users */}
+          <div className="flex -space-x-2">
+            {Object.values(cursors).map((presence: any) => (
+              <Avatar
+                key={presence.user.id}
+                className="border-2 border-background"
+                style={{ borderColor: presence.user.color }}
+              >
+                <img src={presence.user.avatar_url} alt={presence.user.name} />
+                <AvatarFallback>{presence.user.name[0]}</AvatarFallback>
+              </Avatar>
+            ))}
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon">
@@ -269,6 +291,43 @@ export default function ProjectBoard({
         </div>
       </div>
 
+      {/* Invite Dialog */}
+      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite Team Members</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Select
+              value={inviteRole}
+              onValueChange={(value: 'MANAGER' | 'MEMBER') => setInviteRole(value)}
+            >
+              <option value="MEMBER">Member</option>
+              <option value="MANAGER">Manager</option>
+            </Select>
+            <Button onClick={createInviteLink}>
+              Generate Invite Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Live Cursors */}
+      {Object.entries(cursors).map(([key, presence]) => (
+        key !== currentUser.id && (
+          <LiveCursor
+            key={key}
+            user={presence.user}
+            cursor={{
+              x: presence.x,
+              y: presence.y,
+              isDragging: presence.isDragging,
+              draggedTaskId: presence.draggedTaskId,
+            }}
+          />
+        )
+      ))}
+
       {projectId && (
         <TaskCreateDialog
           projectId={projectId}
@@ -278,7 +337,16 @@ export default function ProjectBoard({
         />
       )}
 
-      <DragDropContext onDragEnd={onDragEnd}>
+      <DragDropContext
+        onDragStart={(result) => {
+          const taskId = result.draggableId;
+          handleDragStart(taskId);
+        }}
+        onDragEnd={(result) => {
+          handleDragEnd();
+          onDragEnd(result);
+        }}
+      >
         <div className="flex-1 overflow-x-auto p-6">
           <div className="flex h-full gap-6 min-w-fit">
             {columns.map((status) => (

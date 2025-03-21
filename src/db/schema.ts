@@ -60,3 +60,13 @@ export const aiSuggestions = pgTable("ai_suggestions", {
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const projectInvites = pgTable("project_invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").references(() => projects.id).notNull(),
+  code: text("code").notNull().unique(),
+  role: userRoleEnum("role").notNull().default("MEMBER"),
+  createdBy: uuid("created_by").references(() => users.id).notNull(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
