@@ -22,9 +22,11 @@ CREATE TABLE "projects" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
-	"ai_outline" text,
+	"readme" text,
+	"closed" text,
 	"owner_id" uuid NOT NULL,
-	"created_at" timestamp DEFAULT now()
+	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE "task_assignees" (
@@ -38,17 +40,20 @@ CREATE TABLE "tasks" (
 	"title" text NOT NULL,
 	"description" text,
 	"status" "task_status" DEFAULT 'BACKLOG' NOT NULL,
-	"priority" "priority_level" DEFAULT 'MEDIUM',
-	"due_date" timestamp,
+	"priority" "priority_level" DEFAULT 'MEDIUM' NOT NULL,
 	"project_id" uuid NOT NULL,
 	"created_by" uuid NOT NULL,
-	"created_at" timestamp DEFAULT now()
+	"created_at" timestamp DEFAULT now(),
+	"due_date" timestamp
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"email" text NOT NULL,
+	"name" text,
+	"avatar_url" text,
 	"created_at" timestamp DEFAULT now(),
+	"updated_at" timestamp DEFAULT now(),
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
