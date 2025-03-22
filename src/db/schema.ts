@@ -7,7 +7,6 @@ import {
   pgSchema,
 } from "drizzle-orm/pg-core";
 
-// Define enums
 export const userRoleEnum = pgEnum("user_role", ["OWNER", "MANAGER", "MEMBER"]);
 export const taskStatusEnum = pgEnum("task_status", [
   "BACKLOG",
@@ -22,19 +21,8 @@ export const priorityLevelEnum = pgEnum("priority_level", [
   "URGENT",
 ]);
 
-// export const users = pgTable("users", {
-//   id: uuid("id").primaryKey().defaultRandom(),
-//   email: text("email").unique().notNull(),
-//   name: text("name"),
-//   avatar_url: text("avatar_url"),
-//   created_at: timestamp("created_at").defaultNow(),
-//   updated_at: timestamp("updated_at").defaultNow(),
-// });
-
-// Create a reference to the auth schema
 const authSchema = pgSchema("auth");
 
-// Create a minimal reference to the users table in auth schema
 const authUsers = authSchema.table("users", {
   id: uuid("id").primaryKey(),
 });
