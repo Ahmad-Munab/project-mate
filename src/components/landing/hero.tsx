@@ -51,10 +51,14 @@ export default function Hero() {
 
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
-        {[...Array(5)].map((_, i) => (
+        {[
+          ...Array(
+            typeof window !== "undefined" && window.innerWidth > 1024 ? 3 : 1
+          ),
+        ].map((_, i) => (
           <div
             key={i}
-            className="absolute rounded-full bg-gradient-to-br from-green-400/20 to-emerald-400/20 dark:from-green-400/10 dark:to-emerald-400/10 blur-3xl"
+            className="absolute rounded-full bg-gradient-to-br from-green-200/20 to-emerald-200/20 dark:from-green-200/10 dark:to-emerald-200/10 blur-3xl"
             style={{
               width: `${Math.random() * 30 + 20}rem`,
               height: `${Math.random() * 30 + 20}rem`,

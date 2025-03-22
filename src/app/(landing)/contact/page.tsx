@@ -1,11 +1,10 @@
+import ContactSection from "@/components/landing/contact-section";
 import type { Metadata } from "next";
-import ContactForm from "@/components/landing/contact-form";
-import SocialLinks from "@/components/landing/social-links";
 
 export const metadata: Metadata = {
-  title: "Contact Us | ProjectMate",
+  title: "Contact Us | DevCollab",
   description:
-    "Get in touch with the ProjectMate team. We'd love to hear from you!",
+    "Get in touch with the DevCollab team. We'd love to hear from you!",
 };
 
 export default function ContactPage() {
@@ -22,10 +21,7 @@ export default function ContactPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
-          <ContactForm />
-          <SocialLinks />
-        </div>
+        <ContactSection />
       </div>
     </main>
   );
