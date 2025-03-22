@@ -1,28 +1,25 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-type RouteParams = {
-  params: {
-    projectId: string;
-  };
-};
-
 export async function GET(
-  request: Request,
-  { params }: RouteParams
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
-   const { projectId } = await params;
+  const { projectId } = await params;
 
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
@@ -34,9 +31,9 @@ export async function GET(
 
     return NextResponse.json(projectTasks);
   } catch (error) {
-    console.error('Error fetching project tasks:', error);
+    console.error("Error fetching project tasks:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch tasks' },
+      { error: "Failed to fetch tasks" },
       { status: 500 }
     );
   }

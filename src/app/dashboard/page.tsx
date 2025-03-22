@@ -13,12 +13,12 @@ type SearchParams = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: SearchParams | Promise<SearchParams>;
+  searchParams: Promise<SearchParams>;
 }) {
   // Handle the promise resolution
   const resolvedParams = await Promise.resolve(searchParams);
   const projectId = resolvedParams.project;
-  
+
   // Fetch initial tasks
   const initialTasks = projectId ? await getProjectTasks(projectId) : [];
 
@@ -38,13 +38,10 @@ export default async function DashboardPage({
           <Search />
           <UserNav />
         </header>
-        
+
         <main className="flex-1 overflow-hidden">
           <Suspense fallback={<ProjectSkeleton />}>
-            <ProjectBoard 
-              projectId={projectId} 
-              initialTasks={initialTasks} 
-            />
+            <ProjectBoard projectId={projectId} initialTasks={initialTasks} />
           </Suspense>
         </main>
       </div>
