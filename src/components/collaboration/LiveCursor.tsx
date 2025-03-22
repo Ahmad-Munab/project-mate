@@ -1,8 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Avatar } from '@/components/ui/avatar';
+import { motion } from "framer-motion";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 
 interface CursorState {
   x: number;
@@ -49,7 +48,7 @@ export function LiveCursor({ user, cursor }: LiveCursorProps) {
         style={{ border: `2px solid ${user.color}` }}
       >
         <Avatar className="h-6 w-6">
-          <img src={user.avatar_url} alt={user.name} />
+          <AvatarImage src={user.avatar_url} alt={user.name} />
         </Avatar>
         <span className="text-xs font-medium">{user.name}</span>
         {cursor.isDragging && (

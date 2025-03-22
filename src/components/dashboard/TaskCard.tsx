@@ -1,9 +1,7 @@
-'use client';
+"use client";
 
 import { useState } from "react";
-import { tasks } from "@/db/schema";
-import type { InferSelectModel } from "drizzle-orm";
-import { Calendar, AlertCircle, Pencil, GripVertical, Trash2 } from "lucide-react";
+import { Calendar, Pencil, GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TaskEditDialog from "./TaskEditDialog";
@@ -17,40 +15,42 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-type Task = InferSelectModel<typeof tasks>;
+import { Task } from "./ProjectBoard";
 
 interface TaskCardProps {
   task: Task;
-  onTaskUpdate?: (updatedTask: Task) => void;
-  onTaskDelete?: (taskId: string) => void;
+  onTaskUpdate: (updatedTask: Task) => void;
+  onTaskDelete: (taskId: string) => void;
 }
 
 const priorityConfig = {
   LOW: {
     color: "text-chart-2",
     bg: "bg-chart-2/10",
-    label: "Low"
+    label: "Low",
   },
   MEDIUM: {
     color: "text-chart-3",
     bg: "bg-chart-3/10",
-    label: "Medium"
+    label: "Medium",
   },
   HIGH: {
     color: "text-chart-4",
     bg: "bg-chart-4/10",
-    label: "High"
+    label: "High",
   },
   URGENT: {
     color: "text-destructive",
     bg: "bg-destructive/10",
-    label: "Urgent"
+    label: "Urgent",
   },
 };
 
-export default function TaskCard({ task, onTaskUpdate, onTaskDelete }: TaskCardProps) {
+export default function TaskCard({
+  task,
+  onTaskUpdate,
+  onTaskDelete,
+}: TaskCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const priorityStyle = priorityConfig[task.priority];
@@ -58,20 +58,20 @@ export default function TaskCard({ task, onTaskUpdate, onTaskDelete }: TaskCardP
   const handleDelete = async () => {
     try {
       const response = await fetch(`/api/tasks/delete`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ taskId: task.id }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete task');
+        throw new Error("Failed to delete task");
       }
 
       onTaskDelete?.(task.id);
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error("Error deleting task:", error);
     }
   };
 
@@ -111,25 +111,28 @@ export default function TaskCard({ task, onTaskUpdate, onTaskDelete }: TaskCardP
 
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className={`${priorityStyle.bg} ${priorityStyle.color}`}>
+              <Badge
+                variant="secondary"
+                className={`${priorityStyle.bg} ${priorityStyle.color}`}
+              >
                 {priorityStyle.label}
               </Badge>
-              {task.dueDate && (
+              {task.due_date && (
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  {new Date(task.dueDate).toLocaleDateString()}
+                  {new Date(task.due_date).toLocaleDateString()}
                 </span>
               )}
             </div>
 
-            {task.assignee && (
+            {/* {task.assignee && (
               <Avatar className="h-6 w-6">
                 <AvatarImage src={task.assignee.avatar} />
                 <AvatarFallback>
                   {task.assignee.name?.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-            )}
+            )} */}
           </div>
         </div>
 
@@ -146,12 +149,16 @@ export default function TaskCard({ task, onTaskUpdate, onTaskDelete }: TaskCardP
         onTaskUpdate={onTaskUpdate}
       />
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{task.title}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{task.title}&quot;? This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

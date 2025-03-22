@@ -11,11 +11,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { useRouter } from "next/navigation";
 
 export function Search() {
   const [open, setOpen] = useState(false);
-  const router = useRouter();
 
   // Handle keyboard shortcut to open search
   useEffect(() => {

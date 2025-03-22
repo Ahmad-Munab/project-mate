@@ -1,25 +1,33 @@
-'use client';
+"use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-type Task = {
-  id: string;
-  title: string;
-  description: string | null;
-  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  dueDate?: Date | null;
-};
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Task } from "./ProjectBoard";
 
 type TaskEditDialogProps = {
   task: Task;
@@ -28,22 +36,29 @@ type TaskEditDialogProps = {
   onTaskUpdate: (updatedTask: Task) => void;
 };
 
-export default function TaskEditDialog({ task, open, onOpenChange, onTaskUpdate }: TaskEditDialogProps) {
+export default function TaskEditDialog({
+  task,
+  open,
+  onOpenChange,
+  onTaskUpdate,
+}: TaskEditDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState(task.title);
-  const [description, setDescription] = useState(task.description || '');
+  const [description, setDescription] = useState(task.description || "");
   const [priority, setPriority] = useState(task.priority);
-  const [dueDate, setDueDate] = useState<Date | undefined>(task.dueDate || undefined);
+  const [dueDate, setDueDate] = useState<Date | undefined>(
+    task.due_date || undefined
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/tasks/edit', {
-        method: 'PATCH',
+      const response = await fetch("/api/tasks/edit", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           taskId: task.id,
@@ -55,14 +70,14 @@ export default function TaskEditDialog({ task, open, onOpenChange, onTaskUpdate 
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update task');
+        throw new Error("Failed to update task");
       }
 
       const updatedTask = await response.json();
       onTaskUpdate(updatedTask);
       onOpenChange(false);
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error("Error updating task:", error);
     } finally {
       setIsLoading(false);
     }
@@ -87,7 +102,7 @@ export default function TaskEditDialog({ task, open, onOpenChange, onTaskUpdate 
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -105,7 +120,9 @@ export default function TaskEditDialog({ task, open, onOpenChange, onTaskUpdate 
                 <Label htmlFor="priority">Priority</Label>
                 <Select
                   value={priority}
-                  onValueChange={(value: Task['priority']) => setPriority(value)}
+                  onValueChange={(value: Task["priority"]) =>
+                    setPriority(value)
+                  }
                   disabled={isLoading}
                 >
                   <SelectTrigger>
@@ -159,7 +176,7 @@ export default function TaskEditDialog({ task, open, onOpenChange, onTaskUpdate 
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving Changes...' : 'Save Changes'}
+              {isLoading ? "Saving Changes..." : "Save Changes"}
             </Button>
           </div>
         </form>

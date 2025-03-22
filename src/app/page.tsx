@@ -109,7 +109,7 @@ export default function LandingPage() {
                 <h3 className="text-xl font-semibold mb-2">Kanban Boards</h3>
                 <p className="text-muted-foreground">
                   Visualize your workflow with customizable Kanban boards that
-                  adapt to your team's needs.
+                  adapt to your team&apos;s needs.
                 </p>
               </div>
               <div className="bg-background rounded-lg p-6 shadow-sm">
@@ -176,7 +176,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <p className="italic text-muted-foreground">
-                    "{testimonial.quote}"
+                    &quot;{testimonial.quote}&quot;
                   </p>
                 </div>
               ))}

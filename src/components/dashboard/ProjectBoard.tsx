@@ -29,7 +29,7 @@ import { tasks } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import TaskCreateDialog from "./TaskCreateDialog";
 
-type Task = InferSelectModel<typeof tasks>;
+export type Task = InferSelectModel<typeof tasks>;
 
 // Constants
 const columnColors = {
