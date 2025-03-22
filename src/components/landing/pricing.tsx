@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useRef } from "react"
-import { motion, useInView } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Check, ArrowRight } from "lucide-react"
+import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Check, ArrowRight } from "lucide-react";
 
 export default function Pricing() {
   return (
@@ -54,19 +54,28 @@ export default function Pricing() {
         <div className="mt-12 text-center">
           <p className="text-slate-600 dark:text-slate-300">
             Need a custom plan for your enterprise?{" "}
-            <a href="#" className="text-teal-600 dark:text-teal-400 hover:underline">
+            <a
+              href="#"
+              className="text-teal-600 dark:text-teal-400 hover:underline"
+            >
               Contact us
             </a>
           </p>
         </div>
       </div>
     </section>
-  )
+  );
 }
 
-function SectionHeader({ title, description }: { title: string; description: string }) {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px 0px" })
+function SectionHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px 0px" });
 
   return (
     <div ref={ref} className="text-center max-w-3xl mx-auto">
@@ -87,7 +96,7 @@ function SectionHeader({ title, description }: { title: string; description: str
         {description}
       </motion.p>
     </div>
-  )
+  );
 }
 
 function PricingCard({
@@ -99,16 +108,16 @@ function PricingCard({
   delay,
   popular,
 }: {
-  title: string
-  price: string
-  description: string
-  features: string[]
-  buttonText: string
-  delay: number
-  popular: boolean
+  title: string;
+  price: string;
+  description: string;
+  features: string[];
+  buttonText: string;
+  delay: number;
+  popular: boolean;
 }) {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px 0px" })
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px 0px" });
 
   return (
     <motion.div
@@ -118,57 +127,90 @@ function PricingCard({
       transition={{ duration: 0.6, delay }}
       className={`relative rounded-xl overflow-hidden ${
         popular
-          ? "bg-gradient-to-b from-green-500 to-emerald-600 shadow-xl shadow-green-500/20"
+          ? "bg-gradient-to-b from-emerald-500 to-emerald-600 shadow-xl shadow-green-500/20"
           : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg"
       }`}
     >
-      {popular && (
-        <div className="absolute top-0 right-0">
-          <div className="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg shadow-sm">POPULAR</div>
-        </div>
-      )}
-
       <div className={`p-8 ${popular ? "bg-white/10 backdrop-blur-sm" : ""}`}>
-        <h3 className={`text-2xl font-bold mb-2 ${popular ? "text-white" : "text-slate-900 dark:text-white"}`}>
+        <h3
+          className={`text-2xl font-bold mb-2 ${
+            popular ? "text-white" : "text-slate-900 dark:text-white"
+          }`}
+        >
           {title}
         </h3>
         <div className="flex items-baseline mb-5">
-          <span className={`text-4xl font-bold ${popular ? "text-white" : "text-slate-900 dark:text-white"}`}>
+          <span
+            className={`text-4xl font-bold ${
+              popular ? "text-white" : "text-slate-900 dark:text-white"
+            }`}
+          >
             {price}
           </span>
-          <span className={`ml-2 ${popular ? "text-white/80" : "text-slate-500 dark:text-slate-400"}`}>
+          <span
+            className={`ml-2 ${
+              popular ? "text-white/80" : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
             per user/month
           </span>
         </div>
-        <p className={`mb-6 ${popular ? "text-white/90" : "text-slate-600 dark:text-slate-300"}`}>{description}</p>
+        <p
+          className={`mb-6 ${
+            popular ? "text-white/90" : "text-slate-600 dark:text-slate-300"
+          }`}
+        >
+          {description}
+        </p>
 
         <Button
           className={`w-full ${
             popular
-              ? "bg-white text-green-600 hover:bg-slate-100 shadow-lg"
-              : "bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-500/20"
+              ? "bg-white text-emerald-600 hover:bg-slate-100 shadow-lg"
+              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-500/20"
           } transition-all duration-300 hover:-translate-y-1`}
         >
           {buttonText} <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
 
-      <div className={`p-8 ${popular ? "bg-white/5" : "bg-slate-50 dark:bg-slate-800/50"}`}>
-        <p className={`font-medium mb-4 ${popular ? "text-white" : "text-slate-900 dark:text-white"}`}>
+      <div
+        className={`p-8 ${
+          popular ? "bg-white/5" : "bg-slate-50 dark:bg-slate-800/50"
+        }`}
+      >
+        <p
+          className={`font-medium mb-4 ${
+            popular ? "text-white" : "text-slate-900 dark:text-white"
+          }`}
+        >
           What&apos;s included:
         </p>
         <ul className="space-y-3">
           {features.map((feature, index) => (
             <li key={index} className="flex items-start gap-3">
-              <div className={`mt-1 ${popular ? "text-green-300" : "text-green-500 dark:text-green-400"}`}>
+              <div
+                className={`mt-1 ${
+                  popular
+                    ? "text-emerald-300"
+                    : "text-emerald-500 dark:text-emerald-400"
+                }`}
+              >
                 <Check className="h-5 w-5" />
               </div>
-              <span className={`${popular ? "text-white/90" : "text-slate-600 dark:text-slate-300"}`}>{feature}</span>
+              <span
+                className={`${
+                  popular
+                    ? "text-white/90"
+                    : "text-slate-600 dark:text-slate-300"
+                }`}
+              >
+                {feature}
+              </span>
             </li>
           ))}
         </ul>
       </div>
     </motion.div>
-  )
+  );
 }
-

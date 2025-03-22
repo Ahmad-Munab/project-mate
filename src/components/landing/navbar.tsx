@@ -37,7 +37,7 @@ export default function Navbar() {
       <div className="container mx-auto px-4 flex items-center justify-between">
         <Link
           href="/"
-          className="flex items-center gap-2 text-2xl font-bold text-green-600 dark:text-green-400 transition-transform hover:scale-105"
+          className="flex items-center gap-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400 transition-transform hover:scale-105"
         >
           <Code2 className="h-8 w-8" />
           <span>ProjectMate</span>
@@ -49,11 +49,11 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <Link
               href="/signin"
-              className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+              className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
             >
               Sign In
             </Link>
-            <Button className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-200/20 dark:hover:shadow-green-900/20 transition-all duration-300 hover:-translate-y-1">
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-200/20 dark:hover:shadow-green-900/20 transition-all duration-300 hover:-translate-y-1">
               Get Started Free
             </Button>
           </div>
@@ -81,11 +81,11 @@ export default function Navbar() {
           <div className="flex flex-col gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
             <Link
               href="/signin"
-              className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2"
+              className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2"
             >
               Sign In
             </Link>
-            <Button className="bg-green-600 hover:bg-green-700 text-white w-full">
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full">
               Get Started Free
             </Button>
           </div>

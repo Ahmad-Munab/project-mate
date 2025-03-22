@@ -77,7 +77,7 @@ export default function SocialLinks() {
             <p className="text-slate-600 dark:text-slate-300 mb-4">
               Our support team is available Monday through Friday, 9am-5pm EST.
             </p>
-            <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-medium">
               <Mail className="h-4 w-4" />
               <span>support@ProjectMate.io</span>
             </div>

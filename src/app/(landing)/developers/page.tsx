@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import DeveloperCards from "@/components/developer-cards";
+import DeveloperCards from "@/components/landing/developer-cards";
 
 export const metadata: Metadata = {
   title: "Our Developers | ProjectMate",

@@ -110,9 +110,9 @@ export default function Hero() {
           >
             <Button
               size="lg"
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300 hover:-translate-y-1 text-lg"
+              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300 hover:-translate-y-1 text-lg"
             >
-              Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
+              Get Started Free <ArrowRight className="h-5 w-5" />
             </Button>
             <Button
               size="lg"
@@ -131,15 +131,14 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.8 }}
         >
           <div className="relative mx-auto max-w-5xl overflow-hidden rounded-xl shadow-2xl shadow-teal-500/10 border border-slate-200 dark:border-slate-800">
-            <div className="absolute inset-0 bg-gradient-to-tr from-teal-500/5 to-cyan-500/5 backdrop-blur-sm" />
             <Image
-              src="/placeholder.svg?height=600&width=1200"
+              src="/images/hero-dashboard.png"
               alt="ProjectMate Platform"
               width={1200}
               height={600}
               className="w-full h-auto"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent from-55% to-slate-900/90 " />
             <div className="absolute bottom-0 left-0 p-6 text-white">
               <div className="flex items-center gap-3 mb-2">
                 <Users className="h-5 w-5 text-teal-400" />

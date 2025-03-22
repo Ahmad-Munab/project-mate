@@ -10,7 +10,7 @@ export default function Footer() {
           <div className="md:col-span-1">
             <Link
               href="/"
-              className="flex items-center gap-2 text-xl font-bold text-teal-600 dark:text-teal-400 mb-4"
+              className="flex items-center gap-2 text-xl font-bold text-emerald-600 dark:text-emerald-400 mb-4"
             >
               <Code2 className="h-6 w-6" />
               <span>ProjectMate</span>

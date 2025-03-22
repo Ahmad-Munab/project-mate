@@ -78,7 +78,7 @@ function DeveloperCard({ developer }: { developer: (typeof developers)[0] }) {
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
               {developer.name}
             </h2>
-            <p className="text-green-600 dark:text-green-400 font-medium mb-3">
+            <p className="text-emerald-600 dark:text-emerald-400 font-medium mb-3">
               {developer.role}
             </p>
             <p className="text-slate-600 dark:text-slate-300 mb-4">

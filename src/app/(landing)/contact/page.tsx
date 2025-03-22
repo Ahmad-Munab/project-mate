@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import ContactForm from "@/components/contact-form";
-import SocialLinks from "@/components/social-links";
+import ContactForm from "@/components/landing/contact-form";
+import SocialLinks from "@/components/landing/social-links";
 
 export const metadata: Metadata = {
   title: "Contact Us | ProjectMate",
@@ -17,8 +17,8 @@ export default function ContactPage() {
             Get in <span className="rainbow-text">Touch</span>
           </h1>
           <p className="text-xl text-slate-600 dark:text-slate-300">
-            Have questions or feedback? We'd love to hear from you. Reach out to
-            our team using the form below.
+            Have questions or feedback? We&apos;d love to hear from you. Reach
+            out to our team using the form below.
           </p>
         </div>
 

@@ -1,10 +1,20 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useRef } from "react"
-import { motion, useInView } from "framer-motion"
-import { Sparkles, Users, Braces, LineChart, Zap, MessageSquare, Lightbulb, GitBranch, Bot } from "lucide-react"
+import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import {
+  Sparkles,
+  Users,
+  Braces,
+  LineChart,
+  Zap,
+  MessageSquare,
+  Lightbulb,
+  GitBranch,
+  Bot,
+} from "lucide-react";
 
 export default function Features() {
   return (
@@ -59,12 +69,18 @@ export default function Features() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
-function SectionHeader({ title, description }: { title: string; description: string }) {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px 0px" })
+function SectionHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px 0px" });
 
   return (
     <div ref={ref} className="text-center max-w-3xl mx-auto">
@@ -85,15 +101,18 @@ function SectionHeader({ title, description }: { title: string; description: str
         {description}
       </motion.p>
     </div>
-  )
+  );
 }
 
 function MainFeature() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px 0px" })
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px 0px" });
 
   return (
-    <div ref={ref} className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+    <div
+      ref={ref}
+      className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
+    >
       <motion.div
         initial={{ opacity: 0, x: -50 }}
         animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
@@ -111,14 +130,18 @@ function MainFeature() {
             </div>
             <div className="p-6">
               <div className="flex items-center gap-4 mb-6">
-                <div className="h-12 w-12 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-emerald-600 dark:bg-emerald-800/50 flex items-center justify-center">
                   <div className="bg-rainbow-gradient p-1.5 rounded-full">
                     <Bot className="h-6 w-6 text-white" />
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">AI Project Assistant</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">Analyzing your project...</p>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    AI Project Assistant
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Analyzing your project...
+                  </p>
                 </div>
               </div>
 
@@ -130,7 +153,8 @@ function MainFeature() {
                     </div>
                     <div>
                       <p className="text-sm text-slate-700 dark:text-slate-200">
-                        Based on your team&apos;s velocity, I recommend splitting the authentication feature into 3 smaller
+                        Based on your team&apos;s velocity, I recommend
+                        splitting the authentication feature into 3 smaller
                         tasks:
                       </p>
                       <ul className="mt-2 space-y-1 text-sm text-slate-600 dark:text-slate-300">
@@ -156,8 +180,9 @@ function MainFeature() {
                     <GitBranch className="h-5 w-5 text-purple-500 mt-0.5" />
                     <div>
                       <p className="text-sm text-slate-700 dark:text-slate-200">
-                        I noticed potential conflicts in the API integration branch. Would you like me to suggest a
-                        resolution strategy?
+                        I noticed potential conflicts in the API integration
+                        branch. Would you like me to suggest a resolution
+                        strategy?
                       </p>
                     </div>
                   </div>
@@ -165,11 +190,12 @@ function MainFeature() {
 
                 <div className="p-3 bg-teal-50 dark:bg-teal-900/30 rounded-lg border border-teal-100 dark:border-teal-800/50">
                   <div className="flex items-start gap-3">
-                    <Zap className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5" />
+                    <Zap className="h-5 w-5 text-emerald-800 dark:text-emerald-900 mt-0.5" />
                     <div>
                       <p className="text-sm text-slate-700 dark:text-slate-200">
-                        I&apos;ve generated test cases for the new API endpoints based on your documentation. Would you like
-                        to review them?
+                        I&apos;ve generated test cases for the new API endpoints
+                        based on your documentation. Would you like to review
+                        them?
                       </p>
                     </div>
                   </div>
@@ -192,54 +218,63 @@ function MainFeature() {
             Intelligent Project Assistant
           </h3>
           <p className="text-lg text-slate-600 dark:text-slate-300">
-            Our AI assistant understands your project context, team dynamics, and development patterns to provide
-            personalized recommendations that actually help.
+            Our AI assistant understands your project context, team dynamics,
+            and development patterns to provide personalized recommendations
+            that actually help.
           </p>
         </div>
 
         <div className="space-y-4 mt-6">
           <div className="flex items-start gap-4">
             <div className="h-10 w-10 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center shrink-0 mt-1">
-              <Sparkles className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Smart Task Breakdown</h4>
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Smart Task Breakdown
+              </h4>
               <p className="text-slate-600 dark:text-slate-300">
-                The AI analyzes your project requirements and automatically suggests optimal task divisions based on
-                complexity and team capacity.
+                The AI analyzes your project requirements and automatically
+                suggests optimal task divisions based on complexity and team
+                capacity.
               </p>
             </div>
           </div>
 
           <div className="flex items-start gap-4">
             <div className="h-10 w-10 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center shrink-0 mt-1">
-              <Braces className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <Braces className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Code-Aware Suggestions</h4>
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Code-Aware Suggestions
+              </h4>
               <p className="text-slate-600 dark:text-slate-300">
-                Get contextual recommendations based on your actual codebase, not generic advice that doesn&apos;t apply to
-                your project.
+                Get contextual recommendations based on your actual codebase,
+                not generic advice that doesn&apos;t apply to your project.
               </p>
             </div>
           </div>
 
           <div className="flex items-start gap-4">
             <div className="h-10 w-10 rounded-full bg-teal-100 dark:bg-teal-900/50 flex items-center justify-center shrink-0 mt-1">
-              <LineChart className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <LineChart className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             </div>
             <div>
-              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Predictive Analytics</h4>
+              <h4 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Predictive Analytics
+              </h4>
               <p className="text-slate-600 dark:text-slate-300">
-                Forecast project timelines, identify potential bottlenecks, and get early warnings about risks before
-                they impact your delivery schedule.
+                Forecast project timelines, identify potential bottlenecks, and
+                get early warnings about risks before they impact your delivery
+                schedule.
               </p>
             </div>
           </div>
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
 
 function FeatureCard({
@@ -247,9 +282,14 @@ function FeatureCard({
   title,
   description,
   delay,
-}: { icon: React.ReactNode; title: string; description: string; delay: number }) {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px 0px" })
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  delay: number;
+}) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px 0px" });
 
   return (
     <motion.div
@@ -262,9 +302,10 @@ function FeatureCard({
       <div className="h-12 w-12 rounded-lg bg-white dark:bg-slate-700 shadow-sm flex items-center justify-center mb-5 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 transition-colors duration-300">
         {icon}
       </div>
-      <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">{title}</h3>
+      <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-3">
+        {title}
+      </h3>
       <p className="text-slate-600 dark:text-slate-300">{description}</p>
     </motion.div>
-  )
+  );
 }
-
