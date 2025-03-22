@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db-push": "npx drizzle-kit push",
+    "db-push-develop": "cross-env DRIZZLE_ENV=develop npx drizzle-kit push"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
@@ -52,6 +54,7 @@
     "@types/pg": "^8.11.11",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
     "drizzle-kit": "^0.30.5",
     "eslint": "^9",
     "eslint-config-next": "15.2.1",

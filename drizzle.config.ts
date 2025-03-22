@@ -1,7 +1,6 @@
-import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
-const isDevelop = process.argv.includes("--develop");
+const isDevelop = process.env.DRIZZLE_ENV === "develop";
 
 const dbUrl = isDevelop
   ? process.env.DEVELOP_DATABASE_URL
