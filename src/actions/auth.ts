@@ -1,166 +1,176 @@
 "use server";
 
-import { db } from "@/db";
-import { users } from "@/db/schema";
+// import { db } from "@/db";
 import { Provider } from "@/types/auth";
 import { getURL } from "@/utils/helpers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { NextRequest } from "next/server";
-import { z } from "zod";
+// import { z } from "zod";
 
-// Define validation schema for email/password authentication
-const emailSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+// // Define validation schema for email/password authentication
+// const emailSchema = z.object({
+//   email: z.string().email(),
+//   password: z.string().min(6),
+// });
 
-/**
- * Handles email/password login
- */
-export async function emailLogin(formData: FormData) {
-  try {
-    const supabase = await createClient();
-    
-    // Validate input
-    const parsed = emailSchema.safeParse(Object.fromEntries(formData));
-    if (!parsed.success) {
-      return { error: "Please enter a valid email and password" };
-    }
+// /**
+//  * Handles email/password login
+//  */
+// export async function emailLogin(formData: FormData) {
+//   try {
+//     const supabase = await createClient();
 
-    // Attempt to sign in
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email: parsed.data.email,
-      password: parsed.data.password
-    });
+//     // Validate input
+//     const parsed = emailSchema.safeParse(Object.fromEntries(formData));
+//     if (!parsed.success) {
+//       return { error: "Please enter a valid email and password" };
+//     }
 
-    console.log('Login attempt:', {
-      success: !!data.session,
-      error: signInError?.message,
-      hasUser: !!data.user
-    });
+//     // Attempt to sign in
+//     const { data, error: signInError } = await supabase.auth.signInWithPassword(
+//       {
+//         email: parsed.data.email,
+//         password: parsed.data.password,
+//       }
+//     );
 
-    if (signInError) {
-      if (signInError.message.includes("Invalid login credentials")) {
-        // Check if user exists in our database
-        const existingUser = await db.query.users.findFirst({
-          where: (users, { eq }) => eq(users.email, parsed.data.email)
-        });
+//     console.log("Login attempt:", {
+//       success: !!data.session,
+//       error: signInError?.message,
+//       hasUser: !!data.user,
+//     });
 
-        if (!existingUser) {
-          return { 
-            error: "Account not found. Would you like to sign up?",
-            showSignUp: true 
-          };
-        }
-        return { error: "Incorrect password" };
-      }
-      return { error: signInError.message };
-    }
+//     if (signInError) {
+//       if (signInError.message.includes("Invalid login credentials")) {
+//         // Check if user exists in our database
+//         const existingUser = await db.query.users.findFirst({
+//           where: (users, { eq }) => eq(users.email, parsed.data.email),
+//         });
 
-    if (!data.user || !data.session) {
-      return { error: "Authentication failed" };
-    }
+//         if (!existingUser) {
+//           return {
+//             error: "Account not found. Would you like to sign up?",
+//             showSignUp: true,
+//           };
+//         }
+//         return { error: "Incorrect password" };
+//       }
+//       return { error: signInError.message };
+//     }
 
-    // Make sure we have a valid session before proceeding
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError || !session) {
-      console.error('Session verification failed:', sessionError);
-      return { error: "Failed to establish session" };
-    }
+//     if (!data.user || !data.session) {
+//       return { error: "Authentication failed" };
+//     }
 
-    try {
-      // Try to insert/update user in database
-      await db.insert(users).values({
-        id: data.user.id,
-        email: data.user.email!,
-      }).onConflictDoUpdate({
-        target: [users.email],
-        set: { id: data.user.id }
-      });
-    } catch (dbError) {
-      // If there's a database error, log it but don't fail the login
-      console.error("Database sync error:", dbError);
-      // We can still continue since the auth was successful
-    }
+//     // Make sure we have a valid session before proceeding
+//     const {
+//       data: { session },
+//       error: sessionError,
+//     } = await supabase.auth.getSession();
 
-    // Return success with session
-    return { 
-      success: true,
-      session: session 
-    };
+//     if (sessionError || !session) {
+//       console.error("Session verification failed:", sessionError);
+//       return { error: "Failed to establish session" };
+//     }
 
-  } catch (error) {
-    console.error("Login error:", error);
-    return { error: "An unexpected error occurred" };
-  }
-}
+//     try {
+//       // Try to insert/update user in database
+//       await db
+//         .insert(users)
+//         .values({
+//           id: data.user.id,
+//           email: data.user.email!,
+//         })
+//         .onConflictDoUpdate({
+//           target: [users.email],
+//           set: { id: data.user.id },
+//         });
+//     } catch (dbError) {
+//       // If there's a database error, log it but don't fail the login
+//       console.error("Database sync error:", dbError);
+//       // We can still continue since the auth was successful
+//     }
 
-/**
- * Handles new user registration
- */
-export async function signup(formData: FormData) {
-  try {
-    const supabase = await createClient();
-    
-    // Validate input data
-    const parsed = emailSchema.safeParse(Object.fromEntries(formData));
+//     // Return success with session
+//     return {
+//       success: true,
+//       session: session,
+//     };
+//   } catch (error) {
+//     console.error("Login error:", error);
+//     return { error: "An unexpected error occurred" };
+//   }
+// }
 
-    if (!parsed.success) {
-      return { error: "Please enter valid email and password" };
-    }
+// /**
+//  * Handles new user registration
+//  */
+// export async function signup(formData: FormData) {
+//   try {
+//     const supabase = await createClient();
 
-    // First check if user already exists in our database
-    const existingUser = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, parsed.data.email)
-    });
+//     // Validate input data
+//     const parsed = emailSchema.safeParse(Object.fromEntries(formData));
 
-    if (existingUser) {
-      return { error: "An account with this email already exists" };
-    }
+//     if (!parsed.success) {
+//       return { error: "Please enter valid email and password" };
+//     }
 
-    // Attempt to create new user in Supabase
-    const { data: { user }, error } = await supabase.auth.signUp({
-      email: parsed.data.email,
-      password: parsed.data.password,
-      options: {
-        emailRedirectTo: `${getURL()}/auth/callback`,
-      }
-    });
+//     // First check if user already exists in our database
+//     const existingUser = await db.query.users.findFirst({
+//       where: (users, { eq }) => eq(users.email, parsed.data.email),
+//     });
 
-    if (error) {
-      console.error("Signup error:", error);
-      if (error.message.includes("User already registered")) {
-        return { error: "An account with this email already exists" };
-      }
-      return { error: "Failed to create account" };
-    }
+//     if (existingUser) {
+//       return { error: "An account with this email already exists" };
+//     }
 
-    if (!user) {
-      return { error: "Failed to create account" };
-    }
+//     // Attempt to create new user in Supabase
+//     const {
+//       data: { user },
+//       error,
+//     } = await supabase.auth.signUp({
+//       email: parsed.data.email,
+//       password: parsed.data.password,
+//       options: {
+//         emailRedirectTo: `${getURL()}/auth/callback`,
+//       },
+//     });
 
-    try {
-      // Store user in database
-      await db.insert(users)
-        .values({
-          id: user.id,
-          email: user.email!,
-        })
-        .onConflictDoNothing(); // Changed from onConflictDoUpdate to onConflictDoNothing
-    } catch (dbError) {
-      // If database insertion fails, it's likely because the user already exists
-      // We can safely ignore this as the user will be synced during their first login
-      console.log("DB insertion skipped - user likely exists:", dbError);
-    }
+//     if (error) {
+//       console.error("Signup error:", error);
+//       if (error.message.includes("User already registered")) {
+//         return { error: "An account with this email already exists" };
+//       }
+//       return { error: "Failed to create account" };
+//     }
 
-    return { success: true };
-  } catch (error) {
-    console.error("Signup error:", error);
-    return { error: "An unexpected error occurred" };
-  }
-}
+//     if (!user) {
+//       return { error: "Failed to create account" };
+//     }
+
+//     try {
+//       // Store user in database
+//       await db
+//         .insert(users)
+//         .values({
+//           id: user.id,
+//           email: user.email!,
+//         })
+//         .onConflictDoNothing(); // Changed from onConflictDoUpdate to onConflictDoNothing
+//     } catch (dbError) {
+//       // If database insertion fails, it's likely because the user already exists
+//       // We can safely ignore this as the user will be synced during their first login
+//       console.log("DB insertion skipped - user likely exists:", dbError);
+//     }
+
+//     return { success: true };
+//   } catch (error) {
+//     console.error("Signup error:", error);
+//     return { error: "An unexpected error occurred" };
+//   }
+// }
 
 /**
  * Handles OAuth authentication (Google/GitHub)
@@ -176,8 +186,8 @@ export async function oAuthSignIn(provider: Provider) {
       options: {
         redirectTo: `${getURL()}/auth/callback`,
         queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
+          access_type: "offline",
+          prompt: "consent",
         },
       },
     });
@@ -192,7 +202,7 @@ export async function oAuthSignIn(provider: Provider) {
 
     return { url: data.url };
   } catch (err) {
-    console.error('OAuth error:', err);
+    console.error("OAuth error:", err);
     throw err;
   }
 }
@@ -206,16 +216,16 @@ export async function signInWithMagicLink(formData: FormData) {
     const supabase = await createClient();
     const email = formData.get("email");
 
-    if (!email || typeof email !== 'string') {
+    if (!email || typeof email !== "string") {
       return { error: "Please provide a valid email address" };
     }
-    
+
     // Send magic link email
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${getURL()}/auth/callback`,
-      }
+      },
     });
 
     if (error) {
@@ -264,20 +274,27 @@ export async function handleAuthCallback(request?: NextRequest) {
     }
 
     // Get authenticated user details
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
     if (error || !user) {
       return redirect("/login?error=Authentication failed");
     }
 
-    // Store or update user in our database
-    await db.insert(users).values({
-      id: user.id,
-      email: user.email!,
-    }).onConflictDoUpdate({
-      target: users.id,
-      set: { email: user.email! }
-    });
+    // console.log("new user being added to bd", user.id, user.email);
+    // // Store or update user in our database
+    // await db
+    //   .insert(users)
+    //   .values({
+    //     id: user.id,
+    //     email: user.email!,
+    //   })
+    //   .onConflictDoUpdate({
+    //     target: users.id,
+    //     set: { email: user.email! },
+    //   });
 
     // Redirect to dashboard after successful authentication
     return redirect("/dashboard");
@@ -286,27 +303,27 @@ export async function handleAuthCallback(request?: NextRequest) {
     return redirect("/login?error=Authentication failed");
   }
 }
-/**
- * Handles password reset request
- */
-export async function forgotPassword(email: string) {
-  try {
-    const supabase = await createClient();
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${getURL()}/auth/callback?type=recovery`,
-    });
+// /**
+//  * Handles password reset request
+//  */
+// export async function forgotPassword(email: string) {
+//   try {
+//     const supabase = await createClient();
 
-    if (error) {
-      return { error: "Failed to send password reset email" };
-    }
+//     const { error } = await supabase.auth.resetPasswordForEmail(email, {
+//       redirectTo: `${getURL()}/auth/callback?type=recovery`,
+//     });
 
-    return { 
-      success: true, 
-      message: "Password reset instructions sent to your email" 
-    };
-  } catch (error) {
-    console.error("Password reset error:", error);
-    return { error: "An unexpected error occurred" };
-  }
-}
+//     if (error) {
+//       return { error: "Failed to send password reset email" };
+//     }
+
+//     return {
+//       success: true,
+//       message: "Password reset instructions sent to your email",
+//     };
+//   } catch (error) {
+//     console.error("Password reset error:", error);
+//     return { error: "An unexpected error occurred" };
+//   }
+// }

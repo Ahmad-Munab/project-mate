@@ -1,7 +1,5 @@
-// app/login/page.tsx
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
-import { EmailPasswordForm } from "@/components/auth/EmailPasswordForm";
 
 export default function LoginPage() {
   return (
@@ -21,17 +19,6 @@ export default function LoginPage() {
         </div>
 
         <MagicLinkForm />
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">Or</span>
-          </div>
-        </div>
-
-        <EmailPasswordForm />
       </div>
     </div>
   );
