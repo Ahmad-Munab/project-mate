@@ -20,7 +20,6 @@ export async function createProject(formData: FormData) {
   }
 
   try {
-    console.log('Generating project plan...');
     const plan = await generateProjectPlan(idea);
     
     if (!plan.name || !plan.description || !Array.isArray(plan.tasks)) {
@@ -28,7 +27,6 @@ export async function createProject(formData: FormData) {
       return { error: 'Invalid AI response structure' };
     }
 
-    console.log('Creating project in database...');
     const [newProject] = await db.insert(projects)
       .values({
         name: plan.name,
@@ -41,7 +39,6 @@ export async function createProject(formData: FormData) {
       return { error: 'Failed to create project record' };
     }
 
-    console.log('Adding project member...');
     await db.insert(projectMembers)
       .values({
         projectId: newProject.id,
@@ -49,7 +46,6 @@ export async function createProject(formData: FormData) {
         role: 'OWNER',
       });
 
-    console.log('Creating tasks...');
     const taskPromises = plan.tasks.map(task => 
       db.insert(tasks)
         .values({
@@ -63,7 +59,6 @@ export async function createProject(formData: FormData) {
     );
 
     await Promise.all(taskPromises);
-    console.log('Project creation completed successfully');
 
     return { success: true, projectId: newProject.id };
   } catch (error) {

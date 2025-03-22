@@ -38,7 +38,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create the project
     const [newProject] = await db
       .insert(projects)
       .values({

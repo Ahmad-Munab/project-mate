@@ -52,8 +52,6 @@ Rules:
       throw new Error("No response from AI");
     }
 
-    console.log("Raw AI response:", content);
-
     let cleanContent = content;
     const jsonMatch =
       content.match(/```json?\s*({[\s\S]*})\s*```/) ||
@@ -63,8 +61,6 @@ Rules:
     if (jsonMatch) {
       cleanContent = jsonMatch[1];
     }
-
-    console.log("Cleaned content:", cleanContent);
 
     try {
       const parsed = JSON.parse(cleanContent.trim());
