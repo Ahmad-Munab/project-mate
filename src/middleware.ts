@@ -1,40 +1,99 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// Define public routes that don't require authentication
+const publicRoutes = ["/", "/signin", "/auth"];
+
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
+
+  // Initialize Supabase client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { get: (name) => request.cookies.get(name)?.value } }
+    {
+      cookies: {
+        get: (name) => {
+          // Get all cookies that start with the name
+          const cookies = request.cookies
+            .getAll()
+            .filter((cookie) => cookie.name.startsWith(name))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+          // If we have split cookies, combine them
+          if (cookies.length > 1) {
+            return cookies.map((c) => c.value).join("");
+          }
+
+          // Otherwise return the single cookie value
+          return request.cookies.get(name)?.value;
+        },
+        set: (name, value, options) => {
+          // Handle cookie size limits by splitting if necessary
+          if (value.length > 4000) {
+            const chunks = value.match(/.{1,4000}/g) || [];
+            chunks.forEach((chunk, i) => {
+              response.cookies.set({
+                name: `${name}.${i}`,
+                value: chunk,
+                ...options,
+                path: "/",
+              });
+            });
+          } else {
+            response.cookies.set({
+              name,
+              value,
+              ...options,
+              path: "/",
+            });
+          }
+        },
+        remove: (name, options) => {
+          // Remove all related cookies
+          const cookies = request.cookies
+            .getAll()
+            .filter((cookie) => cookie.name.startsWith(name));
+
+          cookies.forEach((cookie) => {
+            response.cookies.set({
+              name: cookie.name,
+              value: "",
+              ...options,
+              path: "/",
+              expires: new Date(0),
+            });
+          });
+        },
+      },
+    }
   );
 
-  // Handle OTP callback
-  if (request.nextUrl.pathname === "/auth/callback") {
-    const token_hash = request.nextUrl.searchParams.get("token_hash");
-    const type = request.nextUrl.searchParams.get("type");
+  // Check if the current route is public
+  const isPublicRoute = publicRoutes.some((route) =>
+    request.nextUrl.pathname.startsWith(route)
+  );
 
-    if (token_hash && type === "magiclink") {
-      const { error } = await supabase.auth.verifyOtp({
-        type,
-        token_hash,
-      });
+  if (!isPublicRoute) {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-      if (error) {
-        return NextResponse.redirect(
-          new URL("/login?error=Invalid magic link", request.url)
-        );
+      if (!session) {
+        return NextResponse.redirect(new URL("/signin", request.url));
       }
+    } catch (error) {
+      console.error("Auth check error:", error);
+      return NextResponse.redirect(new URL("/signin", request.url));
     }
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user && !request.nextUrl.pathname.startsWith("/auth")) {
-    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   return response;
 }
+
+// Configure which routes use this middleware
+export const config = {
+  // Exclude static files and API routes if needed
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};
