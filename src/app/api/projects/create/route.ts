@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projects, projectMembers, tasks } from "@/db/schema";
-import { generateProjectPlan } from "@/app/projects/new/generatePlan";
+import { generateProjectPlan } from "@/app/(dashboard)/projects/new/generatePlan";
 
 export async function POST(request: Request) {
   try {
