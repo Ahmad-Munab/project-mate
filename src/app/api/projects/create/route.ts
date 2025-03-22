@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
-import { projects, projectMembers, tasks } from "@/db/schema";
+import { projects, projectMembers, tasks, users } from "@/db/schema";
 import { generateProjectPlan } from "@/app/projects/new/generatePlan";
 
 export async function POST(request: Request) {
@@ -15,6 +15,14 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+
+    // Ensure user exists in database
+    await db.insert(users)
+      .values({
+        id: user.id,
+        email: user.email!,
+      })
+      .onConflictDoNothing();
 
     const formData = await request.formData();
     const idea = formData.get('idea') as string;
@@ -60,7 +68,7 @@ export async function POST(request: Request) {
       });
 
     // Create initial tasks
-    const taskPromises = plan.tasks.map(task => 
+    const taskPromises = plan.tasks.map((task: { title: any; description: any; status: any; priority: any; }) => 
       db.insert(tasks)
         .values({
           title: task.title,

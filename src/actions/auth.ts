@@ -15,6 +15,19 @@ const emailSchema = z.object({
   password: z.string().min(6),
 });
 
+async function ensureUserInDatabase(user: { id: string, email: string }) {
+  try {
+    await db.insert(users)
+      .values({
+        id: user.id,
+        email: user.email,
+      })
+      .onConflictDoNothing();
+  } catch (error) {
+    console.error('Error ensuring user in database:', error);
+  }
+}
+
 /**
  * Handles email/password login
  */

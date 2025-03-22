@@ -50,7 +50,7 @@ export async function createProject(formData: FormData) {
       });
 
     console.log('Creating tasks...');
-    const taskPromises = plan.tasks.map(task => 
+    const taskPromises = plan.tasks.map((task: { title: any; description: any; status: any; priority: any; }) => 
       db.insert(tasks)
         .values({
           title: task.title,

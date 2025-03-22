@@ -103,7 +103,7 @@ Rules:
     } catch (parseError) {
       console.error('Parse error details:', parseError);
       console.error('Failed content:', cleanContent);
-      throw new Error(`Failed to parse AI response: ${parseError.message}`);
+      throw new Error(`Failed to parse AI response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
     }
   } catch (error) {
     console.error('AI generation error:', error);
