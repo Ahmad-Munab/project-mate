@@ -6,6 +6,7 @@ import { Provider } from "@/types/auth";
 import { getURL } from "@/utils/helpers";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 
 // Define validation schema for email/password authentication
@@ -56,14 +57,20 @@ export async function emailLogin(formData: FormData) {
       return { error: "No user found" };
     }
 
-    // Store user in database
-    await db.insert(users).values({
-      id: data.user.id,
-      email: data.user.email!,
-    }).onConflictDoUpdate({
-      target: users.id,
-      set: { email: data.user.email! }
-    });
+    try {
+      // Try to insert/update user in database
+      await db.insert(users).values({
+        id: data.user.id,
+        email: data.user.email!,
+      }).onConflictDoUpdate({
+        target: [users.email],
+        set: { id: data.user.id }
+      });
+    } catch (dbError) {
+      // If there's a database error, log it but don't fail the login
+      console.error("Database sync error:", dbError);
+      // We can still continue since the auth was successful
+    }
 
     // Return success with session
     return { 
@@ -148,11 +155,8 @@ export async function signup(formData: FormData) {
  */
 export async function oAuthSignIn(provider: Provider) {
   try {
+    // Await the client creation
     const supabase = await createClient();
-    
-    if (!supabase || !supabase.auth) {
-      throw new Error("Failed to initialize Supabase client");
-    }
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
@@ -173,7 +177,6 @@ export async function oAuthSignIn(provider: Provider) {
       throw new Error("No OAuth URL returned");
     }
 
-    // Return the URL instead of redirecting
     return { url: data.url };
   } catch (err) {
     console.error('OAuth error:', err);
@@ -219,7 +222,8 @@ export async function signInWithMagicLink(formData: FormData) {
  * @param request - Next.js request object containing callback parameters
  */
 export async function handleAuthCallback(request?: NextRequest) {
-  const supabase = createClient();
+  // Await the client creation
+  const supabase = await createClient();
   const searchParams = request?.nextUrl?.searchParams;
   const token_hash = searchParams?.get("token_hash");
   const type = searchParams?.get("type");
@@ -267,5 +271,29 @@ export async function handleAuthCallback(request?: NextRequest) {
   } catch (error) {
     console.error("Auth callback error:", error);
     return redirect("/login?error=Authentication failed");
+  }
+}
+/**
+ * Handles password reset request
+ */
+export async function forgotPassword(email: string) {
+  try {
+    const supabase = await createClient();
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${getURL()}/auth/callback?type=recovery`,
+    });
+
+    if (error) {
+      return { error: "Failed to send password reset email" };
+    }
+
+    return { 
+      success: true, 
+      message: "Password reset instructions sent to your email" 
+    };
+  } catch (error) {
+    console.error("Password reset error:", error);
+    return { error: "An unexpected error occurred" };
   }
 }
