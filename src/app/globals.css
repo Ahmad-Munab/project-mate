@@ -244,7 +244,7 @@ html {
 }
 
 .rainbow-text {
-  background: linear-gradient(to bottom right, #9cebff, #53cc9e, #3ca7ff, #3cfff5, #3cffb5);
+  background: linear-gradient(to bottom right, #9cebff, #53cc9e, #3cc8ff, #3cfff5, #3cffb5);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

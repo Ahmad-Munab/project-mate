@@ -2,11 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Define public routes that don't require authentication
-const publicRoutes = ['/login', '/signup', '/auth'];
+const publicRoutes = ["/", "/signin", "/auth"];
 
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
-  
+
   // Initialize Supabase client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,15 +15,16 @@ export async function middleware(request: NextRequest) {
       cookies: {
         get: (name) => {
           // Get all cookies that start with the name
-          const cookies = request.cookies.getAll()
-            .filter(cookie => cookie.name.startsWith(name))
+          const cookies = request.cookies
+            .getAll()
+            .filter((cookie) => cookie.name.startsWith(name))
             .sort((a, b) => a.name.localeCompare(b.name));
-          
+
           // If we have split cookies, combine them
           if (cookies.length > 1) {
-            return cookies.map(c => c.value).join('');
+            return cookies.map((c) => c.value).join("");
           }
-          
+
           // Otherwise return the single cookie value
           return request.cookies.get(name)?.value;
         },
@@ -36,7 +37,7 @@ export async function middleware(request: NextRequest) {
                 name: `${name}.${i}`,
                 value: chunk,
                 ...options,
-                path: '/'
+                path: "/",
               });
             });
           } else {
@@ -44,22 +45,23 @@ export async function middleware(request: NextRequest) {
               name,
               value,
               ...options,
-              path: '/'
+              path: "/",
             });
           }
         },
         remove: (name, options) => {
           // Remove all related cookies
-          const cookies = request.cookies.getAll()
-            .filter(cookie => cookie.name.startsWith(name));
-          
-          cookies.forEach(cookie => {
+          const cookies = request.cookies
+            .getAll()
+            .filter((cookie) => cookie.name.startsWith(name));
+
+          cookies.forEach((cookie) => {
             response.cookies.set({
               name: cookie.name,
-              value: '',
+              value: "",
               ...options,
-              path: '/',
-              expires: new Date(0)
+              path: "/",
+              expires: new Date(0),
             });
           });
         },
@@ -68,20 +70,22 @@ export async function middleware(request: NextRequest) {
   );
 
   // Check if the current route is public
-  const isPublicRoute = publicRoutes.some(route => 
+  const isPublicRoute = publicRoutes.some((route) =>
     request.nextUrl.pathname.startsWith(route)
   );
 
   if (!isPublicRoute) {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session) {
-        return NextResponse.redirect(new URL("/login", request.url));
+        return NextResponse.redirect(new URL("/signin", request.url));
       }
     } catch (error) {
-      console.error('Auth check error:', error);
-      return NextResponse.redirect(new URL("/login", request.url));
+      console.error("Auth check error:", error);
+      return NextResponse.redirect(new URL("/signin", request.url));
     }
   }
 
@@ -91,5 +95,5 @@ export async function middleware(request: NextRequest) {
 // Configure which routes use this middleware
 export const config = {
   // Exclude static files and API routes if needed
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-}
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};

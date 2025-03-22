@@ -1,25 +1,16 @@
-import { OAuthButtons } from "@/components/auth/OAuthButtons";
-import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
+import SignInForm from "@/components/auth/sign-in-form";
+import type { Metadata } from "next";
 
-export default function LoginPage() {
+export const metadata: Metadata = {
+  title: "Sign In | ProjectMate",
+  description:
+    "Sign in to your ProjectMate account to access your projects and collaborate with your team.",
+};
+
+export default function SignInPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg">
-        <h1 className="text-center text-2xl font-bold">Sign In</h1>
-
-        <OAuthButtons />
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300" />
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">Or</span>
-          </div>
-        </div>
-
-        <MagicLinkForm />
-      </div>
-    </div>
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-green-50 dark:from-slate-950 dark:to-green-950/30 py-12 px-4">
+      <SignInForm />
+    </main>
   );
 }

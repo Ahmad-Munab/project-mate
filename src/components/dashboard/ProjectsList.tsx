@@ -9,11 +9,14 @@ import { Plus } from "lucide-react";
 
 async function getProjects() {
   const supabase = await createClient();
-  
-  const { data: { user }, error } = await supabase.auth.getUser();
-  
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+
   if (error || !user) {
-    redirect('/login');
+    redirect("/signin");
   }
 
   try {
@@ -52,7 +55,9 @@ export default async function ProjectsList() {
         <div className="p-4 text-center text-muted-foreground flex-1 flex items-center justify-center">
           <div>
             <p>No projects found.</p>
-            <p className="text-sm mt-1">Create your first project to get started.</p>
+            <p className="text-sm mt-1">
+              Create your first project to get started.
+            </p>
           </div>
         </div>
       ) : (

@@ -15,14 +15,14 @@ export function OAuthButtons() {
     try {
       setIsLoading(provider);
       const result = await oAuthSignIn(provider);
-      
+
       // Client-side redirect to the OAuth provider
       if (result?.url) {
         window.location.href = result.url;
       }
     } catch (error) {
       console.error(`${provider} OAuth error:`, error);
-      router.push(`/login?error=OAuth configuration error`);
+      router.push(`/signin?error=OAuth configuration error`);
     } finally {
       setIsLoading(null);
     }

@@ -95,7 +95,7 @@ export async function handleAuthCallback(request?: NextRequest) {
       });
 
       if (error) {
-        return redirect("/login?error=Invalid magic link");
+        return redirect("/signin?error=Invalid magic link");
       }
     }
 
@@ -103,7 +103,7 @@ export async function handleAuthCallback(request?: NextRequest) {
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) {
-        return redirect("/login?error=Authentication failed");
+        return redirect("/signin?error=Authentication failed");
       }
     }
 
@@ -114,13 +114,13 @@ export async function handleAuthCallback(request?: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (error || !user) {
-      return redirect("/login?error=Authentication failed");
+      return redirect("/signin?error=Authentication failed");
     }
 
     // Redirect to dashboard after successful authentication
     return redirect("/dashboard");
   } catch (error) {
     console.error("Auth callback error:", error);
-    return redirect("/login?error=Authentication failed");
+    return redirect("/signin?error=Authentication failed");
   }
 }

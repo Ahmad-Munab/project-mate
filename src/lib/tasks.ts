@@ -6,11 +6,14 @@ import { redirect } from "next/navigation";
 
 export async function getProjectTasks(projectId: string) {
   const supabase = await createClient();
-  
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
   if (authError || !user) {
-    redirect('/login');
+    redirect("/signin");
   }
 
   try {

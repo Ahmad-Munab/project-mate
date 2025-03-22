@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
@@ -30,8 +30,10 @@ export function UserNav() {
   useEffect(() => {
     async function fetchUserData() {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (user) {
         setUserData({
           email: user.email,
@@ -47,20 +49,27 @@ export function UserNav() {
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/login');
+    router.push("/signin");
   };
 
   const initials = userData.name
-    ? userData.name.split(' ').map(n => n[0]).join('').toUpperCase()
+    ? userData.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
     : userData.email
-      ? userData.email[0].toUpperCase()
-      : '?';
+    ? userData.email[0].toUpperCase()
+    : "?";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Avatar className="h-8 w-8 cursor-pointer">
-          <AvatarImage src={userData.avatarUrl} alt={userData.name || "User avatar"} />
+          <AvatarImage
+            src={userData.avatarUrl}
+            alt={userData.name || "User avatar"}
+          />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
@@ -74,12 +83,10 @@ export function UserNav() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => router.push('/settings')}>
+        <DropdownMenuItem onSelect={() => router.push("/settings")}>
           Settings
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={handleSignOut}>
-          Sign out
-        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={handleSignOut}>Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

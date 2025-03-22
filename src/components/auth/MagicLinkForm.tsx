@@ -17,16 +17,16 @@ type FormValues = z.infer<typeof schema>;
 export function MagicLinkForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<{
-    type: 'error' | 'success' | null;
+    type: "error" | "success" | null;
     message: string | null;
   }>({ type: null, message: null });
 
   const {
     register,
     handleSubmit,
-    formState: { errors }
+    formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema)
+    resolver: zodResolver(schema),
   });
 
   const onSubmit = async (data: FormValues) => {
@@ -40,18 +40,18 @@ export function MagicLinkForm() {
       const result = await signInWithMagicLink(formData);
 
       if (result.error) {
-        setStatus({ type: 'error', message: result.error });
+        setStatus({ type: "error", message: result.error });
       } else if (result.success) {
-        setStatus({ 
-          type: 'success', 
-          message: result.message || "Check your email for the login link!" 
+        setStatus({
+          type: "success",
+          message: result.message || "Check your email for the login link!",
         });
       }
     } catch (error) {
       console.error("Magic link submission error:", error);
-      setStatus({ 
-        type: 'error', 
-        message: "Failed to send magic link. Please try again." 
+      setStatus({
+        type: "error",
+        message: "Failed to send magic link. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -72,25 +72,25 @@ export function MagicLinkForm() {
           className={errors.email ? "border-destructive" : ""}
         />
         {errors.email && (
-          <p className="text-sm text-destructive mt-1">{errors.email.message}</p>
+          <p className="text-sm text-destructive mt-1">
+            {errors.email.message}
+          </p>
         )}
       </div>
 
       {status.message && (
-        <div className={`p-3 rounded text-sm ${
-          status.type === 'error' 
-            ? 'bg-destructive/10 text-destructive border border-destructive/20' 
-            : 'bg-green-100 text-green-700 border border-green-200'
-        }`}>
+        <div
+          className={`p-3 rounded text-sm ${
+            status.type === "error"
+              ? "bg-destructive/10 text-destructive border border-destructive/20"
+              : "bg-green-100 text-green-700 border border-green-200"
+          }`}
+        >
           {status.message}
         </div>
       )}
 
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={isLoading}
-      >
+      <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? "Sending..." : "Send Magic Link"}
       </Button>
     </form>
