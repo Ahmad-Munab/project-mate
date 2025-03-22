@@ -1,36 +1,39 @@
-import { Database } from "@/types/supabase";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies, type UnsafeUnwrappedCookies } from "next/headers";
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 export async function createClient() {
-  const cookieStore = (await cookies()) as unknown as UnsafeUnwrappedCookies;
-
-  return createServerClient<Database>(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
+        get: async (name) => {
+          const cookieStore = await cookies();
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
+        set: async (name, value, options) => {
           try {
-            cookieStore.set({ name, value, ...options });
+            const cookieStore = await cookies();
+            cookieStore.set(name, value, {
+              ...options,
+              path: '/',
+              sameSite: 'lax',
+              secure: process.env.NODE_ENV === 'production'
+            });
           } catch (error) {
-            console.error(error);
-            // The `set` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            console.error('Error setting cookie:', error);
           }
         },
-        remove(name: string, options: CookieOptions) {
+        remove: async (name, options) => {
           try {
-            cookieStore.set({ name, value: "", ...options });
+            const cookieStore = await cookies();
+            cookieStore.set(name, '', {
+              ...options,
+              path: '/',
+              expires: new Date(0)
+            });
           } catch (error) {
-            console.error(error);
-            // The `delete` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            console.error('Error removing cookie:', error);
           }
         },
       },

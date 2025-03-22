@@ -34,7 +34,12 @@ export async function emailLogin(formData: FormData) {
       password: parsed.data.password
     });
 
-    // Handle specific error cases
+    console.log('Login attempt:', {
+      success: !!data.session,
+      error: signInError?.message,
+      hasUser: !!data.user
+    });
+
     if (signInError) {
       if (signInError.message.includes("Invalid login credentials")) {
         // Check if user exists in our database
@@ -53,8 +58,16 @@ export async function emailLogin(formData: FormData) {
       return { error: signInError.message };
     }
 
-    if (!data.user) {
-      return { error: "No user found" };
+    if (!data.user || !data.session) {
+      return { error: "Authentication failed" };
+    }
+
+    // Make sure we have a valid session before proceeding
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !session) {
+      console.error('Session verification failed:', sessionError);
+      return { error: "Failed to establish session" };
     }
 
     try {
@@ -75,7 +88,7 @@ export async function emailLogin(formData: FormData) {
     // Return success with session
     return { 
       success: true,
-      session: data.session 
+      session: session 
     };
 
   } catch (error) {
