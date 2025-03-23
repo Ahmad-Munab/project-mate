@@ -1,3 +1,4 @@
+// AI-powered project plan generation using Groq
 import { Groq } from "groq-sdk";
 import { z } from "zod";
 

@@ -40,6 +40,7 @@ export const projects = pgTable("projects", {
   updated_at: timestamp("updated_at").defaultNow(),
 });
 
+// ProjectMembers table - stores information about users in projects
 export const projectMembers = pgTable("project_members", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id")
@@ -52,6 +53,7 @@ export const projectMembers = pgTable("project_members", {
   joinedAt: timestamp("joined_at").defaultNow(),
 });
 
+// Tasks table - stores task information
 export const tasks = pgTable("tasks", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: text("title").notNull(),
@@ -68,6 +70,7 @@ export const tasks = pgTable("tasks", {
   due_date: timestamp("due_date"),
 });
 
+// TaskAssignees table - stores information about users assigned to tasks
 export const taskAssignees = pgTable("task_assignees", {
   id: uuid("id").primaryKey().defaultRandom(),
   taskId: uuid("task_id")
@@ -78,6 +81,7 @@ export const taskAssignees = pgTable("task_assignees", {
     .notNull(),
 });
 
+// AiSuggestions table - stores AI-generated suggestions for tasks
 export const aiSuggestions = pgTable("ai_suggestions", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id")
@@ -89,6 +93,7 @@ export const aiSuggestions = pgTable("ai_suggestions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ProjectInvites table - stores information about project invitations
 export const projectInvites = pgTable("project_invites", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id")

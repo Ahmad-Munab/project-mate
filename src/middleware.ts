@@ -1,3 +1,4 @@
+// Middleware to handle authentication and protected routes
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -7,7 +8,7 @@ const publicRoutes = ["/", "/signin", "/auth"];
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
-  // Initialize Supabase client
+  // Initialize Supabase client for auth
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
