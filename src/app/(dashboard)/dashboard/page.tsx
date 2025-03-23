@@ -1,4 +1,4 @@
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 import { Suspense } from "react";
 import { getProjectTasks } from "@/lib/tasks";
