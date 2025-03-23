@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+export const runtime = "edge";
+
+import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { tasks } from "@/db/schema";
@@ -7,11 +9,14 @@ import { eq } from "drizzle-orm";
 export async function PATCH(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
@@ -21,7 +26,7 @@ export async function PATCH(request: Request) {
 
     if (!taskId) {
       return NextResponse.json(
-        { error: 'Task ID is required' },
+        { error: "Task ID is required" },
         { status: 400 }
       );
     }
@@ -31,16 +36,17 @@ export async function PATCH(request: Request) {
     if (description !== undefined) updateData.description = description;
     if (priority) updateData.priority = priority;
 
-    const [updatedTask] = await db.update(tasks)
+    const [updatedTask] = await db
+      .update(tasks)
       .set(updateData)
       .where(eq(tasks.id, taskId))
       .returning();
 
     return NextResponse.json(updatedTask);
   } catch (error) {
-    console.error('Error updating task:', error);
+    console.error("Error updating task:", error);
     return NextResponse.json(
-      { error: 'Failed to update task' },
+      { error: "Failed to update task" },
       { status: 500 }
     );
   }

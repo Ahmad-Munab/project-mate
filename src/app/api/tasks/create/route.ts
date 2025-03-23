@@ -1,4 +1,6 @@
-import { NextResponse } from 'next/server';
+export const runtime = "edge";
+
+import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { tasks } from "@/db/schema";
@@ -6,11 +8,14 @@ import { tasks } from "@/db/schema";
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Authentication required' },
+        { error: "Authentication required" },
         { status: 401 }
       );
     }
@@ -20,13 +25,14 @@ export async function POST(request: Request) {
 
     if (!projectId || !title) {
       return NextResponse.json(
-        { error: 'Project ID and title are required' },
+        { error: "Project ID and title are required" },
         { status: 400 }
       );
     }
 
     // Create the task
-    const [newTask] = await db.insert(tasks)
+    const [newTask] = await db
+      .insert(tasks)
       .values({
         title,
         description: description || null,
@@ -40,9 +46,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newTask);
   } catch (error) {
-    console.error('Error creating task:', error);
+    console.error("Error creating task:", error);
     return NextResponse.json(
-      { error: 'Failed to create task' },
+      { error: "Failed to create task" },
       { status: 500 }
     );
   }
