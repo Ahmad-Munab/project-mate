@@ -1,49 +1,22 @@
-import { Suspense } from "react";
-import { getProjectTasks } from "@/lib/tasks";
-import ProjectBoard from "@/components/dashboard/ProjectBoard";
-import ProjectsList from "@/components/dashboard/ProjectsList";
-import ProjectSkeleton from "@/components/dashboard/ProjectSkeleton";
-import { UserNav } from "@/components/dashboard/UserNav";
-import { Search } from "@/components/dashboard/Search";
+import Link from "next/link";
 
-type SearchParams = {
-  project?: string;
-};
-
-export default async function DashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
-  // Handle the promise resolution
-  const resolvedParams = await Promise.resolve(searchParams);
-  const projectId = resolvedParams.project;
-
-  // Fetch initial tasks
-  const initialTasks = projectId ? await getProjectTasks(projectId) : [];
-
+export default function DashboardPage() {
   return (
-    <div className="flex h-screen bg-background">
-      <aside className="w-64 border-r bg-card">
-        <div className="flex h-16 items-center px-4 border-b">
-          <h2 className="text-lg font-semibold">Projects</h2>
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center max-w-md p-6">
+        <h2 className="text-2xl font-bold mb-2">Welcome to your Dashboard</h2>
+        <p className="text-muted-foreground mb-6">
+          Select a project from the sidebar or create a new project to get
+          started.
+        </p>
+        <div className="flex justify-center">
+          <Link
+            href="/dashboard/projects/new"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+          >
+            Create New Project
+          </Link>
         </div>
-        <Suspense fallback={<ProjectSkeleton />}>
-          <ProjectsList />
-        </Suspense>
-      </aside>
-
-      <div className="flex-1 flex flex-col">
-        <header className="h-16 border-b bg-card px-6 flex items-center justify-between">
-          <Search />
-          <UserNav />
-        </header>
-
-        <main className="flex-1 overflow-hidden">
-          <Suspense fallback={<ProjectSkeleton />}>
-            <ProjectBoard projectId={projectId} initialTasks={initialTasks} />
-          </Suspense>
-        </main>
       </div>
     </div>
   );
