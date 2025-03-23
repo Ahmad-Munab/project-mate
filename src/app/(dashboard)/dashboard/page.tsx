@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function DashboardPage() {
   return (
     <div className="flex items-center justify-center h-full">
@@ -8,12 +10,12 @@ export default function DashboardPage() {
           started.
         </p>
         <div className="flex justify-center">
-          <a
+          <Link
             href="/dashboard/projects/new"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
           >
             Create New Project
-          </a>
+          </Link>
         </div>
       </div>
     </div>
