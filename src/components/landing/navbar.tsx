@@ -3,14 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Code2, ChevronDown } from "lucide-react";
+import { Menu, X, Code2, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,14 +41,8 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-8">
           <NavLinks />
           <div className="flex items-center gap-4">
-            <Link
-              href="/signin"
-              className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
-            >
-              Sign In
-            </Link>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-200/20 dark:hover:shadow-green-900/20 transition-all duration-300 hover:-translate-y-1">
-              Get Started Free
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-200/20 dark:hover:shadow-green-900/20 transition-all duration-300">
+              <Link href="/signin">Sign In</Link>
             </Button>
           </div>
         </nav>
@@ -79,14 +67,10 @@ export default function Navbar() {
         <div className="container mx-auto px-4 flex flex-col gap-4">
           <MobileNavLinks />
           <div className="flex flex-col gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <Link
-              href="/signin"
-              className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2"
-            >
-              Sign In
-            </Link>
-            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white w-full">
-              Get Started Free
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-200/20 dark:hover:shadow-green-900/20 transition-all duration-300">
+              <Link href="/signin">
+                Get Started Free <ArrowRight className="h-5 w-5" />
+              </Link>
             </Button>
           </div>
         </div>
@@ -99,54 +83,33 @@ function NavLinks() {
   return (
     <>
       <Link
-        href="#features"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+        href="/#features"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
       >
         Features
       </Link>
-      <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-1 text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-          Solutions <ChevronDown size={16} />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          <DropdownMenuItem>
-            <Link href="#" className="w-full">
-              For Teams
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Link href="#" className="w-full">
-              For Startups
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Link href="#" className="w-full">
-              For Enterprises
-            </Link>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+
       <Link
         href="/developers"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
       >
         Developers
       </Link>
       <Link
         href="/contact"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
       >
         Contact
       </Link>
       <Link
-        href="#pricing"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+        href="/#pricing"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
       >
         Pricing
       </Link>
       <Link
-        href="#faq"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+        href="/#faq"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
       >
         FAQ
       </Link>
@@ -158,55 +121,33 @@ function MobileNavLinks() {
   return (
     <>
       <Link
-        href="#features"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2"
+        href="/#features"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2"
       >
         Features
       </Link>
-      <div className="py-2">
-        <div className="text-slate-700 dark:text-slate-200 mb-2">Solutions</div>
-        <div className="pl-4 flex flex-col gap-2">
-          <Link
-            href="#"
-            className="text-slate-600 dark:text-slate-300 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-          >
-            For Teams
-          </Link>
-          <Link
-            href="#"
-            className="text-slate-600 dark:text-slate-300 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-          >
-            For Startups
-          </Link>
-          <Link
-            href="#"
-            className="text-slate-600 dark:text-slate-300 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-          >
-            For Enterprises
-          </Link>
-        </div>
-      </div>
+
       <Link
         href="/developers"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2"
       >
         Developers
       </Link>
       <Link
         href="/contact"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2"
       >
         Contact
       </Link>
       <Link
-        href="#pricing"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2"
+        href="/#pricing"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2"
       >
         Pricing
       </Link>
       <Link
-        href="#faq"
-        className="text-slate-700 dark:text-slate-200 hover:text-green-600 dark:hover:text-green-400 transition-colors py-2"
+        href="/#faq"
+        className="text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors py-2"
       >
         FAQ
       </Link>
