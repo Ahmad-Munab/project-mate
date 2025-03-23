@@ -1,5 +1,7 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+"use server";
+
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 export async function createClient() {
   return createServerClient(
@@ -16,24 +18,24 @@ export async function createClient() {
             const cookieStore = await cookies();
             cookieStore.set(name, value, {
               ...options,
-              path: '/',
-              sameSite: 'lax',
-              secure: process.env.NODE_ENV === 'production'
+              path: "/",
+              sameSite: "lax",
+              secure: process.env.NODE_ENV === "production",
             });
           } catch (error) {
-            console.error('Error setting cookie:', error);
+            console.error("Error setting cookie:", error);
           }
         },
         remove: async (name, options) => {
           try {
             const cookieStore = await cookies();
-            cookieStore.set(name, '', {
+            cookieStore.set(name, "", {
               ...options,
-              path: '/',
-              expires: new Date(0)
+              path: "/",
+              expires: new Date(0),
             });
           } catch (error) {
-            console.error('Error removing cookie:', error);
+            console.error("Error removing cookie:", error);
           }
         },
       },

@@ -15,6 +15,8 @@ export async function oAuthSignIn(provider: Provider) {
     // Await the client creation
     const supabase = await createClient();
 
+    console.log("whhat i see on oAuthSignIn fuuncitns", getURL());
+
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
