@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Github } from "lucide-react";
 import { motion } from "framer-motion";
-import { oAuthSignIn, signInWithMagicLink } from "@/actions/auth";
+import { oAuthSignIn, signInWithMagicLink } from "@/actions/auth/auth";
 import { useRouter } from "next/navigation";
 
 const schema = z.object({
