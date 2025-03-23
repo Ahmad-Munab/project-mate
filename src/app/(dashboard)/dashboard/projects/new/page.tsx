@@ -69,7 +69,7 @@ export default function NewProjectPage() {
         toast.dismiss();
         toast.success("Project created!");
 
-        router.push(`/dashboard?project=${data.projectId}`);
+        router.push(`/dashboard/projects/${data.projectId}`);
       } else {
         throw new Error("No project ID returned");
       }
@@ -103,7 +103,7 @@ export default function NewProjectPage() {
                 <span className="sr-only">Back to Dashboard</span>
               </Button>
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
               Create New Project
             </h1>
           </div>
