@@ -45,7 +45,6 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
 import AIAssistant from "./ai-assistant"
 
@@ -266,65 +265,91 @@ export default function Dashboard() {
   // getStatusIcon function removed or commented out
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Sidebar */}
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-background via-background/95 to-background/90">
+      {/* Sidebar with gradient */}
       <motion.div
         initial={{ x: -20, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.3 }}
-        className="hidden md:flex w-64 flex-col border-r bg-card"
+        className="hidden md:flex w-64 flex-col border-r bg-card/50 backdrop-blur-sm"
       >
-        <div className="p-4 border-b flex items-center space-x-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          <h1 className="text-xl font-bold">ProjectMate</h1>
+        <div className="p-4 border-b bg-gradient-to-r from-primary/10 to-transparent">
+          <div className="flex items-center space-x-2">
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: 180 }}
+              transition={{ duration: 0.3 }}
+              className="p-2 rounded-xl bg-primary/20"
+            >
+              <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+            </motion.div>
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              ProjectMate
+            </h1>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-auto py-2">
-          <nav className="space-y-1 px-2">
-            <Button variant="secondary" className="w-full justify-start" asChild>
+        <div className="flex-1 overflow-auto py-4 px-2">
+          <nav className="space-y-2">
+            <Button 
+              variant="secondary" 
+              className="w-full justify-start bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5 transition-all duration-300" 
+              asChild
+            >
               <a href="#" className="font-medium">
-                <Code className="mr-2 h-4 w-4" />
+                <Code className="mr-2 h-4 w-4 text-primary" />
                 Projects
               </a>
             </Button>
-            <Button variant="ghost" className="w-full justify-start" asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start hover:bg-gradient-to-r hover:from-purple-500/10 hover:to-transparent transition-all duration-300" 
+              asChild
+            >
               <a href="#" className="font-medium">
-                <Calendar className="mr-2 h-4 w-4" />
+                <Calendar className="mr-2 h-4 w-4 text-purple-500" />
                 Calendar
               </a>
             </Button>
           </nav>
 
-          <Separator className="my-4" />
+          <Separator className="my-4 bg-gradient-to-r from-primary/20 via-purple-500/20 to-transparent" />
 
-          <div className="px-4 mb-2">
-            {/*  I Will Make It Functional Later */}
+          <div className="px-2 mb-2">
             <h2 className="text-sm font-medium text-muted-foreground mb-2">Recent Projects</h2>
             <ul className="space-y-1">
               {recentProjects.map((project) => (
-                <li key={project.id}>
+                <motion.li 
+                  key={project.id}
+                  whileHover={{ x: 4 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start text-sm font-normal"
+                    className="w-full justify-start text-sm font-normal hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent"
                     onClick={() => setSelectedProject(project)}
                   >
-                    <div className={`mr-2 h-2 w-2 rounded-full ${getStatusColor(project.status || 'default')}`} />
+                    <div className={`mr-2 h-2 w-2 rounded-full ${getStatusColor(project.status || 'default')} animate-pulse`} />
                     <span className="truncate">{project.name}</span>
                   </Button>
-                </li>
+                </motion.li>
               ))}
             </ul>
           </div>
         </div>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t bg-gradient-to-r from-primary/10 to-transparent">
           <Button
             variant="outline"
-            className="w-full justify-start text-primary border-primary/20 hover:bg-primary/10 hover:text-primary"
+            className="w-full justify-start bg-gradient-to-r from-primary/10 to-transparent hover:from-primary/20 hover:to-primary/10 border-primary/20 transition-all duration-300"
             onClick={() => setAiAssistantOpen(true)}
           >
-            <Zap className="mr-2 h-4 w-4 text-primary" />
+            <motion.div
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <Zap className="mr-2 h-4 w-4 text-primary" />
+            </motion.div>
             AI Assistant
           </Button>
         </div>
@@ -332,33 +357,28 @@ export default function Dashboard() {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
+        {/* Enhanced Header */}
         <motion.header
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="border-b bg-card"
+          transition={{ duration: 0.3 }}
+          className="border-b bg-card/50 backdrop-blur-md"
         >
           <div className="flex items-center justify-between h-16 px-4">
-            <div className="flex items-center md:hidden">
-              <Sparkles className="h-6 w-6 text-primary mr-2" />
-              <h1 className="text-xl font-bold">ProjectMate</h1>
-            </div>
-
-            <div className="hidden md:flex items-center space-x-4">
-              <div className="relative w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="relative w-64 group">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 <Input
                   type="search"
                   placeholder="Search projects..."
-                  className="pl-8 bg-background"
+                  className="pl-8 bg-card/50 backdrop-blur-sm border-primary/20 focus:border-primary/40 transition-all"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
               <Link href="/dashboard/kanban/projects/new">
-                <Button className="bg-primary hover:bg-primary/90">
+                <Button className="bg-gradient-to-r from-primary to-purple-500 hover:from-primary/90 hover:to-purple-500/90 text-white shadow-lg hover:shadow-primary/20 transition-all duration-300">
                   <Plus className="h-4 w-4 mr-2" />
                   New Project
                 </Button>
@@ -366,56 +386,46 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center space-x-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative">
-                      <Bell className="h-5 w-5" />
-                      <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Notifications</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
+                </Button>
+              </motion.div>
 
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Settings className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Settings</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button variant="ghost" size="icon">
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </motion.div>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8 ring-2 ring-primary/20 hover:ring-primary/40 transition-all">
                       <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-                      <AvatarFallback>U</AvatarFallback>
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-purple-500">U</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-56 backdrop-blur-sm bg-card/95" align="end">
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">User</p>
                       <p className="text-xs leading-none text-muted-foreground">user@example.com</p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-transparent" />
+                  <DropdownMenuItem className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent">
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-transparent" />
+                  <DropdownMenuItem className="hover:bg-gradient-to-r hover:from-red-500/10 hover:to-transparent text-red-500">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Log out</span>
                   </DropdownMenuItem>
@@ -425,58 +435,40 @@ export default function Dashboard() {
           </div>
         </motion.header>
 
-        {/* Mobile search and actions */}
-        <motion.div
-          initial={{ y: -10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="md:hidden p-4 border-b bg-card"
-        >
-          <div className="flex items-center space-x-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search projects..."
-                className="pl-8 bg-background"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Link href="/dashboard/kanban/projects/new">
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </motion.div>
-
-        {/* Content */}
-        <main className="flex-1 overflow-auto">
+        {/* Main content area */}
+        <main className="flex-1 overflow-auto bg-gradient-to-br from-background via-background/95 to-background/90">
           <div className="container mx-auto p-4 md:p-6 max-w-7xl">
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
+              transition={{ duration: 0.4 }}
             >
               <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight">Projects</h1>
-                  <p className="text-muted-foreground">Manage your development projects and tasks</p>
+                  <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                    Projects
+                  </h1>
+                  <p className="text-muted-foreground mt-1">
+                    Manage your development projects and tasks
+                  </p>
                 </div>
+                
                 <div className="flex items-center space-x-2 mt-4 md:mt-0">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setAiAssistantOpen(true)}
-                    className="border-primary/20 text-primary hover:bg-primary/10 hover:text-primary"
+                    className="bg-gradient-to-r from-primary/10 to-transparent hover:from-primary/20 hover:to-primary/10 border-primary/20"
                   >
                     <Zap className="h-4 w-4 mr-2 text-primary" />
                     AI Assistant
                   </Button>
-                  {/* I Will Make Filter Functionaliy Work Later Maybe */}
-                  <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4 mr-2" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-gradient-to-r from-purple-500/10 to-transparent hover:from-purple-500/20 hover:to-purple-500/10 border-purple-500/20"
+                  >
+                    <Filter className="h-4 w-4 mr-2 text-purple-500" />
                     Filter
                   </Button>
                 </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
-import { projects, projectMembers } from "@/db/schema";
+import { projects, projectMembers, tasks } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function DELETE(request: Request) {
@@ -26,12 +26,19 @@ export async function DELETE(request: Request) {
       );
     }
 
-    // Delete project members first (due to foreign key constraint)
+    // Delete in the correct order to respect foreign key constraints
+    
+    // 1. First delete all tasks associated with the project
+    await db
+      .delete(tasks)
+      .where(eq(tasks.project_id, projectId));
+
+    // 2. Delete project members
     await db
       .delete(projectMembers)
       .where(eq(projectMembers.projectId, projectId));
 
-    // Then delete the project
+    // 3. Finally delete the project
     await db
       .delete(projects)
       .where(eq(projects.id, projectId));
