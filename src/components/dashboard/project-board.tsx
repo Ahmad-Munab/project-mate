@@ -2,13 +2,19 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd"
 import { Plus, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+
+type Member = {
+  id: string;
+  name: string;
+  avatar: string;
+};
 
 interface Task {
   id: string
@@ -22,7 +28,7 @@ interface ProjectBoardProps {
     id: string
     name: string
     tasks: Task[]
-    members: { id: string; name: string; avatar: string }[]
+    members: Member[]
   }
   onAddTask: () => void
 }
@@ -36,7 +42,7 @@ export default function ProjectBoard({ project, onAddTask }: ProjectBoardProps) 
     Completed: tasks.filter((task) => task.status === "Completed"),
   }
 
-  const onDragEnd = (result: any) => {
+  const onDragEnd = (result: DropResult) => {
     const { destination, source, draggableId } = result
 
     // Dropped outside the list

@@ -42,7 +42,6 @@ export async function getProjects() {
       id: project.id,
       name: project.name || 'Untitled Project',
       description: project.description || '',
-      status: project.status || 'Planned',
       progress: 0,
       members: [],
       tasks: [],

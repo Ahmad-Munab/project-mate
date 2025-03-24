@@ -12,17 +12,11 @@ import {
   Settings,
   User,
   Calendar,
-  BarChart2,
   Code,
-  Users,
-  MessageSquare,
   Zap,
   Sparkles,
   Edit,
   Trash2,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
   Filter,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -47,17 +41,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
-import { cn } from "@/lib/utils"
-import ProjectBoard from "./project-board"
 import AIAssistant from "./ai-assistant"
 
 import { getProjects } from "@/app/actions/projects";
+
+type Member = {
+  id: string;
+  name: string;
+  avatar: string;
+};
 
 type Project = {
   id: string;
@@ -65,8 +63,13 @@ type Project = {
   description?: string;
   status?: string;
   progress?: number;
-  members?: any[];
-  tasks?: any[];
+  members?: Member[];
+  tasks?: Array<{
+    id: string;
+    title: string;
+    status: string;
+    assignee: string;
+  }>;
   dueDate?: string;
 };
 
@@ -76,7 +79,6 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [newProjectOpen, setNewProjectOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDescription, setNewProjectDescription] = useState("");
   const [newProjectDueDate, setNewProjectDueDate] = useState("");
@@ -84,12 +86,8 @@ export default function Dashboard() {
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
-  const [newTaskOpen, setNewTaskOpen] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskStatus, setNewTaskStatus] = useState("Planned");
-  const [newTaskAssignee, setNewTaskAssignee] = useState("");
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
-  const [progress, setProgress] = useState(0);
+  // const [progress, setProgress] = useState(0); // Removed as it's unused
 
   useEffect(() => {
     let mounted = true;
@@ -132,12 +130,6 @@ export default function Dashboard() {
     };
   }, []);
 
-  useEffect(() => {
-    // Animate progress bars on load
-    const timer = setTimeout(() => setProgress(100), 500);
-    return () => clearTimeout(timer);
-  }, []);
-
   // First, define filteredProjects
   const filteredProjects = Array.isArray(projects) 
     ? projects.filter(project =>
@@ -162,24 +154,7 @@ export default function Dashboard() {
   console.log("Client: Rendering with projects:", projects);
   console.log("Client: Filtered projects:", filteredProjects);
 
-  const handleCreateProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newProject = {
-      id: Math.random().toString(),
-      name: newProjectName,
-      description: newProjectDescription,
-      progress: 0,
-      status: "Planned",
-      dueDate: newProjectDueDate,
-      members: [],
-      tasks: [],
-    };
-    setProjects([...projects, newProject]);
-    setNewProjectName("");
-    setNewProjectDescription("");
-    setNewProjectDueDate("");
-    setNewProjectOpen(false);
-  };
+  
 
   const handleEditProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,12 +206,12 @@ export default function Dashboard() {
     }
   };
 
-  const openEditProjectModal = (project: any) => {
-    setProjectToEdit(project)
-    setNewProjectName(project.name)
-    setNewProjectDescription(project.description)
-    setNewProjectDueDate(project.dueDate)
-    setEditProjectOpen(true)
+  const openEditProjectModal = (project: Project) => {
+    setProjectToEdit(project);
+    setNewProjectName(project.name);
+    setNewProjectDescription(project.description || '');
+    setNewProjectDueDate(project.dueDate || '');
+    setEditProjectOpen(true);
   }
 
   const confirmDeleteProject = (projectId: string) => {
@@ -271,33 +246,7 @@ export default function Dashboard() {
     }
   }
 
-  const handleAddTask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedProject) return;
-
-    const newTask = {
-      id: `t${Math.random().toString()}`,
-      title: newTaskTitle,
-      status: newTaskStatus,
-      assignee: newTaskAssignee,
-    };
-
-    const updatedProject = {
-      ...selectedProject,
-      tasks: [...(selectedProject.tasks || []), newTask],
-    };
-
-    const updatedProjects = projects.map((project) =>
-      project.id === selectedProject.id ? updatedProject : project
-    );
-
-    setProjects(updatedProjects);
-    setSelectedProject(updatedProject);
-    setNewTaskTitle("");
-    setNewTaskAssignee("");
-    setNewTaskStatus("Planned");
-    setNewTaskOpen(false);
-  }
+  // handleAddTask and getStatusIcon functions removed or commented out
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -314,20 +263,7 @@ export default function Dashboard() {
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Completed":
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />
-      case "In Progress":
-        return <Clock className="h-4 w-4 text-blue-500" />
-      case "Planned":
-        return <Calendar className="h-4 w-4 text-amber-500" />
-      case "At Risk":
-        return <AlertCircle className="h-4 w-4 text-red-500" />
-      default:
-        return null
-    }
-  }
+  // getStatusIcon function removed or commented out
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -759,8 +695,18 @@ export default function Dashboard() {
       </div>
 
       {/* AI Assistant Drawer */}
-      <AIAssistant open={aiAssistantOpen} onOpenChange={setAiAssistantOpen} project={selectedProject} />
-
+      <AIAssistant 
+        open={aiAssistantOpen} 
+        onOpenChange={setAiAssistantOpen} 
+        project={selectedProject ? {
+          ...selectedProject,
+          members: selectedProject.members?.map(member => ({
+            id: member.id,
+            name: member.name,
+            role: 'MEMBER' // Adding default role since it's required
+          }))
+        } : null} 
+      />
     
       {/* Edit Project Modal */}
       <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -137,7 +137,7 @@ export default function ProjectBoard({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteRole, setInviteRole] = useState<"MEMBER" | "MANAGER">("MEMBER");
-  const boardRef = useRef<HTMLDivElement>(null);
+  // const boardRef = useRef<HTMLDivElement>(null); // Removed
 
   // Add function to handle invite link creation
   const createInviteLink = async () => {

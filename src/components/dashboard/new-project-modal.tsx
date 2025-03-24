@@ -9,10 +9,18 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
+type ProjectData = {
+  id?: string;  // Make id optional by adding '?'
+  name: string;
+  description?: string;
+  region: string;
+  tier: string;
+};
+
 interface NewProjectModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreateProject: (project: any) => void
+  onCreateProject: (project: ProjectData) => void
 }
 
 export default function NewProjectModal({ open, onOpenChange, onCreateProject }: NewProjectModalProps) {

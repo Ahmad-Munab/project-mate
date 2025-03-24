@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, X, Send, Zap, Loader2 } from "lucide-react"
@@ -12,17 +11,40 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
+type Project = {
+  id: string;
+  name: string;
+  description?: string;
+  status?: string;
+  progress?: number;
+  members?: Array<{
+    id: string;
+    name: string;
+    role: string;
+  }>;
+  tasks?: Array<{
+    id: string;
+    title: string;
+    status: string;
+  }>;
+  dueDate?: string;
+};
+
 interface AIAssistantProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  project: any
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  project: Project | null;
 }
 
 export default function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
   const [input, setInput] = useState("")
-  const [messages, setMessages] = useState<any[]>([])
+  const [messages, setMessages] = useState<Array<{
+    role: "user" | "assistant";
+    content: string;
+    timestamp: Date;
+  }>>([])
   const [isTyping, setIsTyping] = useState(false)
-  const [suggestions, setSuggestions] = useState([
+  const [suggestions] = useState([
     "Analyze my project timeline",
     "Suggest task breakdown for authentication feature",
     "Identify potential bottlenecks",
@@ -69,7 +91,7 @@ export default function AIAssistant({ open, onOpenChange, project }: AIAssistant
         }, 2000)
       }, 2000)
     }
-  }, [open, project])
+  }, [open, project, messages.length]) // Added messages.length to dependencies
 
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -77,7 +99,7 @@ export default function AIAssistant({ open, onOpenChange, project }: AIAssistant
 
     // Add user message
     const userMessage = {
-      role: "user",
+      role: "user" as const,
       content: input,
       timestamp: new Date(),
     }
@@ -140,7 +162,7 @@ Would you like me to suggest a task reallocation to optimize the workflow?`,
         }
       }
 
-      setMessages((prev) => [...prev, response])
+      setMessages((prev) => [...prev, { ...response, role: response.role as "assistant" }])
       setIsTyping(false)
     }, 2000)
   }
