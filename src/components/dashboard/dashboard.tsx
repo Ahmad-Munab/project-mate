@@ -587,9 +587,11 @@ export default function Dashboard() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => setSelectedProject(project)}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    <span>View Details</span>
+                                  <DropdownMenuItem asChild>
+                                    <Link href={`/dashboard/kanban/projects/${project.id}`}>
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      <span>View Details</span>
+                                    </Link>
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => openEditProjectModal(project)}>
                                     <Edit className="mr-2 h-4 w-4" />
@@ -639,9 +641,11 @@ export default function Dashboard() {
                                 variant="ghost"
                                 size="sm"
                                 className="text-primary hover:text-primary hover:bg-primary/10"
-                                onClick={() => setSelectedProject(project)}
+                                asChild
                               >
-                                View Tasks
+                                <Link href={`/dashboard/kanban/projects/${project.id}`}>
+                                  View Tasks
+                                </Link>
                               </Button>
                             </div>
                           </CardFooter>
@@ -722,8 +726,10 @@ export default function Dashboard() {
                             </td>
                             <td className="p-4 align-middle">
                               <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => setSelectedProject(project)}>
-                                  <Eye className="h-4 w-4" />
+                                <Button variant="ghost" size="icon" asChild>
+                                  <Link href={`/dashboard/kanban/projects/${project.id}`}>
+                                    <Eye className="h-4 w-4" />
+                                  </Link>
                                 </Button>
                                 <Button variant="ghost" size="icon" onClick={() => openEditProjectModal(project)}>
                                   <Edit className="h-4 w-4" />
