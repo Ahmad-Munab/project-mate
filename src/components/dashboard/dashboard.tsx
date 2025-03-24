@@ -652,15 +652,7 @@ export default function Dashboard() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="board">
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                >
-                  <ProjectBoard project={selectedProject} onAddTask={() => setNewTaskOpen(true)} />
-                </motion.div>
-              </TabsContent>
+                  {/* List View */}
 
               <TabsContent value="list">
                 <motion.div
@@ -761,57 +753,7 @@ export default function Dashboard() {
       {/* AI Assistant Drawer */}
       <AIAssistant open={aiAssistantOpen} onOpenChange={setAiAssistantOpen} project={selectedProject} />
 
-      {/* New Project Modal */}
-      <Dialog open={newProjectOpen} onOpenChange={setNewProjectOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Create New Project</DialogTitle>
-            <DialogDescription>Add a new project to your workspace. Fill in the details below.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateProject} className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="project-name">Project Name</Label>
-              <Input
-                id="project-name"
-                value={newProjectName}
-                onChange={(e) => setNewProjectName(e.target.value)}
-                placeholder="Enter project name"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="project-description">Description</Label>
-              <Textarea
-                id="project-description"
-                value={newProjectDescription}
-                onChange={(e) => setNewProjectDescription(e.target.value)}
-                placeholder="Describe your project"
-                rows={3}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="project-due-date">Due Date</Label>
-              <Input
-                id="project-due-date"
-                type="date"
-                value={newProjectDueDate}
-                onChange={(e) => setNewProjectDueDate(e.target.value)}
-                required
-              />
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setNewProjectOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90">
-                Create Project
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
+    
       {/* Edit Project Modal */}
       <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -883,63 +825,7 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* New Task Modal */}
-      <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add New Task</DialogTitle>
-            <DialogDescription>Add a new task to the project.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddTask} className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="task-title">Task Title</Label>
-              <Input
-                id="task-title"
-                value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
-                placeholder="Enter task title"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-assignee">Assignee</Label>
-              <Select value={newTaskAssignee} onValueChange={setNewTaskAssignee}>
-                <SelectTrigger id="task-assignee">
-                  <SelectValue placeholder="Select assignee" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedProject?.members.map((member) => (
-                    <SelectItem key={member.id} value={member.name}>
-                      {member.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task-status">Status</Label>
-              <Select value={newTaskStatus} onValueChange={setNewTaskStatus}>
-                <SelectTrigger id="task-status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Planned">Planned</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setNewTaskOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary/90">
-                Add Task
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+ 
     </div>
   )
 }
