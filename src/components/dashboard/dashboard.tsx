@@ -179,33 +179,54 @@ export default function Dashboard() {
     setNewProjectOpen(false);
   };
 
-  const handleEditProject = (e: React.FormEvent) => {
+  const handleEditProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!projectToEdit) return;
 
-    const updatedProjects = projects.map((project) =>
-      project.id === projectToEdit.id
-        ? {
-            ...project,
-            name: newProjectName,
-            description: newProjectDescription,
-            dueDate: newProjectDueDate,
-          }
-        : project
-    );
-
-    setProjects(updatedProjects);
-    if (selectedProject?.id === projectToEdit.id) {
-      setSelectedProject({
-        ...selectedProject,
-        name: newProjectName,
-        description: newProjectDescription,
-        dueDate: newProjectDueDate,
+    try {
+      const response = await fetch("/api/projects/edit", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId: projectToEdit.id,
+          name: newProjectName,
+          description: newProjectDescription,
+        }),
       });
-    }
 
-    setEditProjectOpen(false);
-    setProjectToEdit(null);
+      if (!response.ok) {
+        throw new Error("Failed to update project");
+      }
+
+      const updatedProject = await response.json();
+
+      const updatedProjects = projects.map((project) =>
+        project.id === projectToEdit.id
+          ? {
+              ...project,
+              name: updatedProject.name,
+              description: updatedProject.description,
+            }
+          : project
+      );
+
+      setProjects(updatedProjects);
+      if (selectedProject?.id === projectToEdit.id) {
+        setSelectedProject({
+          ...selectedProject,
+          name: updatedProject.name,
+          description: updatedProject.description,
+        });
+      }
+
+      setEditProjectOpen(false);
+      setProjectToEdit(null);
+    } catch (error) {
+      console.error("Error updating project:", error);
+      // Handle error (show toast notification, etc.)
+    }
   };
 
   const openEditProjectModal = (project: any) => {
@@ -221,18 +242,31 @@ export default function Dashboard() {
     setDeleteConfirmOpen(true)
   }
 
-  const handleDeleteProject = () => {
-    if (!projectToDelete) return
+  const handleDeleteProject = async () => {
+    if (!projectToDelete) return;
 
-    const updatedProjects = projects.filter((project) => project.id !== projectToDelete)
-    setProjects(updatedProjects)
+    try {
+      const response = await fetch(`/api/projects/delete?projectId=${projectToDelete}`, {
+        method: "DELETE",
+      });
 
-    if (selectedProject.id === projectToDelete) {
-      setSelectedProject(updatedProjects[0] || null)
+      if (!response.ok) {
+        throw new Error("Failed to delete project");
+      }
+
+      const updatedProjects = projects.filter((project) => project.id !== projectToDelete);
+      setProjects(updatedProjects);
+
+      if (selectedProject?.id === projectToDelete) {
+        setSelectedProject(updatedProjects[0] || null);
+      }
+
+      setDeleteConfirmOpen(false);
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      // Handle error (show toast notification, etc.)
     }
-
-    setDeleteConfirmOpen(false)
-    setProjectToDelete(null)
   }
 
   const handleAddTask = (e: React.FormEvent) => {
