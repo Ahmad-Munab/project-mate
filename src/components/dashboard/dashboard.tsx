@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import type React from "react"
 import Link from "next/link"
@@ -57,101 +57,111 @@ import { cn } from "@/lib/utils"
 import ProjectBoard from "./project-board"
 import AIAssistant from "./ai-assistant"
 
-// Sample data
-const initialProjects = [
-  {
-    id: "1",
-    name: "E-commerce Platform",
-    description: "Building a modern e-commerce platform with React and Node.js",
-    progress: 68,
-    status: "In Progress",
-    dueDate: "2025-04-15",
-    members: [
-      { id: "1", name: "Alex Johnson", avatar: "/placeholder.svg?height=32&width=32" },
-      { id: "2", name: "Sarah Miller", avatar: "/placeholder.svg?height=32&width=32" },
-      { id: "3", name: "David Chen", avatar: "/placeholder.svg?height=32&width=32" },
-    ],
-    tasks: [
-      { id: "t1", title: "Design user interface", status: "Completed", assignee: "Sarah Miller" },
-      { id: "t2", title: "Implement authentication", status: "In Progress", assignee: "Alex Johnson" },
-      { id: "t3", title: "Set up product database", status: "In Progress", assignee: "David Chen" },
-      { id: "t4", title: "Create checkout flow", status: "Planned", assignee: "Sarah Miller" },
-    ],
-  },
-  {
-    id: "2",
-    name: "Mobile App Redesign",
-    description: "Redesigning the mobile app UI/UX for better user experience",
-    progress: 42,
-    status: "In Progress",
-    dueDate: "2025-05-10",
-    members: [
-      { id: "2", name: "Sarah Miller", avatar: "/placeholder.svg?height=32&width=32" },
-      { id: "4", name: "Emily Wong", avatar: "/placeholder.svg?height=32&width=32" },
-    ],
-    tasks: [
-      { id: "t5", title: "User research", status: "Completed", assignee: "Emily Wong" },
-      { id: "t6", title: "Create wireframes", status: "Completed", assignee: "Sarah Miller" },
-      { id: "t7", title: "Design high-fidelity mockups", status: "In Progress", assignee: "Sarah Miller" },
-      { id: "t8", title: "Usability testing", status: "Planned", assignee: "Emily Wong" },
-    ],
-  },
-  {
-    id: "3",
-    name: "API Integration",
-    description: "Integrating third-party APIs for payment processing and shipping",
-    progress: 25,
-    status: "At Risk",
-    dueDate: "2025-04-30",
-    members: [
-      { id: "1", name: "Alex Johnson", avatar: "/placeholder.svg?height=32&width=32" },
-      { id: "3", name: "David Chen", avatar: "/placeholder.svg?height=32&width=32" },
-      { id: "5", name: "Michael Brown", avatar: "/placeholder.svg?height=32&width=32" },
-    ],
-    tasks: [
-      { id: "t9", title: "Research API options", status: "Completed", assignee: "Michael Brown" },
-      { id: "t10", title: "Implement payment gateway", status: "In Progress", assignee: "Alex Johnson" },
-      { id: "t11", title: "Integrate shipping API", status: "Planned", assignee: "David Chen" },
-      { id: "t12", title: "Write documentation", status: "Planned", assignee: "Michael Brown" },
-    ],
-  },
-]
+import { getProjects } from "@/app/actions/projects";
+
+type Project = {
+  id: string;
+  name: string;
+  description?: string;
+  status?: string;
+  members?: any[];
+  tasks?: any[];
+};
 
 export default function Dashboard() {
-  const [projects, setProjects] = useState(initialProjects)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedProject, setSelectedProject] = useState(initialProjects[0])
-  const [newProjectOpen, setNewProjectOpen] = useState(false)
-  const [editProjectOpen, setEditProjectOpen] = useState(false)
-  const [projectToEdit, setProjectToEdit] = useState<any>(null)
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [projectToDelete, setProjectToDelete] = useState<string | null>(null)
-  const [newTaskOpen, setNewTaskOpen] = useState(false)
-  const [aiAssistantOpen, setAiAssistantOpen] = useState(false)
-  const [progress, setProgress] = useState(0)
+  const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDescription, setNewProjectDescription] = useState("");
+  const [newProjectDueDate, setNewProjectDueDate] = useState("");
+  const [editProjectOpen, setEditProjectOpen] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskStatus, setNewTaskStatus] = useState("Planned");
+  const [newTaskAssignee, setNewTaskAssignee] = useState("");
+  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  // Form states
-  const [newProjectName, setNewProjectName] = useState("")
-  const [newProjectDescription, setNewProjectDescription] = useState("")
-  const [newProjectDueDate, setNewProjectDueDate] = useState("")
-  const [newTaskTitle, setNewTaskTitle] = useState("")
-  const [newTaskAssignee, setNewTaskAssignee] = useState("")
-  const [newTaskStatus, setNewTaskStatus] = useState("Planned")
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProjects = async () => {
+      console.log("Client: Starting to load projects");
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const fetchedProjects = await getProjects();
+        console.log("Client: Received projects:", fetchedProjects);
+        
+        if (mounted) {
+          setProjects(fetchedProjects);
+          if (fetchedProjects.length > 0) {
+            setSelectedProject(fetchedProjects[0]);
+            console.log("Client: Set selected project:", fetchedProjects[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Client: Error loading projects:', error);
+        if (mounted) {
+          setProjects([]);
+          setError(error.message);
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+          console.log("Client: Finished loading projects");
+        }
+      }
+    };
+    
+    loadProjects();
+
+    return () => {
+      mounted = false;
+      console.log("Client: Cleanup - component unmounted");
+    };
+  }, []);
 
   useEffect(() => {
     // Animate progress bars on load
-    const timer = setTimeout(() => setProgress(100), 500)
-    return () => clearTimeout(timer)
-  }, [])
+    const timer = setTimeout(() => setProgress(100), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
-  const filteredProjects = projects.filter(
-    (project) =>
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.description.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  // First, define filteredProjects
+  const filteredProjects = Array.isArray(projects) 
+    ? projects.filter(project =>
+        project?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project?.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+
+  // Safe getter for recent projects
+  const recentProjects = Array.isArray(projects) ? projects.slice(0, 5) : [];
+
+  // Then handle loading and error states
+  if (isLoading) {
+    return <div className="p-4">Loading projects...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-red-500">Error: {error}</div>;
+  }
+
+  // Log after defining filteredProjects
+  console.log("Client: Rendering with projects:", projects);
+  console.log("Client: Filtered projects:", filteredProjects);
 
   const handleCreateProject = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     const newProject = {
       id: Math.random().toString(),
       name: newProjectName,
@@ -161,17 +171,17 @@ export default function Dashboard() {
       dueDate: newProjectDueDate,
       members: [],
       tasks: [],
-    }
-    setProjects([...projects, newProject])
-    setNewProjectName("")
-    setNewProjectDescription("")
-    setNewProjectDueDate("")
-    setNewProjectOpen(false)
-  }
+    };
+    setProjects([...projects, newProject]);
+    setNewProjectName("");
+    setNewProjectDescription("");
+    setNewProjectDueDate("");
+    setNewProjectOpen(false);
+  };
 
   const handleEditProject = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!projectToEdit) return
+    e.preventDefault();
+    if (!projectToEdit) return;
 
     const updatedProjects = projects.map((project) =>
       project.id === projectToEdit.id
@@ -181,22 +191,22 @@ export default function Dashboard() {
             description: newProjectDescription,
             dueDate: newProjectDueDate,
           }
-        : project,
-    )
+        : project
+    );
 
-    setProjects(updatedProjects)
-    if (selectedProject.id === projectToEdit.id) {
+    setProjects(updatedProjects);
+    if (selectedProject?.id === projectToEdit.id) {
       setSelectedProject({
         ...selectedProject,
         name: newProjectName,
         description: newProjectDescription,
         dueDate: newProjectDueDate,
-      })
+      });
     }
 
-    setEditProjectOpen(false)
-    setProjectToEdit(null)
-  }
+    setEditProjectOpen(false);
+    setProjectToEdit(null);
+  };
 
   const openEditProjectModal = (project: any) => {
     setProjectToEdit(project)
@@ -226,28 +236,31 @@ export default function Dashboard() {
   }
 
   const handleAddTask = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    if (!selectedProject) return;
 
     const newTask = {
       id: `t${Math.random().toString()}`,
       title: newTaskTitle,
       status: newTaskStatus,
       assignee: newTaskAssignee,
-    }
+    };
 
     const updatedProject = {
       ...selectedProject,
-      tasks: [...selectedProject.tasks, newTask],
-    }
+      tasks: [...(selectedProject.tasks || []), newTask],
+    };
 
-    const updatedProjects = projects.map((project) => (project.id === selectedProject.id ? updatedProject : project))
+    const updatedProjects = projects.map((project) =>
+      project.id === selectedProject.id ? updatedProject : project
+    );
 
-    setProjects(updatedProjects)
-    setSelectedProject(updatedProject)
-    setNewTaskTitle("")
-    setNewTaskAssignee("")
-    setNewTaskStatus("Planned")
-    setNewTaskOpen(false)
+    setProjects(updatedProjects);
+    setSelectedProject(updatedProject);
+    setNewTaskTitle("");
+    setNewTaskAssignee("");
+    setNewTaskStatus("Planned");
+    setNewTaskOpen(false);
   }
 
   const getStatusColor = (status: string) => {
@@ -316,7 +329,7 @@ export default function Dashboard() {
             {/*  I Will Make It Functional Later */}
             <h2 className="text-sm font-medium text-muted-foreground mb-2">Recent Projects</h2>
             <ul className="space-y-1">
-              {projects.slice(0, 5).map((project) => (
+              {recentProjects.map((project) => (
                 <li key={project.id}>
                   <Button
                     variant="ghost"
@@ -324,7 +337,7 @@ export default function Dashboard() {
                     className="w-full justify-start text-sm font-normal"
                     onClick={() => setSelectedProject(project)}
                   >
-                    <div className={`mr-2 h-2 w-2 rounded-full ${getStatusColor(project.status)}`} />
+                    <div className={`mr-2 h-2 w-2 rounded-full ${getStatusColor(project.status || 'default')}`} />
                     <span className="truncate">{project.name}</span>
                   </Button>
                 </li>
@@ -512,93 +525,96 @@ export default function Dashboard() {
 
               <TabsContent value="grid" className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {filteredProjects.map((project, index) => (
-                    <motion.div
-                      key={project.id}
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
-                    >
-                      <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-2">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle className="text-lg">{project.name}</CardTitle>
-                              <CardDescription className="line-clamp-2">{project.description}</CardDescription>
+                  {filteredProjects.length === 0 ? (
+                    <div className="col-span-full text-center p-4 text-muted-foreground">
+                      No projects found
+                    </div>
+                  ) : (
+                    filteredProjects.map((project, index) => (
+                      <motion.div
+                        key={project.id}
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
+                      >
+                        <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle className="text-lg">{project.name || 'Untitled Project'}</CardTitle>
+                                <CardDescription className="line-clamp-2">
+                                  {project.description || 'No description provided'}
+                                </CardDescription>
+                              </div>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => setSelectedProject(project)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    <span>View Details</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => openEditProjectModal(project)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    <span>Edit</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={() => confirmDeleteProject(project.id)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setSelectedProject(project)}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  <span>View Details</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => openEditProjectModal(project)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  <span>Edit</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={() => confirmDeleteProject(project.id)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  <span>Delete</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pb-2">
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="flex items-center">
-                              {getStatusIcon(project.status)}
-                              <span className="text-sm ml-1">{project.status}</span>
+                          </CardHeader>
+                          <CardContent className="pb-2">
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="flex items-center">
+                                <Badge variant="outline" className={getStatusColor(project.status)}>
+                                  {project.status}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Progress value={project.progress} className="h-2 w-[60px]" />
+                                <span className="text-xs">{project.progress}%</span>
+                              </div>
                             </div>
-                            <span className="text-sm text-muted-foreground">
-                              Due: {new Date(project.dueDate).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span>Progress</span>
-                              <span>{project.progress}%</span>
+                            {project.dueDate && (
+                              <p className="text-sm text-muted-foreground">
+                                Due: {new Date(project.dueDate).toLocaleDateString()}
+                              </p>
+                            )}
+                          </CardContent>
+                          <CardFooter className="pt-2">
+                            <div className="flex justify-between items-center w-full">
+                              <div className="flex -space-x-2">
+                                {project.members?.slice(0, 3).map((member, i) => (
+                                  <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                    <AvatarImage src={member.avatar} alt={member.name} />
+                                    <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
+                                  </Avatar>
+                                ))}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-primary hover:text-primary hover:bg-primary/10"
+                                onClick={() => setSelectedProject(project)}
+                              >
+                                View Tasks
+                              </Button>
                             </div>
-                            <Progress value={project.progress} className="h-2" />
-                          </div>
-                        </CardContent>
-                        <CardFooter className="pt-2">
-                          <div className="flex justify-between items-center w-full">
-                            <div className="flex -space-x-2">
-                              {project.members.slice(0, 3).map((member, i) => (
-                                <Avatar key={i} className="h-7 w-7 border-2 border-background">
-                                  <AvatarImage src={member.avatar} alt={member.name} />
-                                  <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                              ))}
-                              {project.members.length > 3 && (
-                                <div className="flex items-center justify-center h-7 w-7 rounded-full bg-muted text-xs font-medium">
-                                  +{project.members.length - 3}
-                                </div>
-                              )}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-primary hover:text-primary hover:bg-primary/10"
-                              onClick={() => setSelectedProject(project)}
-                            >
-                              View Tasks
-                            </Button>
-                          </div>
-                        </CardFooter>
-                      </Card>
-                    </motion.div>
-                  ))}
+                          </CardFooter>
+                        </Card>
+                      </motion.div>
+                    ))
+                  )}
                 </div>
               </TabsContent>
 
@@ -654,13 +670,7 @@ export default function Dashboard() {
                             <td className="p-4 align-middle">
                               <Badge
                                 variant="outline"
-                                className={cn(
-                                  "border-0",
-                                  project.status === "Completed" && "bg-green-100 text-green-800",
-                                  project.status === "In Progress" && "bg-blue-100 text-blue-800",
-                                  project.status === "Planned" && "bg-amber-100 text-amber-800",
-                                  project.status === "At Risk" && "bg-red-100 text-red-800",
-                                )}
+                                className={getStatusColor(project.status)}
                               >
                                 {project.status}
                               </Badge>
@@ -671,20 +681,17 @@ export default function Dashboard() {
                                 <span className="text-xs">{project.progress}%</span>
                               </div>
                             </td>
-                            <td className="p-4 align-middle">{new Date(project.dueDate).toLocaleDateString()}</td>
+                            <td className="p-4 align-middle">
+                              {project.dueDate && new Date(project.dueDate).toLocaleDateString()}
+                            </td>
                             <td className="p-4 align-middle">
                               <div className="flex -space-x-2">
-                                {project.members.slice(0, 3).map((member, i) => (
+                                {project.members?.slice(0, 3).map((member, i) => (
                                   <Avatar key={i} className="h-7 w-7 border-2 border-background">
                                     <AvatarImage src={member.avatar} alt={member.name} />
-                                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
                                   </Avatar>
                                 ))}
-                                {project.members.length > 3 && (
-                                  <div className="flex items-center justify-center h-7 w-7 rounded-full bg-muted text-xs font-medium">
-                                    +{project.members.length - 3}
-                                  </div>
-                                )}
                               </div>
                             </td>
                             <td className="p-4 align-middle">
