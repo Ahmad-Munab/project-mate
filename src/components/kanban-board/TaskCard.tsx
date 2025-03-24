@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -78,27 +79,29 @@ export default function TaskCard({
   return (
     <>
       <div className="bg-card rounded-lg shadow-sm border hover:border-ring/20 transition-colors">
-        <div className="p-4">
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div className="flex-1">
-              <h4 className="font-medium line-clamp-2">{task.title}</h4>
+        <div className="p-3 md:p-4">
+          <div className="flex items-start justify-between gap-2 mb-2 md:mb-3">
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium line-clamp-2 text-sm md:text-base">
+                {task.title}
+              </h4>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 -mt-1"
+                className="h-7 w-7 p-0"
                 onClick={() => setIsEditDialogOpen(true)}
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-3 w-3" />
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 -mt-1 text-destructive hover:text-destructive"
+                className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                 onClick={() => setIsDeleteDialogOpen(true)}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
           </div>
@@ -109,30 +112,19 @@ export default function TaskCard({
             </p>
           )}
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Badge
-                variant="secondary"
-                className={`${priorityStyle.bg} ${priorityStyle.color}`}
-              >
-                {priorityStyle.label}
-              </Badge>
-              {task.due_date && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {new Date(task.due_date).toLocaleDateString()}
-                </span>
-              )}
-            </div>
-
-            {/* {task.assignee && (
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={task.assignee.avatar} />
-                <AvatarFallback>
-                  {task.assignee.name?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            )} */}
+          <div className="flex flex-wrap gap-2 items-center text-xs md:text-sm">
+            <Badge
+              variant="secondary"
+              className={`${priorityStyle.color} ${priorityStyle.bg}`}
+            >
+              {task.priority}
+            </Badge>
+            {task.dueDate && (
+              <div className="flex items-center text-muted-foreground">
+                <Calendar className="h-3 w-3 mr-1" />
+                {new Date(task.dueDate).toLocaleDateString()}
+              </div>
+            )}
           </div>
         </div>
 

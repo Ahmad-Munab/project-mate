@@ -1,3 +1,4 @@
+
 "use server";
 
 import { db } from "@/db";
@@ -44,7 +45,7 @@ export default async function ProjectsList() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
+      <div className="p-3 md:p-4 border-b">
         <Link href="/dashboard/kanban/projects/new">
           <Button className="w-full">
             <Plus className="h-4 w-4 mr-2" />
@@ -63,17 +64,19 @@ export default async function ProjectsList() {
           </div>
         </div>
       ) : (
-        <div className="p-4 overflow-y-auto">
+        <div className="p-2 md:p-4 overflow-y-auto">
           <ul className="space-y-2">
             {userProjects.map((project) => (
               <li key={project.id}>
                 <Link
                   href={`/dashboard/kanban/projects/${project.id}`}
-                  className="block p-3 rounded-lg hover:bg-sidebar-accent transition-colors"
+                  className="block p-2 md:p-3 rounded-lg hover:bg-sidebar-accent transition-colors"
                 >
-                  <h3 className="font-medium">{project.name}</h3>
+                  <h3 className="font-medium text-sm md:text-base">
+                    {project.name}
+                  </h3>
                   {project.description && (
-                    <p className="text-sm text-muted-foreground truncate">
+                    <p className="text-xs md:text-sm text-muted-foreground truncate mt-0.5">
                       {project.description}
                     </p>
                   )}

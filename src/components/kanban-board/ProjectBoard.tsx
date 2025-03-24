@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -259,26 +260,33 @@ export default function ProjectBoard({
   >;
 
   return (
-    <div className="h-full flex flex-col" ref={boardRef}>
-      <div className="flex items-center justify-between p-6 border-b">
+    <div className="h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 md:p-6 border-b gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Project Board</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl md:text-2xl font-semibold">Project Board</h1>
+          <p className="text-sm text-muted-foreground mt-1">
             Manage and track your project tasks
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <Button 
+            variant="outline" 
+            className="justify-center"
+            onClick={() => setIsCreateDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
             Add Task
           </Button>
-          <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
+          <Button 
+            variant="outline"
+            className="justify-center"
+            onClick={() => setIsInviteDialogOpen(true)}
+          >
             Invite Members
           </Button>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
+              <Button variant="outline" size="icon" className="h-9 w-9">
                 <ArrowUpDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -355,12 +363,12 @@ export default function ProjectBoard({
       )}
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex-1 overflow-x-auto p-6">
-          <div className="flex h-full gap-6 min-w-fit">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden p-4 md:p-6">
+          <div className="flex h-full gap-4 md:gap-6 min-w-fit">
             {columns.map((status) => (
               <div
                 key={status}
-                className="flex-1 min-w-[320px] max-w-[400px] flex flex-col h-full"
+                className="flex-1 min-w-[280px] max-w-[350px] flex flex-col h-full"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center">
@@ -368,10 +376,7 @@ export default function ProjectBoard({
                       {columnHeaders[status]}
                     </h3>
                     <span className="ml-2 text-xs bg-background rounded-full px-2 py-1">
-                      {
-                        projectTasks.filter((task) => task.status === status)
-                          .length
-                      }
+                      {projectTasks.filter((task) => task.status === status).length}
                     </span>
                   </div>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -384,7 +389,7 @@ export default function ProjectBoard({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[status]} overflow-y-auto min-h-[200px] max-h-[calc(100vh-220px)]`}
+                      className={`flex-1 rounded-lg p-2 md:p-3 space-y-2 md:space-y-3 ${columnColors[status]} overflow-y-auto min-h-[200px] max-h-[calc(100vh-280px)]`}
                     >
                       {projectTasks
                         .filter((task) => task.status === status)
