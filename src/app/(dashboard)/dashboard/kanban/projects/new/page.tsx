@@ -69,7 +69,7 @@ export default function NewProjectPage() {
         toast.dismiss();
         toast.success("Project created!");
 
-        router.push(`/dashboard/projects/${data.projectId}`);
+        router.push(`/dashboard/kanban/projects/${data.projectId}`);
       } else {
         throw new Error("No project ID returned");
       }
