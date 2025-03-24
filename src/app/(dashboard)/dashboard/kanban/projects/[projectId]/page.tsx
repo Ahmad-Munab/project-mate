@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { getProjectTasks } from "@/lib/tasks";
-import ProjectBoard from "@/components/dashboard/ProjectBoard";
-import ProjectSkeleton from "@/components/dashboard/ProjectSkeleton";
+import ProjectBoard from "@/components/kanban-board/ProjectBoard";
+import ProjectSkeleton from "@/components/kanban-board/ProjectSkeleton";
 
 export default async function ProjectPage({
   params,

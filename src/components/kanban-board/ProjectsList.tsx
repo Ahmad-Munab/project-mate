@@ -45,7 +45,7 @@ export default async function ProjectsList() {
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
-        <Link href="/dashboard/projects/new">
+        <Link href="/dashboard/kanban/projects/new">
           <Button className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Create New Project
@@ -68,7 +68,7 @@ export default async function ProjectsList() {
             {userProjects.map((project) => (
               <li key={project.id}>
                 <Link
-                  href={`/dashboard/projects/${project.id}`}
+                  href={`/dashboard/kanban/projects/${project.id}`}
                   className="block p-3 rounded-lg hover:bg-sidebar-accent transition-colors"
                 >
                   <h3 className="font-medium">{project.name}</h3>
