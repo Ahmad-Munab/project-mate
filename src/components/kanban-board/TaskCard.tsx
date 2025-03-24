@@ -119,10 +119,10 @@ export default function TaskCard({
             >
               {task.priority}
             </Badge>
-            {task.dueDate && (
+            {task.due_date && (
               <div className="flex items-center text-muted-foreground">
                 <Calendar className="h-3 w-3 mr-1" />
-                {new Date(task.dueDate).toLocaleDateString()}
+                {new Date(task.due_date).toLocaleDateString()}
               </div>
             )}
           </div>

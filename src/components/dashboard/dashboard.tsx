@@ -64,14 +64,16 @@ type Project = {
   name: string;
   description?: string;
   status?: string;
+  progress?: number;
   members?: any[];
   tasks?: any[];
+  dueDate?: string;
 };
 
 export default function Dashboard() {
-  const [projects, setProjects] = useState([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [newProjectOpen, setNewProjectOpen] = useState(false);
@@ -79,9 +81,9 @@ export default function Dashboard() {
   const [newProjectDescription, setNewProjectDescription] = useState("");
   const [newProjectDueDate, setNewProjectDueDate] = useState("");
   const [editProjectOpen, setEditProjectOpen] = useState(false);
-  const [projectToEdit, setProjectToEdit] = useState(null);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskStatus, setNewTaskStatus] = useState("Planned");
@@ -112,7 +114,7 @@ export default function Dashboard() {
         console.error('Client: Error loading projects:', error);
         if (mounted) {
           setProjects([]);
-          setError(error.message);
+          setError(error instanceof Error ? error.message : 'An unexpected error occurred');
         }
       } finally {
         if (mounted) {
@@ -190,7 +192,7 @@ export default function Dashboard() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          projectId: projectToEdit.id,
+          projectId: projectToEdit?.id,
           name: newProjectName,
           description: newProjectDescription,
         }),
@@ -203,7 +205,7 @@ export default function Dashboard() {
       const updatedProject = await response.json();
 
       const updatedProjects = projects.map((project) =>
-        project.id === projectToEdit.id
+        project.id === projectToEdit?.id
           ? {
               ...project,
               name: updatedProject.name,
@@ -213,7 +215,7 @@ export default function Dashboard() {
       );
 
       setProjects(updatedProjects);
-      if (selectedProject?.id === projectToEdit.id) {
+      if (selectedProject?.id === projectToEdit?.id) {
         setSelectedProject({
           ...selectedProject,
           name: updatedProject.name,
@@ -612,7 +614,7 @@ export default function Dashboard() {
                           <CardContent className="pb-2">
                             <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center">
-                                <Badge variant="outline" className={getStatusColor(project.status)}>
+                                <Badge variant="outline" className={getStatusColor(project.status || 'PENDING')}>
                                   {project.status}
                                 </Badge>
                               </div>
@@ -700,7 +702,7 @@ export default function Dashboard() {
                             <td className="p-4 align-middle">
                               <Badge
                                 variant="outline"
-                                className={getStatusColor(project.status)}
+                                className={getStatusColor(project.status || 'PENDING')}
                               >
                                 {project.status}
                               </Badge>
