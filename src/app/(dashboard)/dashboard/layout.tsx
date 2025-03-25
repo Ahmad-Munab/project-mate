@@ -2,7 +2,6 @@ import type React from "react";
 import { Suspense } from "react";
 import ProjectSkeleton from "@/components/kanban/ProjectSkeleton";
 import { UserNav } from "@/components/kanban/UserNav";
-import { Search } from "@/components/kanban/Search";
 import Sidebar from "@/components/shared/sidebar";
 
 export default function DashboardLayout({
@@ -23,7 +22,6 @@ export default function DashboardLayout({
 
       <div className="flex-1 flex flex-col">
         <header className="h-16 border-b bg-card px-6 flex items-center justify-between">
-          <Search />
           <UserNav />
         </header>
 

@@ -8,9 +8,6 @@ import { motion } from "framer-motion"
 import {
   Plus,
   Search,
-  Bell,
-  Settings,
-  User,
   Zap,
   Edit,
   Trash2,
@@ -26,7 +23,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -46,7 +42,6 @@ import AIAssistant from "./ai-assistant"
 
 import { getProjects } from "@/app/actions/projects";
 import { useProjectStore } from "@/store/projectStore";
-import Sidebar from "../shared/sidebar";
 
 type Member = {
   id: string;
@@ -286,8 +281,6 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-gradient-to-br from-background via-background/95 to-background/90">
-      {/* Sidebar with gradient */}
- <Sidebar />
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Enhanced Header */}
@@ -295,11 +288,17 @@ export default function Dashboard() {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="border-b bg-card/50 backdrop-blur-md"
+          className="flex justify-center bg-card/50 backdrop-blur-md mt-6"
         >
           <div className="flex items-center justify-between h-16 px-4">
             <div className="flex items-center space-x-4">
-              <div className="relative w-64 group">
+            <Link href="/dashboard/projects/new">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Project
+                </Button>
+              </Link>
+              <div className="relative w-128 group">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 <Input
                   type="search"
@@ -309,62 +308,20 @@ export default function Dashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
+              <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-gradient-to-r from-green-500/10 to-transparent hover:from-blue-500/20 hover:to-cyan-500/10 border-green-500/20"
+                  >
+                    <Filter className="h-4 w-4 mr-2 text-green-500" />
+                    Filter
+              </Button>
 
-              <Link href="/dashboard/kanban/projects/new">
-                <Button className="bg-gradient-to-r from-primary rainbow-button shadow-lg hover:shadow-primary/20 transition-all duration-300">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Project
-                </Button>
-              </Link>
+
+
             </div>
 
-            <div className="flex items-center space-x-2">
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary animate-pulse" />
-                </Button>
-              </motion.div>
-
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <Button variant="ghost" size="icon">
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </motion.div>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8 ring-2 ring-primary/20 hover:ring-primary/40 transition-all">
-                      <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-purple-500">U</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 backdrop-blur-sm bg-card/95" align="end">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">User</p>
-                      <p className="text-xs leading-none text-muted-foreground">user@example.com</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-transparent" />
-                  <DropdownMenuItem className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent">
-                    <User className="mr-2 h-4 w-4" />
-                    <span>Profile</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent">
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-gradient-to-r from-primary/20 via-purple-500/20 to-transparent" />
-                  <DropdownMenuItem className="hover:bg-gradient-to-r hover:from-red-500/10 hover:to-transparent text-red-500">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+ 
           </div>
         </motion.header>
 
@@ -395,14 +352,6 @@ export default function Dashboard() {
                   >
                     <Zap className="h-4 w-4 mr-2 text-primary" />
                     AI Assistant
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gradient-to-r from-green-500/10 to-transparent hover:from-blue-500/20 hover:to-cyan-500/10 border-green-500/20"
-                  >
-                    <Filter className="h-4 w-4 mr-2 text-green-500" />
-                    Filter
                   </Button>
                 </div>
               </div>
@@ -458,7 +407,7 @@ export default function Dashboard() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem asChild>
-                                    <Link href={`/dashboard/kanban/projects/${project.id}`}>
+                                    <Link href={`/dashboard/projects/${project.id}`}>
                                       <Eye className="mr-2 h-4 w-4" />
                                       <span>View Details</span>
                                     </Link>
@@ -513,7 +462,7 @@ export default function Dashboard() {
                                 className="text-primary hover:text-primary hover:bg-primary/10"
                                 asChild
                               >
-                                <Link href={`/dashboard/kanban/projects/${project.id}`}>
+                                <Link href={`/dashboard/projects/${project.id}`}>
                                   View Tasks
                                 </Link>
                               </Button>
@@ -597,7 +546,7 @@ export default function Dashboard() {
                             <td className="p-4 align-middle">
                               <div className="flex items-center gap-2">
                                 <Button variant="ghost" size="icon" asChild>
-                                  <Link href={`/dashboard/kanban/projects/${project.id}`}>
+                                  <Link href={`/dashboard/projects/${project.id}`}>
                                     <Eye className="h-4 w-4" />
                                   </Link>
                                 </Button>
@@ -717,5 +666,5 @@ export default function Dashboard() {
 }
 
 // These are the missing imports that were used in the component
-import { MoreHorizontal, Eye, LogOut } from "lucide-react"
+import { MoreHorizontal, Eye,  } from "lucide-react"
 

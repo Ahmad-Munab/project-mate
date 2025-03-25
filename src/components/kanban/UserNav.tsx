@@ -70,8 +70,11 @@ export function UserNav() {
             src={userData.avatarUrl}
             alt={userData.name || "User avatar"}
           />
+
           <AvatarFallback>{initials}</AvatarFallback>
+          <p>{userData.name}</p>
         </Avatar>
+ 
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end">
         <DropdownMenuLabel>
