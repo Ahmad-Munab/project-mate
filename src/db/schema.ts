@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   timestamp,
+  boolean,
   pgEnum,
   pgSchema,
 } from "drizzle-orm/pg-core";
@@ -19,6 +20,11 @@ export const priorityLevelEnum = pgEnum("priority_level", [
   "MEDIUM",
   "HIGH",
   "URGENT",
+]);
+export const inviteStatusEnum = pgEnum("invite_status", [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
 ]);
 
 const authSchema = pgSchema("auth");
@@ -102,3 +108,64 @@ export const projectInvites = pgTable("project_invites", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Invites table
+export const invites = pgTable("invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  role: userRoleEnum("role").notNull().default("MEMBER"),
+  status: inviteStatusEnum("status").notNull().default("PENDING"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdBy: uuid("created_by")
+    .references(() => authUsers.id)
+    .notNull(),
+});
+
+// Permissions table
+export const permissions = pgTable("permissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  role: userRoleEnum("role").notNull().unique(),
+  canView: boolean("can_view").notNull().default(true),
+  canEdit: boolean("can_edit").notNull().default(false),
+  canDelete: boolean("can_delete").notNull().default(false),
+  canManageProject: boolean("can_manage_project").notNull().default(false),
+  canInvite: boolean("can_invite").notNull().default(false),
+  canApprove: boolean("can_approve").notNull().default(false),
+  canDeleteProject: boolean("can_delete_project").notNull().default(false),
+});
+
+// Insert default permissions
+export const defaultPermissions = [
+  {
+    role: "OWNER",
+    canView: true,
+    canEdit: true,
+    canDelete: true,
+    canManageProject: true,
+    canInvite: false, // Owner cannot invite new users
+    canApprove: true,
+    canDeleteProject: true,
+  },
+  {
+    role: "MANAGER",
+    canView: true,
+    canEdit: true,
+    canDelete: true,
+    canManageProject: true,
+    canInvite: true,
+    canApprove: true,
+    canDeleteProject: false,
+  },
+  {
+    role: "MEMBER",
+    canView: true,
+    canEdit: false,
+    canDelete: false,
+    canManageProject: false,
+    canInvite: false,
+    canApprove: false,
+    canDeleteProject: false,
+  },
+];
