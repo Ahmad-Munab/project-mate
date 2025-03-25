@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Users, Braces } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,7 +54,7 @@ export default function Hero() {
       <div className="absolute inset-0 overflow-hidden">
         {[
           ...Array(
-            typeof window !== "undefined" && window.innerWidth > 1024 ? 3 : 1
+            typeof window !== "undefined" && window.innerWidth > 1024 ? 2 : 1
           ),
         ].map((_, i) => (
           <div
@@ -112,12 +113,15 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300 hover:-translate-y-1 text-lg"
-            >
-              Get Started Free <ArrowRight className="h-5 w-5" />
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg hover:shadow-xl hover:shadow-green-200/20 dark:hover:shadow-green-900/20 transition-all duration-300">
+              <Link
+                href="/signin"
+                className="flex justify-center items-center gap-2"
+              >
+                Get Started Free <ArrowRight className="h-5 w-5" />
+              </Link>
             </Button>
+
             <Button
               size="lg"
               variant="outline"
