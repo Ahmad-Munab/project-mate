@@ -1,9 +1,9 @@
 import type React from "react";
 import { Suspense } from "react";
-import ProjectsList from "@/components/dashboard/ProjectsList";
-import ProjectSkeleton from "@/components/dashboard/ProjectSkeleton";
-import { UserNav } from "@/components/dashboard/UserNav";
-import { Search } from "@/components/dashboard/Search";
+import ProjectSkeleton from "@/components/kanban/ProjectSkeleton";
+import { UserNav } from "@/components/kanban/UserNav";
+import { Search } from "@/components/kanban/Search";
+import Sidebar from "@/components/shared/sidebar";
 
 export default function DashboardLayout({
   children,
@@ -17,7 +17,7 @@ export default function DashboardLayout({
           <h2 className="text-lg font-semibold">Projects</h2>
         </div>
         <Suspense fallback={<ProjectSkeleton />}>
-          <ProjectsList />
+          <Sidebar />
         </Suspense>
       </aside>
 
