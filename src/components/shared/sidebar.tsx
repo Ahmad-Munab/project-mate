@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from "framer-motion"
-import { Sparkles, Calendar, Code, Settings, Star } from "lucide-react"
+import { Sparkles, Calendar, Code, Settings, Star, Users } from "lucide-react"
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
@@ -52,6 +52,16 @@ export default function Sidebar() {
               <Calendar className="mr-2 h-4 w-4 text-green-500" />
               Calendar
             </a>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start hover:bg-gradient-to-r hover:from-green-500/10 hover:to-transparent transition-all duration-300" 
+            asChild
+          >
+            <Link href="/dashboard/members" className="font-medium">
+              <Users className="mr-2 h-4 w-4 text-green-500" />
+              Members
+            </Link>
           </Button>
         </nav>
       </div>

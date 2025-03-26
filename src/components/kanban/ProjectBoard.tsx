@@ -28,6 +28,7 @@ import TaskCard from "./TaskCard";
 import { tasks } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import TaskCreateDialog from "./TaskCreateDialog";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export type Task = InferSelectModel<typeof tasks>;
 
@@ -129,6 +130,8 @@ export default function ProjectBoard({
   projectId?: string;
   initialTasks: Task[];
 }) {
+  const { can, } = usePermissions();
+  
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState<string>("createdAt");
@@ -186,14 +189,23 @@ export default function ProjectBoard({
     }
   }, [projectId]);
 
-  const handleTaskUpdate = (updatedTask: Task) => {
-    setProjectTasks((prev) =>
-      sortTasks(
-        prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
-        sortBy,
-        sortDirection
-      )
-    );
+  const handleTaskUpdate = async (updatedTask: Task) => {
+    if (!can("canEdit")) {
+      toast.error("You don't have permission to edit tasks");
+      return;
+    }
+
+    try {
+      setProjectTasks((prev) =>
+        sortTasks(
+          prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)),
+          sortBy,
+          sortDirection
+        )
+      );
+    } catch (error) {
+      console.error("Failed to update task:", error);
+    }
   };
 
   const handleTaskCreate = (newTask: Task) => {
@@ -202,10 +214,19 @@ export default function ProjectBoard({
     );
   };
 
-  const handleTaskDelete = (taskId: string) => {
-    setProjectTasks((prevTasks) =>
-      prevTasks.filter((task) => task.id !== taskId)
-    );
+  const handleTaskDelete = async (taskId: string) => {
+    if (!can("canDelete")) {
+      toast.error("You don't have permission to delete tasks");
+      return;
+    }
+
+    try {
+      setProjectTasks((prevTasks) =>
+        prevTasks.filter((task) => task.id !== taskId)
+      );
+    } catch (error) {
+      console.error("Failed to delete task:", error);
+    }
   };
 
   const onDragEnd = async (result: DropResult) => {
