@@ -1,4 +1,6 @@
+import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { cookies } from 'next/headers';
 import { db } from "@/db";
 import { invites, projects } from "@/db/schema";
 import { eq, } from "drizzle-orm";
@@ -7,6 +9,9 @@ export async function GET(
   request: Request,
   { params }: { params: { token: string } }
 ) {
+  const cookieStore = cookies();
+  const supabase = await createClient(cookieStore);
+
   try {
     const token = params.token;
 

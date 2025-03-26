@@ -126,16 +126,18 @@ const sortTasks = (
 export default function ProjectBoard({
   projectId,
   initialTasks,
+  isOwner, // Add this prop
 }: {
   projectId?: string;
   initialTasks: Task[];
+  isOwner: boolean;
 }) {
   const { can } = usePermissions();
   
-  // Add these visibility controls based on permissions
-  const canCreateTasks = can("canEdit");
-  const canInviteMembers = can("canInvite");
-  const canDragTasks = can("canEdit");
+  // Modify permission checks to allow owners
+  const canCreateTasks = isOwner || can("canEdit");
+  const canInviteMembers = isOwner || can("canInvite");
+  const canDragTasks = isOwner || can("canEdit");
 
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
@@ -195,7 +197,7 @@ export default function ProjectBoard({
   }, [projectId]);
 
   const handleTaskUpdate = async (updatedTask: Task) => {
-    if (!can("canEdit")) {
+    if (!isOwner && !can("canEdit")) {
       toast.error("You don't have permission to edit tasks");
       return;
     }
@@ -220,7 +222,7 @@ export default function ProjectBoard({
   };
 
   const handleTaskDelete = async (taskId: string) => {
-    if (!can("canDelete")) {
+    if (!isOwner && !can("canDelete")) {
       toast.error("You don't have permission to delete tasks");
       return;
     }
@@ -384,7 +386,7 @@ export default function ProjectBoard({
         />
       )}
 
-      <DragDropContext onDragEnd={canDragTasks ? onDragEnd : () => {}}>
+      <DragDropContext onDragEnd={(isOwner || canDragTasks) ? onDragEnd : () => {}}>
         <div className="flex-1 overflow-x-auto p-6">
           <div className="flex h-full gap-6 min-w-fit">
             {columns.map((status) => (

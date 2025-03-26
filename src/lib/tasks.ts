@@ -22,8 +22,8 @@ export async function getProjectTasks(projectId: string) {
     const projectTasks = await db
       .select()
       .from(tasks)
-      .where(eq(tasks.project_id, projectId))
-      .orderBy(tasks.created_at);
+      .where(eq(tasks.projectId, projectId))
+      .orderBy(tasks.createdAt);
 
     return projectTasks;
   } catch (error) {

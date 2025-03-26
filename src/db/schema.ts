@@ -44,8 +44,8 @@ export const projects = pgTable("projects", {
   ownerId: uuid("owner_id")
     .references(() => authUsers.id)
     .notNull(),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const projectMembers = pgTable("project_members", {
@@ -69,14 +69,14 @@ export const tasks = pgTable("tasks", {
   description: text("description"),
   status: taskStatusEnum("status").notNull().default("BACKLOG"),
   priority: priorityLevelEnum("priority").notNull().default("MEDIUM"),
-  project_id: uuid("project_id")
+  projectId: uuid("project_id")
     .references(() => projects.id)
     .notNull(),
-  created_by: uuid("created_by")
+  createdBy: uuid("created_by")
     .references(() => authUsers.id)
     .notNull(),
-  created_at: timestamp("created_at").defaultNow(),
-  due_date: timestamp("due_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  dueDate: timestamp("due_date"),
 });
 
 export const taskAssignees = pgTable("task_assignees", {
@@ -97,7 +97,7 @@ export const aiSuggestions = pgTable("ai_suggestions", {
   taskId: uuid("task_id").references(() => tasks.id),
   type: text("type").notNull(),
   content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const projectInvites = pgTable("project_invites", {
@@ -111,7 +111,7 @@ export const projectInvites = pgTable("project_invites", {
     .references(() => authUsers.id)
     .notNull(),
   expiresAt: timestamp("expires_at"),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Invites table

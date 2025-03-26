@@ -6,10 +6,8 @@ import { eq } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
+  { params }: { params: { projectId: string } }
 ) {
-  const { projectId } = await params;
-
   try {
     const supabase = await createClient();
     const {
@@ -27,7 +25,7 @@ export async function GET(
     const projectTasks = await db
       .select()
       .from(tasks)
-      .where(eq(tasks.project_id, projectId));
+      .where(eq(tasks.projectId, params.projectId));
 
     return NextResponse.json(projectTasks);
   } catch (error) {

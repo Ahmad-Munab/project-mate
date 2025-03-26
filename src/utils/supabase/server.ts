@@ -1,39 +1,32 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-export async function createClient() {
+export async function createClient(cookieStore?: ReturnType<typeof cookies>) {
+  const cookieHandler = cookieStore || cookies();
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: async (name) => {
-          const cookieStore = await cookies();
-          return cookieStore.get(name)?.value;
+        get: (name) => {
+          return cookieHandler.get(name)?.value;
         },
-        set: async (name, value, options) => {
+        set: (name, value, options) => {
           try {
-            const cookieStore = await cookies();
-            cookieStore.set(name, value, {
-              ...options,
-              path: '/',
-              sameSite: 'lax',
-              secure: process.env.NODE_ENV === 'production'
-            });
+            if (options?.maxAge) {
+              options.expires = new Date(Date.now() + options.maxAge * 1000);
+            }
+            cookieHandler.set(name, value, options);
           } catch (error) {
-            console.error('Error setting cookie:', error);
+            console.error('Cookie setting error:', error);
           }
         },
-        remove: async (name, options) => {
+        remove: (name, options) => {
           try {
-            const cookieStore = await cookies();
-            cookieStore.set(name, '', {
-              ...options,
-              path: '/',
-              expires: new Date(0)
-            });
+            cookieHandler.set(name, '', { ...options, expires: new Date(0) });
           } catch (error) {
-            console.error('Error removing cookie:', error);
+            console.error('Cookie removal error:', error);
           }
         },
       },
