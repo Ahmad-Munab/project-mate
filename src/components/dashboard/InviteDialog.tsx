@@ -33,16 +33,28 @@ export function InviteDialog({
     try {
       setIsLoading(true);
 
-      const response = await fetch("/api/invites/create", {
+      // Get projectId from URL or props
+      const projectId = window.location.pathname.split('/projects/')[1]?.split('/')[0];
+
+      if (!projectId) {
+        throw new Error("Project ID is required");
+      }
+
+      const response = await fetch("/api/invites/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, role }),
+        body: JSON.stringify({ 
+          email, 
+          role,
+          projectId 
+        }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create invite");
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create invite");
       }
 
       const data = await response.json();
@@ -53,7 +65,7 @@ export function InviteDialog({
       setRole("MEMBER");
     } catch (error) {
       console.error("Error sending invite:", error);
-      toast.error("Failed to send invitation");
+      toast.error(error.message || "Failed to send invitation");
     } finally {
       setIsLoading(false);
     }

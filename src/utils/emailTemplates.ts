@@ -55,7 +55,7 @@ export function generateInviteEmailContent(
         }
         .button {
           display: inline-block;
-          background: #2563eb;
+          background: green;
           color: white;
           padding: 12px 24px;
           text-decoration: none;

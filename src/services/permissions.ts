@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { permissions } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import type { Role, Permissions } from "@/types/permissions";
+import type { Permissions } from "@/types/permissions";
 
 export async function assignUserPermissions(userId: string, role: string) {
   try {
