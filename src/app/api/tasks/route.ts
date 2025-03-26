@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest} from "next/server";
 import { permissionsMiddleware } from "@/middleware/permissions";
 
 export async function POST(request: NextRequest) {

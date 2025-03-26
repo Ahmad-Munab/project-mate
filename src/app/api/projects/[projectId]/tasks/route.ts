@@ -25,7 +25,7 @@ export async function GET(
     const projectTasks = await db
       .select()
       .from(tasks)
-      .where(eq(tasks.projectId, params.projectId));
+      .where(eq(tasks.project_id, params.projectId));
 
     return NextResponse.json(projectTasks);
   } catch (error) {
