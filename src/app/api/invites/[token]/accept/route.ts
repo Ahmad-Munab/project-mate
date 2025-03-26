@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { invites, users, projectMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { assignUserPermissions } from "@/services/permissions";
 
 export async function POST(
   request: Request,
@@ -147,6 +148,9 @@ export async function POST(
           );
       }
 
+      // Assign correct permissions based on role
+      await assignUserPermissions(user.id, invite.role);
+
       // Update invite status
       await tx
         .update(invites)
@@ -165,10 +169,16 @@ export async function POST(
       projectId: invite.projectId // Return projectId for redirect
     });
   } catch (error) {
-    console.error("Error accepting invite:", error);
-    console.error("Error details:", error.detail); // Add more error details
+    console.error("Detailed error accepting invite:", error);
+    // Log additional error details if available
+    if (error.code) console.error("Error code:", error.code);
+    if (error.detail) console.error("Error detail:", error.detail);
+    
     return NextResponse.json(
-      { error: "Failed to accept invite" },
+      { 
+        error: "Failed to accept invite",
+        details: error.message 
+      },
       { status: 500 }
     );
   }

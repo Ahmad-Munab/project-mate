@@ -84,31 +84,37 @@ export default function InvitePageClient({ token }: { token: string }) {
         throw new Error("Invalid invitation token");
       }
 
+      console.log("Attempting to accept invite with token:", token);
+
       const response = await fetch(`/api/invites/${token}/accept`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-        }
+        },
+        credentials: "include", // Add this to ensure cookies are sent
       });
 
+      console.log("Response status:", response.status);
       const data = await response.json();
+      console.log("Response data:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to accept invitation");
       }
 
-      toast.success(data.message || "Invitation accepted successfully");
+      toast.success("Invitation accepted successfully");
       
       // Redirect to the project's board page
       if (data.projectId) {
         router.push(`/dashboard/projects/${data.projectId}`);
       } else {
-        router.push('/dashboard'); // Fallback to dashboard only if no projectId
+        router.push('/dashboard');
       }
 
     } catch (error) {
-      console.error("Error accepting invite:", error);
+      console.error("Detailed error accepting invite:", error);
       toast.error(error instanceof Error ? error.message : "Failed to accept invitation");
+      setError(error instanceof Error ? error.message : "Failed to accept invitation");
     } finally {
       setAccepting(false);
     }

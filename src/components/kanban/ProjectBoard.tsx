@@ -130,8 +130,13 @@ export default function ProjectBoard({
   projectId?: string;
   initialTasks: Task[];
 }) {
-  const { can, } = usePermissions();
+  const { can } = usePermissions();
   
+  // Add these visibility controls based on permissions
+  const canCreateTasks = can("canEdit");
+  const canInviteMembers = can("canInvite");
+  const canDragTasks = can("canEdit");
+
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState<string>("createdAt");
@@ -289,13 +294,17 @@ export default function ProjectBoard({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Task
-          </Button>
-          <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
-            Invite Members
-          </Button>
+          {canCreateTasks && (
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Task
+            </Button>
+          )}
+          {canInviteMembers && (
+            <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
+              Invite Members
+            </Button>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -375,7 +384,7 @@ export default function ProjectBoard({
         />
       )}
 
-      <DragDropContext onDragEnd={onDragEnd}>
+      <DragDropContext onDragEnd={canDragTasks ? onDragEnd : () => {}}>
         <div className="flex-1 overflow-x-auto p-6">
           <div className="flex h-full gap-6 min-w-fit">
             {columns.map((status) => (

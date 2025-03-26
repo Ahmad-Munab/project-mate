@@ -1,36 +1,7 @@
 import { db } from "@/db";
 import { permissions } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import type { Role, Permissions } from "@/types/permissions";
-
-const rolePermissions: Record<Role, Permissions> = {
-  OWNER: {
-    canView: true,
-    canEdit: true,
-    canDelete: true,
-    canManageProject: true,
-    canInvite: true,
-    canApprove: true,
-    canDeleteProject: true,
-  },
-  MANAGER: {
-    canView: true,
-    canEdit: true,
-    canDelete: false,
-    canManageProject: true,
-    canInvite: true,
-    canApprove: false,
-    canDeleteProject: false,
-  },
-  MEMBER: {
-    canView: true,
-    canEdit: false,
-    canDelete: false,
-    canManageProject: false,
-    canInvite: false,
-    canApprove: false,
-    canDeleteProject: false,
-  },
-};
 
 export async function assignUserPermissions(userId: string, role: string) {
   try {
@@ -39,22 +10,53 @@ export async function assignUserPermissions(userId: string, role: string) {
       .delete(permissions)
       .where(eq(permissions.userId, userId));
 
-    // Get the permissions for this role
-    const rolePermissions = getRolePermissions(role);
+    // Define role-based permissions
+    const rolePermissions = {
+      MEMBER: {
+        canView: true,
+        canEdit: false,
+        canDelete: false,
+        canManageProject: false,
+        canInvite: false,
+        canApprove: false,
+        canDeleteProject: false,
+      },
+      MANAGER: {
+        canView: true,
+        canEdit: true,
+        canDelete: true,
+        canManageProject: true,
+        canInvite: true,
+        canApprove: false,
+        canDeleteProject: false,
+      },
+      OWNER: {
+        canView: true,
+        canEdit: true,
+        canDelete: true,
+        canManageProject: true,
+        canInvite: true,
+        canApprove: true,
+        canDeleteProject: true,
+      }
+    };
+
+    const perms = rolePermissions[role.toUpperCase()];
+    if (!perms) {
+      throw new Error(`Invalid role: ${role}`);
+    }
 
     // Insert new permissions
-    if (rolePermissions.length > 0) {
-      await db
-        .insert(permissions)
-        .values(
-          rolePermissions.map(permission => ({
-            userId,
-            permission,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }))
-        );
-    }
+    await db
+      .insert(permissions)
+      .values({
+        userId,
+        role,
+        ...perms,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
   } catch (error) {
     console.error(`Error assigning permissions to user ${userId}:`, error);
     throw error;
