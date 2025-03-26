@@ -65,6 +65,15 @@ type Project = {
   dueDate?: string;
 };
 
+type ProjectWithOwner = Project & {
+  isOwner: boolean;
+  ownerInfo?: {
+    name: string;
+    avatar: string;
+  };
+  myRole?: string;
+};
+
 export default function Dashboard() {
 
       const {
@@ -370,108 +379,192 @@ export default function Dashboard() {
               </motion.div>
 
               <TabsContent value="grid" className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {isLoading ? (
-                    // Show loading skeleton while data is being fetched
-                    <div className="col-span-full">
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      </div>
-                    </div>
-                  ) : filteredProjects.length === 0 ? (
-                    <div className="col-span-full text-center p-4 text-muted-foreground">
-                      No projects found
-                    </div>
-                  ) : (
-                    filteredProjects.map((project, index) => (
-                      <motion.div
-                        key={project.id}
-                        initial={{ y: 20, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
-                      >
-                        <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                          <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-lg">{project.name || 'Untitled Project'}</CardTitle>
-                                <CardDescription className="line-clamp-2">
-                                  {project.description || 'No description provided'}
-                                </CardDescription>
+                {/* My Projects */}
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold mb-4">My Projects</h2>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredProjects
+                      .filter(project => project.isOwner)
+                      .map((project, index) => (
+                        <motion.div
+                          key={project.id}
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
+                        >
+                          <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                            <CardHeader className="pb-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <CardTitle className="text-lg">{project.name || 'Untitled Project'}</CardTitle>
+                                  <CardDescription className="line-clamp-2">
+                                    {project.description || 'No description provided'}
+                                  </CardDescription>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem asChild>
+                                      <Link href={`/dashboard/projects/${project.id}`}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        <span>View Details</span>
+                                      </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openEditProjectModal(project)}>
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      <span>Edit</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => confirmDeleteProject(project.id)}
+                                    >
+                                      <Trash2 className="mr-2 h-4 w-4" />
+                                      <span>Delete</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem asChild>
-                                    <Link href={`/dashboard/projects/${project.id}`}>
-                                      <Eye className="mr-2 h-4 w-4" />
-                                      <span>View Details</span>
-                                    </Link>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => openEditProjectModal(project)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    <span>Edit</span>
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive"
-                                    onClick={() => confirmDeleteProject(project.id)}
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>Delete</span>
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="pb-2">
-                            <div className="flex justify-between items-center mb-2">
-                              <div className="flex items-center">
-                                <Badge variant="outline" className={getStatusColor(project.status || 'PENDING')}>
-                                  {project.status}
-                                </Badge>
+                            </CardHeader>
+                            <CardContent className="pb-2">
+                              <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center">
+                                  <Badge variant="outline" className={getStatusColor(project.status || 'PENDING')}>
+                                    {project.status}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Progress value={project.progress} className="h-2 w-[60px]" />
+                                  <span className="text-xs">{project.progress}%</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Progress value={project.progress} className="h-2 w-[60px]" />
-                                <span className="text-xs">{project.progress}%</span>
+                              {project.dueDate && (
+                                <p className="text-sm text-muted-foreground">
+                                  Due: {new Date(project.dueDate).toLocaleDateString()}
+                                </p>
+                              )}
+                            </CardContent>
+                            <CardFooter className="pt-2">
+                              <div className="flex justify-between items-center w-full">
+                                <div className="flex -space-x-2">
+                                  {project.members?.slice(0, 3).map((member, i) => (
+                                    <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                      <AvatarImage src={member.avatar} alt={member.name} />
+                                      <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                  ))}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                  asChild
+                                >
+                                  <Link href={`/dashboard/projects/${project.id}`}>
+                                    View Tasks
+                                  </Link>
+                                </Button>
                               </div>
-                            </div>
-                            {project.dueDate && (
-                              <p className="text-sm text-muted-foreground">
-                                Due: {new Date(project.dueDate).toLocaleDateString()}
-                              </p>
-                            )}
-                          </CardContent>
-                          <CardFooter className="pt-2">
-                            <div className="flex justify-between items-center w-full">
-                              <div className="flex -space-x-2">
-                                {project.members?.slice(0, 3).map((member, i) => (
-                                  <Avatar key={i} className="h-7 w-7 border-2 border-background">
-                                    <AvatarImage src={member.avatar} alt={member.name} />
-                                    <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
+                            </CardFooter>
+                          </Card>
+                        </motion.div>
+                      ))}
+                  </div>
+                </div>
+
+                {/* Shared Projects */}
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Shared With Me</h2>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {filteredProjects
+                      .filter(project => !project.isOwner)
+                      .map((project, index) => (
+                        <motion.div
+                          key={project.id}
+                          initial={{ y: 20, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
+                        >
+                          <Card className="overflow-hidden hover:shadow-md transition-shadow">
+                            <CardHeader className="pb-2">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={project.ownerInfo?.avatar} />
+                                    <AvatarFallback>{project.ownerInfo?.name?.[0]}</AvatarFallback>
                                   </Avatar>
-                                ))}
+                                  <div>
+                                    <CardTitle className="text-lg">{project.name}</CardTitle>
+                                    <p className="text-sm text-muted-foreground">
+                                      By {project.ownerInfo?.name} • You are {project.myRole}
+                                    </p>
+                                  </div>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem asChild>
+                                      <Link href={`/dashboard/projects/${project.id}`}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        <span>View Details</span>
+                                      </Link>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-primary hover:text-primary hover:bg-primary/10"
-                                asChild
-                              >
-                                <Link href={`/dashboard/projects/${project.id}`}>
-                                  View Tasks
-                                </Link>
-                              </Button>
-                            </div>
-                          </CardFooter>
-                        </Card>
-                      </motion.div>
-                    ))
-                  )}
+                            </CardHeader>
+                            <CardContent className="pb-2">
+                              <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center">
+                                  <Badge variant="outline" className={getStatusColor(project.status || 'PENDING')}>
+                                    {project.status}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Progress value={project.progress} className="h-2 w-[60px]" />
+                                  <span className="text-xs">{project.progress}%</span>
+                                </div>
+                              </div>
+                              {project.dueDate && (
+                                <p className="text-sm text-muted-foreground">
+                                  Due: {new Date(project.dueDate).toLocaleDateString()}
+                                </p>
+                              )}
+                            </CardContent>
+                            <CardFooter className="pt-2">
+                              <div className="flex justify-between items-center w-full">
+                                <div className="flex -space-x-2">
+                                  {project.members?.slice(0, 3).map((member, i) => (
+                                    <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                      <AvatarImage src={member.avatar} alt={member.name} />
+                                      <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                  ))}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                  asChild
+                                >
+                                  <Link href={`/dashboard/projects/${project.id}`}>
+                                    View Tasks
+                                  </Link>
+                                </Button>
+                              </div>
+                            </CardFooter>
+                          </Card>
+                        </motion.div>
+                      ))}
+                  </div>
                 </div>
               </TabsContent>
 
@@ -511,9 +604,24 @@ export default function Dashboard() {
                             className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                           >
                             <td className="p-4 align-middle">
-                              <div>
-                                <div className="font-medium">{project.name}</div>
-                                <div className="text-sm text-muted-foreground line-clamp-1">{project.description}</div>
+                              <div className="flex items-center gap-3">
+                                {!project.isOwner && (
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={project.ownerInfo?.avatar} />
+                                    <AvatarFallback>{project.ownerInfo?.name?.[0]}</AvatarFallback>
+                                  </Avatar>
+                                )}
+                                <div>
+                                  <div className="font-medium">{project.name}</div>
+                                  {!project.isOwner && (
+                                    <div className="text-sm text-muted-foreground">
+                                      By {project.ownerInfo?.name} • You are {project.myRole}
+                                    </div>
+                                  )}
+                                  <div className="text-sm text-muted-foreground line-clamp-1">
+                                    {project.description}
+                                  </div>
+                                </div>
                               </div>
                             </td>
                             <td className="p-4 align-middle">
@@ -550,17 +658,21 @@ export default function Dashboard() {
                                     <Eye className="h-4 w-4" />
                                   </Link>
                                 </Button>
-                                <Button variant="ghost" size="icon" onClick={() => openEditProjectModal(project)}>
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => confirmDeleteProject(project.id)}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {project.isOwner && (
+                                  <>
+                                    <Button variant="ghost" size="icon" onClick={() => openEditProjectModal(project)}>
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => confirmDeleteProject(project.id)}
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             </td>
                           </tr>
