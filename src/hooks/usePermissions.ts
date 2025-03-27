@@ -4,14 +4,20 @@ import type { Permissions } from '@/types/permissions';
 export function usePermissions() {
   const [permissions, setPermissions] = useState<Permissions | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPermissions() {
       try {
+        console.log('Fetching user permissions...');
         const response = await fetch('/api/user/permissions');
         if (response.ok) {
           const data = await response.json();
-          setPermissions(data.permissions);
+          console.log('Received permissions data:', data);
+          setPermissions(data);
+          setRole(data.role || null);
+        } else {
+          console.error('Failed to fetch permissions:', await response.text());
         }
       } catch (error) {
         console.error('Error fetching permissions:', error);
@@ -24,8 +30,19 @@ export function usePermissions() {
   }, []);
 
   const can = (permission: keyof Permissions): boolean => {
-    return permissions ? permissions[permission] : false;
+    console.log(`Checking permission '${permission}':`, permissions?.[permission]);
+    return permissions ? permissions[permission] === true : false;
   };
 
-  return { permissions, loading, can };
+  const isManager = (): boolean => {
+    console.log('Checking if user is manager, role:', role);
+    return role === 'MANAGER' || role === 'OWNER';
+  };
+
+  const isOwner = (): boolean => {
+    console.log('Checking if user is owner, role:', role);
+    return role === 'OWNER';
+  };
+
+  return { permissions, loading, can, role, isManager, isOwner };
 }

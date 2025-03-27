@@ -132,16 +132,27 @@ export default function ProjectBoard({
   initialTasks: Task[];
   isOwner: boolean;
 }) {
-  const { can, permissions } = usePermissions();
+  const { can, isManager, role, permissions } = usePermissions();
 
-  // Check if user is a manager (has manager permissions)
-  const isManager = permissions?.canManageProject === true;
+  console.log('ProjectBoard: User role from hook:', role);
+  console.log('ProjectBoard: isOwner prop:', isOwner);
+  console.log('ProjectBoard: Permissions from hook:', permissions);
+
+  // Determine if user is a manager based on role or permissions
+  const userIsManager = isManager() || permissions?.canManageProject === true;
+  console.log('ProjectBoard: User is manager:', userIsManager);
 
   // Modify permission checks to allow owners and managers
   // Managers should have the same permissions as owners in the kanban board
-  const canCreateTasks = isOwner || isManager || can("canEdit");
-  const canInviteMembers = isOwner || isManager || can("canInvite");
-  const canDragTasks = isOwner || isManager || can("canEdit");
+  const canCreateTasks = isOwner || userIsManager || can("canEdit");
+  const canInviteMembers = isOwner || userIsManager || can("canInvite");
+  const canDragTasks = isOwner || userIsManager || can("canEdit");
+
+  console.log('ProjectBoard: Permission checks:', {
+    canCreateTasks,
+    canInviteMembers,
+    canDragTasks
+  });
 
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
@@ -201,7 +212,8 @@ export default function ProjectBoard({
   }, [projectId]);
 
   const handleTaskUpdate = async (updatedTask: Task) => {
-    if (!isOwner && !isManager && !can("canEdit")) {
+    console.log('Attempting to update task, permissions:', { isOwner, userIsManager, canEdit: can("canEdit") });
+    if (!isOwner && !userIsManager && !can("canEdit")) {
       toast.error("You don't have permission to edit tasks");
       return;
     }
@@ -226,7 +238,8 @@ export default function ProjectBoard({
   };
 
   const handleTaskDelete = async (taskId: string) => {
-    if (!isOwner && !isManager && !can("canDelete")) {
+    console.log('Attempting to delete task, permissions:', { isOwner, userIsManager, canDelete: can("canDelete") });
+    if (!isOwner && !userIsManager && !can("canDelete")) {
       toast.error("You don't have permission to delete tasks");
       return;
     }
@@ -251,8 +264,17 @@ export default function ProjectBoard({
       return;
     }
 
+    // Check permissions before allowing drag
+    if (!isOwner && !userIsManager && !can("canEdit")) {
+      console.log('Drag prevented: insufficient permissions');
+      toast.error("You don't have permission to move tasks");
+      return;
+    }
+
     const newStatus = destination.droppableId;
     const taskId = draggableId;
+
+    console.log(`Moving task ${taskId} to ${newStatus}`);
 
     try {
       setProjectTasks((prevTasks) =>
@@ -264,8 +286,10 @@ export default function ProjectBoard({
       );
 
       await updateTaskStatus(taskId, newStatus);
+      console.log(`Task ${taskId} status updated successfully`);
     } catch (error) {
       console.error("Failed to update task status:", error);
+      toast.error("Failed to update task status");
       setProjectTasks(initialTasks);
     }
   };
@@ -390,7 +414,7 @@ export default function ProjectBoard({
         />
       )}
 
-      <DragDropContext onDragEnd={(isOwner || isManager || canDragTasks) ? onDragEnd : () => {}}>
+      <DragDropContext onDragEnd={(isOwner || userIsManager || canDragTasks) ? onDragEnd : () => {}}>
         <div className="flex-1 overflow-x-auto p-6">
           <div className="flex h-full gap-6 min-w-fit">
             {columns.map((status) => (

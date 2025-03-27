@@ -1,6 +1,8 @@
 {
   "_comment": "These guidelines are designed to ensure code quality, maintainability, a stable build process, and learning opportunities through thorough explanations and comments in the generated code.",
-
+  "git": {
+    "git_commits": "Always commit changes with clear and concise messages and add 'Amaan - (you're commit message) make commits like that'"
+  },
   "code_quality": {
     "type_safe": true,
     "eslint_errors": true,

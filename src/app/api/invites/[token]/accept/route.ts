@@ -92,7 +92,7 @@ export async function POST(
         // If user exists, update their email and updatedAt timestamp
         await tx
           .update(users)
-          .set({ 
+          .set({
             email: user.email,
             updatedAt: new Date()
           })
@@ -118,14 +118,14 @@ export async function POST(
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      
+
       console.log("Inserting project member:", memberData); // Add this log
 
       await tx
         .insert(projectMembers)
         .values(memberData)
-        .onConflictDoNothing({ 
-          target: [projectMembers.userId, projectMembers.projectId] 
+        .onConflictDoNothing({
+          target: [projectMembers.userId, projectMembers.projectId]
         });
 
       // If there was a conflict, update the existing record
@@ -142,7 +142,7 @@ export async function POST(
       if (existingMember) {
         await tx
           .update(projectMembers)
-          .set({ 
+          .set({
             role: invite.role,
             updatedAt: new Date()
           })
@@ -155,12 +155,14 @@ export async function POST(
       }
 
       // Assign correct permissions based on role
+      console.log(`Assigning permissions for user ${user.id} with role ${invite.role}`);
       await assignUserPermissions(user.id, invite.role);
+      console.log(`Permissions assigned successfully for role ${invite.role}`);
 
       // Update invite status
       await tx
         .update(invites)
-        .set({ 
+        .set({
           status: "APPROVED",
           acceptedAt: new Date(),
           email: user.email,
@@ -179,11 +181,11 @@ export async function POST(
     // Log additional error details if available
     if (error.code) console.error("Error code:", error.code);
     if (error.detail) console.error("Error detail:", error.detail);
-    
+
     return NextResponse.json(
-      { 
+      {
         error: "Failed to accept invite",
-        details: error.message 
+        details: error.message
       },
       { status: 500 }
     );
