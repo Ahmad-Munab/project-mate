@@ -78,7 +78,9 @@ export async function DELETE(
   { params }: { params: { token: string } }
 ) {
   try {
-    console.log(`API: Cancelling invite with token ${params.token}`);
+    // In Next.js 15, params should be awaited
+    const { token } = await params;
+    console.log(`API: Cancelling invite with token ${token}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -94,7 +96,7 @@ export async function DELETE(
     const [invite] = await db
       .select()
       .from(invites)
-      .where(eq(invites.token, params.token));
+      .where(eq(invites.token, token));
 
     if (!invite) {
       return NextResponse.json(
@@ -124,7 +126,7 @@ export async function DELETE(
     // Delete the invite
     await db
       .delete(invites)
-      .where(eq(invites.token, params.token));
+      .where(eq(invites.token, token));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -142,7 +144,9 @@ export async function POST(
   { params }: { params: { token: string } }
 ) {
   try {
-    console.log(`API: Resending invite with token ${params.token}`);
+    // In Next.js 15, params should be awaited
+    const { token } = await params;
+    console.log(`API: Resending invite with token ${token}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -158,7 +162,7 @@ export async function POST(
     const [invite] = await db
       .select()
       .from(invites)
-      .where(eq(invites.token, params.token));
+      .where(eq(invites.token, token));
 
     if (!invite) {
       return NextResponse.json(
@@ -193,7 +197,7 @@ export async function POST(
         // Reset expiration date (7 days from now)
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       })
-      .where(eq(invites.token, params.token));
+      .where(eq(invites.token, token));
 
     // TODO: Send email notification if email is present
 

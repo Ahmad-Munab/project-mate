@@ -9,7 +9,9 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    console.log(`API: Fetching members for project ${params.projectId}`);
+    // In Next.js 15, params should be awaited
+    const { projectId } = await params;
+    console.log(`API: Fetching members for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -34,17 +36,17 @@ export async function GET(
       })
       .from(projectMembers)
       .leftJoin(users, eq(projectMembers.userId, users.id))
-      .where(eq(projectMembers.projectId, params.projectId));
+      .where(eq(projectMembers.projectId, projectId));
 
-    console.log(`API: Found ${members.length} members for project ${params.projectId}`);
-    
+    console.log(`API: Found ${members.length} members for project ${projectId}`);
+
     // Get Supabase user profiles for additional info
     const userIds = members.map(member => member.userId);
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, full_name, avatar_url, last_sign_in_at')
       .in('id', userIds);
-    
+
     // Map profiles to members
     const membersWithProfiles = members.map(member => {
       const profile = profiles?.find(p => p.id === member.userId);
@@ -145,7 +147,7 @@ export async function PATCH(
     // Update the member's role
     await db
       .update(projectMembers)
-      .set({ 
+      .set({
         role,
         updatedAt: new Date()
       })

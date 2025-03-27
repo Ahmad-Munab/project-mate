@@ -12,7 +12,9 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   try {
-    console.log(`API: Fetching invites for project ${params.projectId}`);
+    // In Next.js 15, params should be awaited
+    const { projectId } = await params;
+    console.log(`API: Fetching invites for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -30,7 +32,7 @@ export async function GET(
       .from(projectMembers)
       .where(
         and(
-          eq(projectMembers.projectId, params.projectId),
+          eq(projectMembers.projectId, projectId),
           eq(projectMembers.userId, user.id)
         )
       );
@@ -48,12 +50,12 @@ export async function GET(
       .from(invites)
       .where(
         and(
-          eq(invites.projectId, params.projectId),
+          eq(invites.projectId, projectId),
           eq(invites.status, "PENDING")
         )
       );
 
-    console.log(`API: Found ${pendingInvites.length} pending invites for project ${params.projectId}`);
+    console.log(`API: Found ${pendingInvites.length} pending invites for project ${projectId}`);
 
     // Format the invites for the frontend
     const formattedInvites = pendingInvites.map(invite => ({
@@ -81,8 +83,10 @@ export async function POST(
   { params }: { params: { projectId: string } }
 ) {
   try {
+    // In Next.js 15, params should be awaited
+    const { projectId } = await params;
     console.log('🚀 Starting invite creation process...');
-    console.log('📝 Project ID:', params.projectId);
+    console.log('📝 Project ID:', projectId);
 
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -103,7 +107,7 @@ export async function POST(
       .from(projectMembers)
       .where(
         and(
-          eq(projectMembers.projectId, params.projectId),
+          eq(projectMembers.projectId, projectId),
           eq(projectMembers.userId, user.id)
         )
       );
@@ -142,7 +146,7 @@ export async function POST(
     const [project] = await db
       .select()
       .from(projects)
-      .where(eq(projects.id, params.projectId));
+      .where(eq(projects.id, projectId));
 
     if (!project) {
       console.log('❌ Project not found');
@@ -169,7 +173,7 @@ export async function POST(
         email: email || null,
         token,
         role,
-        projectId: params.projectId,
+        projectId: projectId,
         createdBy: user.id,
         status: 'PENDING',
         expiresAt,

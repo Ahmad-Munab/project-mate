@@ -29,14 +29,15 @@ export async function sendInviteEmail({
   try {
     const roleDisplay = role.charAt(0) + role.slice(1).toLowerCase();
 
-    // Use Resend's default domain for testing or custom domain if configured
-    // Note: EMAIL_FORM might be a typo in .env, should be EMAIL_FROM
-    const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_FORM || 'onboarding@resend.dev';
-    console.log(`📤 Using email sender: ${emailFrom}`);
-    console.log('Environment variables:', {
+    // IMPORTANT: Use Resend's default domain for testing
+    // Gmail domains cannot be verified in Resend, so we must use Resend's domain
+    const emailFrom = 'onboarding@resend.dev';
+    console.log(`📤 Using email sender: ${emailFrom} (Resend's default domain)`);
+    console.log('Environment variables (not used):', {
       EMAIL_FROM: process.env.EMAIL_FROM,
-      EMAIL_FORM: process.env.EMAIL_FORM, // Possible typo in .env
+      EMAIL_FORM: process.env.EMAIL_FORM,
     });
+    console.log('⚠️ Using Resend\'s default domain instead of configured domain due to verification requirements');
 
     // Generate email content
     const htmlContent = generateInviteEmailContent(role, inviteUrl, projectName);
