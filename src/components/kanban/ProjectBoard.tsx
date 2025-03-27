@@ -132,12 +132,16 @@ export default function ProjectBoard({
   initialTasks: Task[];
   isOwner: boolean;
 }) {
-  const { can } = usePermissions();
-  
-  // Modify permission checks to allow owners
-  const canCreateTasks = isOwner || can("canEdit");
-  const canInviteMembers = isOwner || can("canInvite");
-  const canDragTasks = isOwner || can("canEdit");
+  const { can, permissions } = usePermissions();
+
+  // Check if user is a manager (has manager permissions)
+  const isManager = permissions?.canManageProject === true;
+
+  // Modify permission checks to allow owners and managers
+  // Managers should have the same permissions as owners in the kanban board
+  const canCreateTasks = isOwner || isManager || can("canEdit");
+  const canInviteMembers = isOwner || isManager || can("canInvite");
+  const canDragTasks = isOwner || isManager || can("canEdit");
 
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
@@ -197,7 +201,7 @@ export default function ProjectBoard({
   }, [projectId]);
 
   const handleTaskUpdate = async (updatedTask: Task) => {
-    if (!isOwner && !can("canEdit")) {
+    if (!isOwner && !isManager && !can("canEdit")) {
       toast.error("You don't have permission to edit tasks");
       return;
     }
@@ -222,7 +226,7 @@ export default function ProjectBoard({
   };
 
   const handleTaskDelete = async (taskId: string) => {
-    if (!isOwner && !can("canDelete")) {
+    if (!isOwner && !isManager && !can("canDelete")) {
       toast.error("You don't have permission to delete tasks");
       return;
     }
@@ -386,7 +390,7 @@ export default function ProjectBoard({
         />
       )}
 
-      <DragDropContext onDragEnd={(isOwner || canDragTasks) ? onDragEnd : () => {}}>
+      <DragDropContext onDragEnd={(isOwner || isManager || canDragTasks) ? onDragEnd : () => {}}>
         <div className="flex-1 overflow-x-auto p-6">
           <div className="flex h-full gap-6 min-w-fit">
             {columns.map((status) => (
