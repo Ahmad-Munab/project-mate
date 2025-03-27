@@ -1,0 +1,6 @@
+# Exclude envorienment variables
+!.env
+!.env.local
+
+!.augment-guidelines
+!augment.config.json

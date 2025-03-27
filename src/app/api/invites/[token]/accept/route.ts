@@ -78,6 +78,10 @@ export async function POST(
 
     // Begin transaction
     await db.transaction(async (tx) => {
+      // 'tx' is the transaction object, which allows us to perform database operations
+      // within a single transaction. This ensures that all operations either succeed
+      // together or fail together, maintaining data consistency.
+
       // Update or create user
       let [existingUser] = await tx
         .select()
@@ -85,6 +89,7 @@ export async function POST(
         .where(eq(users.id, user.id));
 
       if (existingUser) {
+        // If user exists, update their email and updatedAt timestamp
         await tx
           .update(users)
           .set({ 
@@ -93,6 +98,7 @@ export async function POST(
           })
           .where(eq(users.id, user.id));
       } else {
+        // If user doesn't exist, create a new user record
         await tx
           .insert(users)
           .values({

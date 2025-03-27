@@ -43,3 +43,5 @@ next-env.d.ts
 
 # DB
 src/db/migrations
+
+# AI
