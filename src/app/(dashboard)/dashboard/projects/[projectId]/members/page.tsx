@@ -214,6 +214,8 @@ export default function MembersPage() {
     }
 
     try {
+      console.log('Sending invite to:', inviteEmail, 'with role:', inviteRole);
+
       const response = await fetch(`/api/projects/${projectId}/invites`, {
         method: 'POST',
         headers: {
@@ -225,18 +227,18 @@ export default function MembersPage() {
         }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to send invite');
-      }
+      const responseData = await response.json();
+      console.log('Invite API response:', responseData);
 
-      const { invite } = await response.json();
+      if (!response.ok) {
+        throw new Error(responseData.error || responseData.message || 'Failed to send invite');
+      }
 
       // Update the UI with the new invite
       setPendingInvites([
         ...pendingInvites,
         {
-          id: invite.id,
+          id: responseData.invite.id,
           email: inviteEmail,
           role: inviteRole,
           sentAt: "Just now",
@@ -303,6 +305,8 @@ export default function MembersPage() {
 
   const generateInviteLink = async () => {
     try {
+      console.log('Generating invite link with role:', inviteRole);
+
       const response = await fetch(`/api/projects/${projectId}/invites`, {
         method: 'POST',
         headers: {
@@ -313,22 +317,23 @@ export default function MembersPage() {
         }),
       });
 
+      const responseData = await response.json();
+      console.log('Generate invite link API response:', responseData);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to generate invite link');
+        throw new Error(responseData.error || responseData.message || 'Failed to generate invite link');
       }
 
-      const { invite } = await response.json();
-
       // Construct the full invite URL using the current origin
-      const inviteUrl = `${window.location.origin}/invite/${invite.token}`;
+      const inviteUrl = `${window.location.origin}/invite/${responseData.invite.token}`;
+      console.log('Generated invite URL:', inviteUrl);
       setInviteLink(inviteUrl);
 
       // Add the invite to the pending invites list
       setPendingInvites([
         ...pendingInvites,
         {
-          id: invite.id,
+          id: responseData.invite.id,
           email: 'No email (link invite)',
           role: inviteRole,
           sentAt: "Just now",
