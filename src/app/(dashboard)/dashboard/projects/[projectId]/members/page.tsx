@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -31,7 +32,32 @@ import { Check, Copy, Link as LinkIcon } from "lucide-react"
 import { toast } from "sonner"
 import { useState as useClipboardState } from 'react'
 
+// Define types for members and invites
+type Member = {
+  id: string;
+  userId: string;
+  email: string;
+  name: string;
+  role: string;
+  avatar: string;
+  status: string;
+  lastActive: string;
+  projectId: string;
+};
+
+type Invite = {
+  id: string;
+  email: string;
+  role: string;
+  sentAt: string;
+  status: string;
+  token?: string;
+};
+
 export default function MembersPage() {
+  const params = useParams();
+  const projectId = params.projectId as string;
+
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
   const [showInviteDialog, setShowInviteDialog] = useState(false)
@@ -40,74 +66,47 @@ export default function MembersPage() {
   const [inviteMethod, setInviteMethod] = useState("email") // "email" or "link"
   const [inviteLink, setInviteLink] = useState("")
   const [copied, setCopied] = useClipboardState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [members, setMembers] = useState([
-    {
-      id: 1,
-      name: "Alex Johnson",
-      email: "alex@example.com",
-      role: "Owner",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "active",
-      lastActive: "Just now",
-      joinDate: "Jan 15, 2023",
-      projects: 12,
-      tasks: 34,
-    },
-    {
-      id: 2,
-      name: "Jamie Smith",
-      email: "jamie@example.com",
-      role: "Admin",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "active",
-      lastActive: "2 hours ago",
-      joinDate: "Mar 22, 2023",
-      projects: 8,
-      tasks: 19,
-    },
-    {
-      id: 3,
-      name: "Taylor Brown",
-      email: "taylor@example.com",
-      role: "Member",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "inactive",
-      lastActive: "3 days ago",
-      joinDate: "Jun 10, 2023",
-      projects: 5,
-      tasks: 11,
-    },
-    {
-      id: 4,
-      name: "Casey Wilson",
-      email: "casey@example.com",
-      role: "Member",
-      avatar: "/placeholder.svg?height=40&width=40",
-      status: "recording",
-      lastActive: "Just now",
-      joinDate: "Sep 5, 2023",
-      projects: 3,
-      tasks: 7,
-    },
-  ])
+  // State for members and invites
+  const [members, setMembers] = useState<Member[]>([])
+  const [pendingInvites, setPendingInvites] = useState<Invite[]>([])
 
-  const [pendingInvites, setPendingInvites] = useState([
-    {
-      id: 101,
-      email: "robin@example.com",
-      role: "Member",
-      sentAt: "2 days ago",
-      status: "pending",
-    },
-    {
-      id: 102,
-      email: "morgan@example.com",
-      role: "Admin",
-      sentAt: "5 days ago",
-      status: "pending",
-    },
-  ])
+  // Fetch members and invites
+  useEffect(() => {
+    if (!projectId) return;
+
+    const fetchMembers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch project members
+        const membersResponse = await fetch(`/api/projects/${projectId}/members`);
+        if (!membersResponse.ok) {
+          throw new Error('Failed to fetch members');
+        }
+        const membersData = await membersResponse.json();
+        setMembers(membersData);
+
+        // Fetch pending invites
+        const invitesResponse = await fetch(`/api/projects/${projectId}/invites`);
+        if (!invitesResponse.ok) {
+          throw new Error('Failed to fetch invites');
+        }
+        const invitesData = await invitesResponse.json();
+        setPendingInvites(invitesData);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMembers();
+  }, [projectId]);
 
   const filteredMembers = members.filter((member) => {
     // Filter by search query
@@ -127,8 +126,85 @@ export default function MembersPage() {
     return true
   })
 
-  const approveMember = (id: number) => {
-    setMembers(members.map((member) => (member.id === id ? { ...member, status: "active" } : member)))
+  const approveMember = async (memberId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/members`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          memberId,
+          status: 'active',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to approve member');
+      }
+
+      // Update the UI
+      setMembers(members.map((member) =>
+        member.id === memberId ? { ...member, status: "active" } : member
+      ));
+
+      toast.success("Member approved successfully");
+    } catch (error) {
+      console.error("Error approving member:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to approve member");
+    }
+  }
+
+  const changeMemberRole = async (memberId: string, newRole: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/members`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          memberId,
+          role: newRole,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to change member role');
+      }
+
+      // Update the UI
+      setMembers(members.map((member) =>
+        member.id === memberId ? { ...member, role: newRole } : member
+      ));
+
+      toast.success("Member role updated successfully");
+    } catch (error) {
+      console.error("Error changing member role:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to change member role");
+    }
+  }
+
+  const removeMember = async (memberId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/members?memberId=${memberId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to remove member');
+      }
+
+      // Update the UI
+      setMembers(members.filter((member) => member.id !== memberId));
+
+      toast.success("Member removed successfully");
+    } catch (error) {
+      console.error("Error removing member:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to remove member");
+    }
   }
 
   const sendInvite = async () => {
@@ -138,10 +214,7 @@ export default function MembersPage() {
     }
 
     try {
-      // Get projectId from the URL
-      const projectId = window.location.pathname.split('/projects/')[1].split('/')[0];
-
-      const response = await fetch('/api/invites/send', {
+      const response = await fetch(`/api/projects/${projectId}/invites`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +222,6 @@ export default function MembersPage() {
         body: JSON.stringify({
           email: inviteEmail,
           role: inviteRole,
-          projectId: projectId
         }),
       });
 
@@ -168,7 +240,7 @@ export default function MembersPage() {
           email: inviteEmail,
           role: inviteRole,
           sentAt: "Just now",
-          status: "pending",
+          status: "PENDING",
         },
       ]);
 
@@ -182,75 +254,62 @@ export default function MembersPage() {
     }
   };
 
-  const cancelInvite = async (id: number) => {
+  const cancelInvite = async (inviteId: string) => {
     try {
-      const response = await fetch(`/api/invites/${id}`, {
+      const response = await fetch(`/api/invites/${inviteId}`, {
         method: 'DELETE',
       });
 
       if (!response.ok) {
-        throw new Error('Failed to cancel invite');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to cancel invite');
       }
 
       // Update the UI
-      setPendingInvites(pendingInvites.filter((invite) => invite.id !== id));
-      
-      // Show success message
-      // toast.success("Invitation cancelled successfully");
+      setPendingInvites(pendingInvites.filter((invite) => invite.id !== inviteId));
+
+      toast.success("Invitation cancelled successfully");
     } catch (error) {
       console.error("Error cancelling invite:", error);
-      // Show error message
-      // toast.error("Failed to cancel invitation");
+      toast.error(error instanceof Error ? error.message : "Failed to cancel invitation");
     }
   }
 
-  const resendInvite = async (id: number) => {
+  const resendInvite = async (inviteId: string) => {
     try {
-      const invite = pendingInvites.find(invite => invite.id === id);
+      const invite = pendingInvites.find(invite => invite.id === inviteId);
       if (!invite) return;
 
-      const response = await fetch('/api/invites', {
+      const response = await fetch(`/api/invites/${inviteId}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: invite.email,
-          role: invite.role,
-        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to resend invite');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to resend invite');
       }
 
       // Update the UI
-      setPendingInvites(pendingInvites.map((invite) => 
-        invite.id === id ? { ...invite, sentAt: "Just now" } : invite
+      setPendingInvites(pendingInvites.map((invite) =>
+        invite.id === inviteId ? { ...invite, sentAt: "Just now" } : invite
       ));
 
-      // Show success message
-      // toast.success("Invitation resent successfully");
+      toast.success("Invitation resent successfully");
     } catch (error) {
       console.error("Error resending invite:", error);
-      // Show error message
-      // toast.error("Failed to resend invitation");
+      toast.error(error instanceof Error ? error.message : "Failed to resend invitation");
     }
   }
 
   const generateInviteLink = async () => {
     try {
-      // Get projectId from the URL
-      const projectId = window.location.pathname.split('/projects/')[1].split('/')[0];
-      
-      const response = await fetch('/api/invites/generate', {
+      const response = await fetch(`/api/projects/${projectId}/invites`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           role: inviteRole,
-          projectId: projectId // Include projectId in the request
         }),
       });
 
@@ -259,15 +318,28 @@ export default function MembersPage() {
         throw new Error(error.message || 'Failed to generate invite link');
       }
 
-      const { token } = await response.json();
-      
+      const { invite } = await response.json();
+
       // Construct the full invite URL using the current origin
-      const inviteUrl = `${window.location.origin}/invite/${token}`;
+      const inviteUrl = `${window.location.origin}/invite/${invite.token}`;
       setInviteLink(inviteUrl);
+
+      // Add the invite to the pending invites list
+      setPendingInvites([
+        ...pendingInvites,
+        {
+          id: invite.id,
+          email: 'No email (link invite)',
+          role: inviteRole,
+          sentAt: "Just now",
+          status: "PENDING",
+        },
+      ]);
+
       toast.success("Invite link generated successfully");
     } catch (error) {
       console.error("Error generating invite link:", error);
-      toast.error("Failed to generate invite link");
+      toast.error(error instanceof Error ? error.message : "Failed to generate invite link");
     }
   };
 
@@ -283,8 +355,11 @@ export default function MembersPage() {
     }
   };
 
+  // Stats are calculated above
+
+  // Helper functions for displaying badges
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "active":
         return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>
       case "inactive":
@@ -293,6 +368,7 @@ export default function MembersPage() {
             Inactive
           </Badge>
         )
+      case "pending":
       case "recording":
         return <Badge className="bg-amber-500 hover:bg-amber-600">Pending Approval</Badge>
       default:
@@ -301,12 +377,13 @@ export default function MembersPage() {
   }
 
   const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "Owner":
+    switch (role.toUpperCase()) {
+      case "OWNER":
         return <Badge className="bg-purple-500 hover:bg-purple-600">Owner</Badge>
-      case "Admin":
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Admin</Badge>
-      case "Member":
+      case "MANAGER":
+      case "ADMIN":
+        return <Badge className="bg-blue-500 hover:bg-blue-600">Manager</Badge>
+      case "MEMBER":
         return <Badge variant="secondary">Member</Badge>
       default:
         return null
@@ -315,14 +392,45 @@ export default function MembersPage() {
 
   const getMemberStats = () => {
     const total = members.length
-    const active = members.filter((m) => m.status === "active").length
-    const inactive = members.filter((m) => m.status === "inactive").length
-    const pending = members.filter((m) => m.status === "recording").length
+    const active = members.filter((m) => m.status?.toLowerCase() === "active").length
+    const inactive = members.filter((m) => m.status?.toLowerCase() === "inactive").length
+    const pending = members.filter((m) =>
+      m.status?.toLowerCase() === "pending" ||
+      m.status?.toLowerCase() === "recording"
+    ).length
 
     return { total, active, inactive, pending }
   }
 
   const stats = getMemberStats()
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+        <div className="h-24 w-24 rounded-full bg-red-100 flex items-center justify-center mb-6">
+          <span className="text-red-600 text-4xl">!</span>
+        </div>
+        <h3 className="text-2xl font-bold mb-2 text-gray-900">Error Loading Members</h3>
+        <p className="text-gray-500 max-w-md mb-6">{error}</p>
+        <Button
+          onClick={() => window.location.reload()}
+          className="gap-2 bg-blue-600 hover:bg-blue-700"
+        >
+          Retry
+        </Button>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -440,7 +548,7 @@ export default function MembersPage() {
                   Choose how you'd like to invite team members.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <Tabs value={inviteMethod} onValueChange={setInviteMethod} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="email" className="flex items-center gap-2">
@@ -591,7 +699,7 @@ export default function MembersPage() {
                               <Avatar className="h-10 w-10 border border-gray-200">
                                 <AvatarImage src={member.avatar} alt={member.name} />
                                 <AvatarFallback className="bg-gray-100 text-gray-700">
-                                  {member.name.charAt(0)}
+                                  {member.name?.charAt(0) || 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
@@ -630,11 +738,34 @@ export default function MembersPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>View Profile</DropdownMenuItem>
-                                  <DropdownMenuItem>Edit Details</DropdownMenuItem>
-                                  <DropdownMenuItem>Change Role</DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => approveMember(member.id)}
+                                    disabled={member.status?.toLowerCase() === "active"}
+                                  >
+                                    Approve
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem>
+                                    <Select
+                                      onValueChange={(value) => changeMemberRole(member.id, value)}
+                                      defaultValue={member.role}
+                                    >
+                                      <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Change Role" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="MEMBER">Member</SelectItem>
+                                        <SelectItem value="MANAGER">Manager</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </DropdownMenuItem>
                                   <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="text-red-600">Remove Member</DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() => removeMember(member.id)}
+                                    disabled={member.role?.toUpperCase() === "OWNER"}
+                                  >
+                                    Remove Member
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -685,11 +816,7 @@ export default function MembersPage() {
                           <p className="font-medium text-gray-900">{invite.email}</p>
                         </td>
                         <td className="p-4 hidden md:table-cell">
-                          {invite.role === "Admin" ? (
-                            <Badge className="bg-blue-500 hover:bg-blue-600">Admin</Badge>
-                          ) : (
-                            <Badge variant="secondary">Member</Badge>
-                          )}
+                          {getRoleBadge(invite.role)}
                         </td>
                         <td className="p-4 hidden lg:table-cell">
                           <span className="text-sm text-gray-600">{invite.sentAt}</span>
