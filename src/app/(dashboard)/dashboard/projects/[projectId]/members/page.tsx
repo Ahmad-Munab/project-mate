@@ -126,8 +126,10 @@ export default function MembersPage() {
     return true
   })
 
-  const approveMember = async (memberId: string) => {
+  const updateMemberStatus = async (memberId: string, newStatus: string) => {
     try {
+      console.log(`Updating member ${memberId} status to ${newStatus}`);
+
       const response = await fetch(`/api/projects/${projectId}/members`, {
         method: 'PATCH',
         headers: {
@@ -135,26 +137,31 @@ export default function MembersPage() {
         },
         body: JSON.stringify({
           memberId,
-          status: 'active',
+          status: newStatus.toUpperCase(),
         }),
       });
 
+      const responseData = await response.json();
+      console.log('Update status response:', responseData);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to approve member');
+        throw new Error(responseData.error || responseData.message || 'Failed to update member status');
       }
 
       // Update the UI
       setMembers(members.map((member) =>
-        member.id === memberId ? { ...member, status: "active" } : member
+        member.id === memberId ? { ...member, status: newStatus.toLowerCase() } : member
       ));
 
-      toast.success("Member approved successfully");
+      toast.success(`Member ${newStatus === 'ACTIVE' ? 'approved' : 'status updated'} successfully`);
     } catch (error) {
-      console.error("Error approving member:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to approve member");
+      console.error("Error updating member status:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update member status");
     }
   }
+
+  const approveMember = (memberId: string) => updateMemberStatus(memberId, 'ACTIVE');
+  const deactivateMember = (memberId: string) => updateMemberStatus(memberId, 'INACTIVE');
 
   const changeMemberRole = async (memberId: string, newRole: string) => {
     try {
@@ -372,7 +379,7 @@ export default function MembersPage() {
 
   // Helper functions for displaying badges
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case "active":
         return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>
       case "inactive":
@@ -382,10 +389,9 @@ export default function MembersPage() {
           </Badge>
         )
       case "pending":
-      case "recording":
         return <Badge className="bg-amber-500 hover:bg-amber-600">Pending Approval</Badge>
       default:
-        return null
+        return <Badge className="bg-gray-500 hover:bg-gray-600">Unknown</Badge>
     }
   }
 
@@ -407,10 +413,7 @@ export default function MembersPage() {
     const total = members.length
     const active = members.filter((m) => m.status?.toLowerCase() === "active").length
     const inactive = members.filter((m) => m.status?.toLowerCase() === "inactive").length
-    const pending = members.filter((m) =>
-      m.status?.toLowerCase() === "pending" ||
-      m.status?.toLowerCase() === "recording"
-    ).length
+    const pending = members.filter((m) => m.status?.toLowerCase() === "pending").length
 
     return { total, active, inactive, pending }
   }
@@ -728,7 +731,7 @@ export default function MembersPage() {
                           </td>
                           <td className="p-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {member.status === "recording" && (
+                              {member.status?.toLowerCase() === "pending" && (
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -751,12 +754,16 @@ export default function MembersPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={() => approveMember(member.id)}
-                                    disabled={member.status?.toLowerCase() === "active"}
-                                  >
-                                    Approve
-                                  </DropdownMenuItem>
+                                  {member.status?.toLowerCase() !== "active" && (
+                                    <DropdownMenuItem onClick={() => approveMember(member.id)}>
+                                      Approve
+                                    </DropdownMenuItem>
+                                  )}
+                                  {member.status?.toLowerCase() === "active" && (
+                                    <DropdownMenuItem onClick={() => deactivateMember(member.id)}>
+                                      Deactivate
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem>
                                     <Select
                                       onValueChange={(value) => changeMemberRole(member.id, value)}

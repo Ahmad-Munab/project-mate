@@ -30,6 +30,8 @@ export async function GET(
         userId: projectMembers.userId,
         projectId: projectMembers.projectId,
         role: projectMembers.role,
+        status: projectMembers.status,
+        lastActive: projectMembers.lastActive,
         createdAt: projectMembers.createdAt,
         updatedAt: projectMembers.updatedAt,
         email: users.email,
@@ -50,12 +52,31 @@ export async function GET(
     // Map profiles to members
     const membersWithProfiles = members.map(member => {
       const profile = profiles?.find(p => p.id === member.userId);
+
+      // Format last active time
+      let lastActiveTime = 'Never';
+      if (member.lastActive) {
+        lastActiveTime = new Date(member.lastActive).toLocaleString();
+      } else if (profile?.last_sign_in_at) {
+        lastActiveTime = new Date(profile.last_sign_in_at).toLocaleString();
+
+        // Update the lastActive field in the database if it's not set
+        if (!member.lastActive) {
+          db.update(projectMembers)
+            .set({ lastActive: new Date(profile.last_sign_in_at) })
+            .where(eq(projectMembers.id, member.id))
+            .execute()
+            .catch(err => console.error('Failed to update lastActive:', err));
+        }
+      }
+
       return {
         ...member,
         name: profile?.full_name || member.email?.split('@')[0] || 'Unknown User',
         avatar: profile?.avatar_url || '',
-        lastActive: profile?.last_sign_in_at ? new Date(profile.last_sign_in_at).toLocaleString() : 'Unknown',
-        status: 'active', // Default status
+        lastActive: lastActiveTime,
+        // Convert status to lowercase for frontend consistency
+        status: member.status?.toLowerCase() || 'pending',
       };
     });
 
@@ -104,11 +125,11 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { memberId, role } = body;
+    const { memberId, role, status } = body;
 
-    if (!memberId || !role) {
+    if (!memberId || (!role && !status)) {
       return NextResponse.json(
-        { error: "Member ID and role are required" },
+        { error: "Member ID and either role or status are required" },
         { status: 400 }
       );
     }
@@ -144,13 +165,30 @@ export async function PATCH(
       );
     }
 
-    // Update the member's role
+    // Prepare update data
+    const updateData: any = {
+      updatedAt: new Date()
+    };
+
+    // Add role to update if provided
+    if (role) {
+      updateData.role = role;
+    }
+
+    // Add status to update if provided
+    if (status) {
+      updateData.status = status;
+
+      // If activating a member, update their lastActive time
+      if (status.toUpperCase() === 'ACTIVE') {
+        updateData.lastActive = new Date();
+      }
+    }
+
+    // Update the member
     await db
       .update(projectMembers)
-      .set({
-        role,
-        updatedAt: new Date()
-      })
+      .set(updateData)
       .where(eq(projectMembers.id, memberId));
 
     return NextResponse.json({ success: true });

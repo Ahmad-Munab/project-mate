@@ -115,11 +115,13 @@ export async function POST(
         userId: user.id,
         projectId: invite.projectId,
         role: invite.role,
+        status: invite.role === 'OWNER' ? 'ACTIVE' : 'PENDING', // Owners are automatically active, others need approval
+        lastActive: new Date(), // Set initial last active time
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      console.log("Inserting project member:", memberData); // Add this log
+      console.log("Inserting project member:", memberData);
 
       await tx
         .insert(projectMembers)
@@ -144,6 +146,9 @@ export async function POST(
           .update(projectMembers)
           .set({
             role: invite.role,
+            // Don't change status if already active
+            status: existingMember.status === 'ACTIVE' ? 'ACTIVE' : 'PENDING',
+            lastActive: new Date(), // Update last active time
             updatedAt: new Date()
           })
           .where(

@@ -28,6 +28,11 @@ export const inviteStatusEnum = pgEnum("invite_status", [
   "REJECTED",
   "EXPIRED",
 ]);
+export const memberStatusEnum = pgEnum("member_status", [
+  "ACTIVE",
+  "INACTIVE",
+  "PENDING",
+]);
 
 const authSchema = pgSchema("auth");
 
@@ -57,6 +62,8 @@ export const projectMembers = pgTable("project_members", {
     .references(() => projects.id)
     .notNull(),
   role: userRoleEnum("role").notNull(),
+  status: memberStatusEnum("status").notNull().default("PENDING"),
+  lastActive: timestamp("last_active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({
