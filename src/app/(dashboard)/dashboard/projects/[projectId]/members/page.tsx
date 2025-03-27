@@ -258,7 +258,13 @@ export default function MembersPage() {
 
   const cancelInvite = async (inviteId: string) => {
     try {
-      const response = await fetch(`/api/invites/${inviteId}`, {
+      // Find the invite with this ID to get its token
+      const invite = pendingInvites.find(inv => inv.id === inviteId);
+      if (!invite || !invite.token) {
+        throw new Error('Invite not found or missing token');
+      }
+
+      const response = await fetch(`/api/invites/${invite.token}`, {
         method: 'DELETE',
       });
 
@@ -280,9 +286,11 @@ export default function MembersPage() {
   const resendInvite = async (inviteId: string) => {
     try {
       const invite = pendingInvites.find(invite => invite.id === inviteId);
-      if (!invite) return;
+      if (!invite || !invite.token) {
+        throw new Error('Invite not found or missing token');
+      }
 
-      const response = await fetch(`/api/invites/${inviteId}`, {
+      const response = await fetch(`/api/invites/${invite.token}`, {
         method: 'POST',
       });
 
