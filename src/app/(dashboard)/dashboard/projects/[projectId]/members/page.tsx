@@ -3,15 +3,40 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { MoreVertical, Search, Mail, UserPlus, Users, Clock, CheckCircle2 } from "lucide-react"
+import {
+  MoreVertical,
+  Search,
+  Mail,
+  UserPlus,
+  Users,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  LinkIcon,
+  Copy,
+  Check,
+  ArrowUpDown,
+  Shield,
+  UserCog,
+  UserMinus,
+  RefreshCw,
+  X,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -28,35 +53,39 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Check, Copy, Link as LinkIcon } from "lucide-react"
 import { toast } from "sonner"
-import { useState as useClipboardState } from 'react'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import usePresenceStore from "@/store/presenceStore"
+import { formatTimeAgo } from "@/utils/formatters"
+import { Wifi, WifiOff } from "lucide-react"
 
 // Define types for members and invites
 type Member = {
-  id: string;
-  userId: string;
-  email: string;
-  name: string;
-  role: string;
-  avatar: string;
-  status: string;
-  lastActive: string;
-  projectId: string;
-};
+  id: string
+  userId: string
+  email: string
+  name: string
+  role: string
+  avatar: string
+  status: string
+  lastActive: string
+  projectId: string
+}
 
 type Invite = {
-  id: string;
-  email: string;
-  role: string;
-  sentAt: string;
-  status: string;
-  token?: string;
-};
+  id: string
+  email: string
+  role: string
+  sentAt: string
+  status: string
+  token?: string
+}
 
 export default function MembersPage() {
-  const params = useParams();
-  const projectId = params.projectId as string;
+  const params = useParams()
+  const projectId = params.projectId as string
 
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
@@ -65,9 +94,13 @@ export default function MembersPage() {
   const [inviteRole, setInviteRole] = useState("MEMBER")
   const [inviteMethod, setInviteMethod] = useState("email") // "email" or "link"
   const [inviteLink, setInviteLink] = useState("")
-  const [copied, setCopied] = useClipboardState(false)
+  const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [showInvites, setShowInvites] = useState(true)
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+  const [sortField, setSortField] = useState<"name" | "role" | "status" | "lastActive">("name")
 
   // State for members and invites
   const [members, setMembers] = useState<Member[]>([])
@@ -75,170 +108,184 @@ export default function MembersPage() {
 
   // Fetch members and invites
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) return
 
     const fetchMembers = async () => {
       try {
-        setLoading(true);
-        setError(null);
+        setLoading(true)
+        setError(null)
 
         // Fetch project members
-        const membersResponse = await fetch(`/api/projects/${projectId}/members`);
+        const membersResponse = await fetch(`/api/projects/${projectId}/members`)
         if (!membersResponse.ok) {
-          throw new Error('Failed to fetch members');
+          throw new Error("Failed to fetch members")
         }
-        const membersData = await membersResponse.json();
-        setMembers(membersData);
+        const membersData = await membersResponse.json()
+        setMembers(membersData)
 
         // Fetch pending invites
-        const invitesResponse = await fetch(`/api/projects/${projectId}/invites`);
+        const invitesResponse = await fetch(`/api/projects/${projectId}/invites`)
         if (!invitesResponse.ok) {
-          throw new Error('Failed to fetch invites');
+          throw new Error("Failed to fetch invites")
         }
-        const invitesData = await invitesResponse.json();
-        setPendingInvites(invitesData);
+        const invitesData = await invitesResponse.json()
+        setPendingInvites(invitesData)
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        console.error("Error fetching data:", err)
+        setError(err instanceof Error ? err.message : "An error occurred")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
-
-    fetchMembers();
-  }, [projectId]);
-
-  const filteredMembers = members.filter((member) => {
-    // Filter by search query
-    if (
-      searchQuery &&
-      !member.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      !member.email.toLowerCase().includes(searchQuery.toLowerCase())
-    ) {
-      return false
     }
 
-    // Filter by tab
-    if (activeTab === "active" && member.status !== "active") return false
-    if (activeTab === "inactive" && member.status !== "inactive") return false
-    if (activeTab === "pending" && member.status !== "recording") return false
+    fetchMembers()
+  }, [projectId])
 
-    return true
-  })
+  // Filter and sort members
+  const filteredMembers = members
+    .filter((member) => {
+      // Filter by search query
+      if (
+        searchQuery &&
+        !member.name?.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !member.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      ) {
+        return false
+      }
+
+      // Filter by tab
+      if (activeTab === "active" && member.status?.toLowerCase() !== "active") return false
+      if (activeTab === "inactive" && member.status?.toLowerCase() !== "inactive") return false
+      if (activeTab === "pending" && member.status?.toLowerCase() !== "pending") return false
+
+      // Filter by role
+      if (roleFilter !== "all" && member.role?.toLowerCase() !== roleFilter.toLowerCase()) return false
+
+      return true
+    })
+    .sort((a, b) => {
+      // Sort by selected field
+      const multiplier = sortOrder === "asc" ? 1 : -1
+
+      switch (sortField) {
+        case "name":
+          return multiplier * (a.name?.localeCompare(b.name || "") || 0)
+        case "role":
+          return multiplier * (a.role?.localeCompare(b.role || "") || 0)
+        case "status":
+          return multiplier * (a.status?.localeCompare(b.status || "") || 0)
+        case "lastActive":
+          return multiplier * (a.lastActive?.localeCompare(b.lastActive || "") || 0)
+        default:
+          return 0
+      }
+    })
 
   const updateMemberStatus = async (memberId: string, newStatus: string) => {
     try {
-      console.log(`Updating member ${memberId} status to ${newStatus}`);
-
       const response = await fetch(`/api/projects/${projectId}/members`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           memberId,
           status: newStatus.toUpperCase(),
         }),
-      });
+      })
 
-      const responseData = await response.json();
-      console.log('Update status response:', responseData);
+      const responseData = await response.json()
 
       if (!response.ok) {
-        throw new Error(responseData.error || responseData.message || 'Failed to update member status');
+        throw new Error(responseData.error || responseData.message || "Failed to update member status")
       }
 
       // Update the UI
-      setMembers(members.map((member) =>
-        member.id === memberId ? { ...member, status: newStatus.toLowerCase() } : member
-      ));
+      setMembers(
+        members.map((member) => (member.id === memberId ? { ...member, status: newStatus.toLowerCase() } : member)),
+      )
 
-      toast.success(`Member ${newStatus === 'ACTIVE' ? 'approved' : 'status updated'} successfully`);
+      toast.success(`Member ${newStatus === "ACTIVE" ? "approved" : "status updated"} successfully`)
     } catch (error) {
-      console.error("Error updating member status:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to update member status");
+      console.error("Error updating member status:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to update member status")
     }
   }
 
-  const approveMember = (memberId: string) => updateMemberStatus(memberId, 'ACTIVE');
-  const deactivateMember = (memberId: string) => updateMemberStatus(memberId, 'INACTIVE');
+  const approveMember = (memberId: string) => updateMemberStatus(memberId, "ACTIVE")
+  const deactivateMember = (memberId: string) => updateMemberStatus(memberId, "INACTIVE")
 
   const changeMemberRole = async (memberId: string, newRole: string) => {
     try {
       const response = await fetch(`/api/projects/${projectId}/members`, {
-        method: 'PATCH',
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           memberId,
           role: newRole,
         }),
-      });
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to change member role');
+        const error = await response.json()
+        throw new Error(error.message || "Failed to change member role")
       }
 
       // Update the UI
-      setMembers(members.map((member) =>
-        member.id === memberId ? { ...member, role: newRole } : member
-      ));
+      setMembers(members.map((member) => (member.id === memberId ? { ...member, role: newRole } : member)))
 
-      toast.success("Member role updated successfully");
+      toast.success("Member role updated successfully")
     } catch (error) {
-      console.error("Error changing member role:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to change member role");
+      console.error("Error changing member role:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to change member role")
     }
   }
 
   const removeMember = async (memberId: string) => {
     try {
       const response = await fetch(`/api/projects/${projectId}/members?memberId=${memberId}`, {
-        method: 'DELETE',
-      });
+        method: "DELETE",
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to remove member');
+        const error = await response.json()
+        throw new Error(error.message || "Failed to remove member")
       }
 
       // Update the UI
-      setMembers(members.filter((member) => member.id !== memberId));
+      setMembers(members.filter((member) => member.id !== memberId))
 
-      toast.success("Member removed successfully");
+      toast.success("Member removed successfully")
     } catch (error) {
-      console.error("Error removing member:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to remove member");
+      console.error("Error removing member:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to remove member")
     }
   }
 
   const sendInvite = async () => {
     if (!inviteEmail) {
-      toast.error("Please enter an email address");
-      return;
+      toast.error("Please enter an email address")
+      return
     }
 
     try {
-      console.log('Sending invite to:', inviteEmail, 'with role:', inviteRole);
-
       const response = await fetch(`/api/projects/${projectId}/invites`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           email: inviteEmail,
           role: inviteRole,
         }),
-      });
+      })
 
-      const responseData = await response.json();
-      console.log('Invite API response:', responseData);
+      const responseData = await response.json()
 
       if (!response.ok) {
-        throw new Error(responseData.error || responseData.message || 'Failed to send invite');
+        throw new Error(responseData.error || responseData.message || "Failed to send invite")
       }
 
       // Update the UI with the new invite
@@ -251,159 +298,267 @@ export default function MembersPage() {
           sentAt: "Just now",
           status: "PENDING",
         },
-      ]);
+      ])
 
-      setInviteEmail("");
-      setInviteRole("MEMBER");
-      setShowInviteDialog(false);
-      toast.success("Invitation sent successfully");
+      setInviteEmail("")
+      setInviteRole("MEMBER")
+      setShowInviteDialog(false)
+      toast.success("Invitation sent successfully")
     } catch (error) {
-      console.error("Error sending invite:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to send invitation");
+      console.error("Error sending invite:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to send invitation")
     }
-  };
+  }
 
   const cancelInvite = async (inviteId: string) => {
     try {
       // Find the invite with this ID to get its token
-      const invite = pendingInvites.find(inv => inv.id === inviteId);
+      const invite = pendingInvites.find((inv) => inv.id === inviteId)
       if (!invite || !invite.token) {
-        throw new Error('Invite not found or missing token');
+        throw new Error("Invite not found or missing token")
       }
 
       const response = await fetch(`/api/invites/${invite.token}`, {
-        method: 'DELETE',
-      });
+        method: "DELETE",
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to cancel invite');
+        const error = await response.json()
+        throw new Error(error.message || "Failed to cancel invite")
       }
 
       // Update the UI
-      setPendingInvites(pendingInvites.filter((invite) => invite.id !== inviteId));
+      setPendingInvites(pendingInvites.filter((invite) => invite.id !== inviteId))
 
-      toast.success("Invitation cancelled successfully");
+      toast.success("Invitation cancelled successfully")
     } catch (error) {
-      console.error("Error cancelling invite:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to cancel invitation");
+      console.error("Error cancelling invite:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to cancel invitation")
     }
   }
 
   const resendInvite = async (inviteId: string) => {
     try {
-      const invite = pendingInvites.find(invite => invite.id === inviteId);
+      const invite = pendingInvites.find((invite) => invite.id === inviteId)
       if (!invite || !invite.token) {
-        throw new Error('Invite not found or missing token');
+        throw new Error("Invite not found or missing token")
       }
 
       const response = await fetch(`/api/invites/${invite.token}`, {
-        method: 'POST',
-      });
+        method: "POST",
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to resend invite');
+        const error = await response.json()
+        throw new Error(error.message || "Failed to resend invite")
       }
 
       // Update the UI
-      setPendingInvites(pendingInvites.map((invite) =>
-        invite.id === inviteId ? { ...invite, sentAt: "Just now" } : invite
-      ));
+      setPendingInvites(
+        pendingInvites.map((invite) => (invite.id === inviteId ? { ...invite, sentAt: "Just now" } : invite)),
+      )
 
-      toast.success("Invitation resent successfully");
+      toast.success("Invitation resent successfully")
     } catch (error) {
-      console.error("Error resending invite:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to resend invitation");
+      console.error("Error resending invite:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to resend invitation")
+    }
+  }
+
+  const resendAllInvites = async () => {
+    try {
+      let successCount = 0
+      let failCount = 0
+
+      for (const invite of pendingInvites) {
+        if (!invite.token) continue
+
+        try {
+          const response = await fetch(`/api/invites/${invite.token}`, {
+            method: "POST",
+          })
+
+          if (response.ok) {
+            successCount++
+          } else {
+            failCount++
+          }
+        } catch (err) {
+          failCount++
+        }
+      }
+
+      // Update the UI
+      setPendingInvites(pendingInvites.map((invite) => ({ ...invite, sentAt: "Just now" })))
+
+      if (successCount > 0) {
+        toast.success(`Successfully resent ${successCount} invitation${successCount !== 1 ? "s" : ""}`)
+      }
+
+      if (failCount > 0) {
+        toast.error(`Failed to resend ${failCount} invitation${failCount !== 1 ? "s" : ""}`)
+      }
+    } catch (error) {
+      console.error("Error resending all invites:", error)
+      toast.error("Failed to resend invitations")
     }
   }
 
   const generateInviteLink = async () => {
     try {
-      console.log('Generating invite link with role:', inviteRole);
-
       const response = await fetch(`/api/projects/${projectId}/invites`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           role: inviteRole,
         }),
-      });
+      })
 
-      const responseData = await response.json();
-      console.log('Generate invite link API response:', responseData);
+      const responseData = await response.json()
 
       if (!response.ok) {
-        throw new Error(responseData.error || responseData.message || 'Failed to generate invite link');
+        throw new Error(responseData.error || responseData.message || "Failed to generate invite link")
       }
 
       // Construct the full invite URL using the current origin
-      const inviteUrl = `${window.location.origin}/invite/${responseData.invite.token}`;
-      console.log('Generated invite URL:', inviteUrl);
-      setInviteLink(inviteUrl);
+      const inviteUrl = `${window.location.origin}/invite/${responseData.invite.token}`
+      setInviteLink(inviteUrl)
 
       // Add the invite to the pending invites list
       setPendingInvites([
         ...pendingInvites,
         {
           id: responseData.invite.id,
-          email: 'No email (link invite)',
+          email: "No email (link invite)",
           role: inviteRole,
           sentAt: "Just now",
           status: "PENDING",
+          token: responseData.invite.token,
         },
-      ]);
+      ])
 
-      toast.success("Invite link generated successfully");
+      toast.success("Invite link generated successfully")
     } catch (error) {
-      console.error("Error generating invite link:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to generate invite link");
+      console.error("Error generating invite link:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to generate invite link")
     }
-  };
+  }
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(inviteLink);
-      setCopied(true);
-      toast.success("Link copied to clipboard");
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(inviteLink)
+      setCopied(true)
+      toast.success("Link copied to clipboard")
+      setTimeout(() => setCopied(false), 2000)
     } catch (error) {
-      console.error("Error copying to clipboard:", error);
-      toast.error("Failed to copy link");
+      console.error("Error copying to clipboard:", error)
+      toast.error("Failed to copy link")
     }
-  };
+  }
 
-  // Stats are calculated above
+  // Get presence store functions
+  const { isUserActive, getLastActiveTime: getPresenceLastActiveTime, initialize, cleanup } = usePresenceStore()
+
+  // Initialize presence tracking
+  useEffect(() => {
+    initialize()
+
+    // Set up interval to refresh presence data every 30 seconds
+    const interval = setInterval(() => {
+      // This will trigger a re-render to update the "last active" times
+      setMembers([...members])
+    }, 30000)
+
+    return () => {
+      clearInterval(interval)
+      cleanup()
+    }
+  }, [initialize, cleanup, members])
 
   // Helper functions for displaying badges
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, userId: string) => {
+    // Check if user is currently active (real-time)
+    if (userId && isUserActive(userId)) {
+      return (
+        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">
+          <Wifi className="h-3 w-3 mr-1" />
+          Active Now
+        </Badge>
+      )
+    }
+
+    // Fall back to database status
     switch (status?.toLowerCase()) {
       case "active":
-        return <Badge className="bg-green-500 hover:bg-green-600">Active</Badge>
+        return (
+          <Badge className="bg-slate-500 hover:bg-slate-600 text-white">
+            <WifiOff className="h-3 w-3 mr-1" />
+            Away
+          </Badge>
+        )
       case "inactive":
         return (
-          <Badge variant="outline" className="text-muted-foreground">
+          <Badge variant="outline" className="text-slate-500 border-slate-300">
+            <AlertCircle className="h-3 w-3 mr-1" />
             Inactive
           </Badge>
         )
       case "pending":
-        return <Badge className="bg-amber-500 hover:bg-amber-600">Pending Approval</Badge>
+        return (
+          <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        )
       default:
-        return <Badge className="bg-gray-500 hover:bg-gray-600">Unknown</Badge>
+        return <Badge className="bg-slate-500 hover:bg-slate-600 text-white">Unknown</Badge>
     }
   }
 
+  // Get formatted last active time
+  const getFormattedLastActiveTime = (member: Member) => {
+    if (member.userId && isUserActive(member.userId)) {
+      return 'Just now'
+    }
+
+    // Use presence store for real-time data if available
+    if (member.userId) {
+      const lastActive = getPresenceLastActiveTime(member.userId)
+      if (lastActive !== 'Never') {
+        return lastActive
+      }
+    }
+
+    // Fall back to the data from the API
+    return member.lastActive || 'Never'
+  }
+
   const getRoleBadge = (role: string) => {
-    switch (role.toUpperCase()) {
+    switch (role?.toUpperCase()) {
       case "OWNER":
-        return <Badge className="bg-purple-500 hover:bg-purple-600">Owner</Badge>
+        return (
+          <Badge className="bg-purple-500 hover:bg-purple-600 text-white">
+            <Shield className="h-3 w-3 mr-1" />
+            Owner
+          </Badge>
+        )
       case "MANAGER":
       case "ADMIN":
-        return <Badge className="bg-blue-500 hover:bg-blue-600">Manager</Badge>
+        return (
+          <Badge className="bg-blue-500 hover:bg-blue-600 text-white">
+            <UserCog className="h-3 w-3 mr-1" />
+            Manager
+          </Badge>
+        )
       case "MEMBER":
-        return <Badge variant="secondary">Member</Badge>
+        return (
+          <Badge variant="secondary" className="bg-slate-200 text-slate-700">
+            <Users className="h-3 w-3 mr-1" />
+            Member
+          </Badge>
+        )
       default:
         return null
     }
@@ -423,8 +578,11 @@ export default function MembersPage() {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="text-slate-600 animate-pulse">Loading team members...</p>
+        </div>
       </div>
     )
   }
@@ -432,16 +590,14 @@ export default function MembersPage() {
   // Show error state
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex flex-col items-center justify-center p-6 text-center">
         <div className="h-24 w-24 rounded-full bg-red-100 flex items-center justify-center mb-6">
-          <span className="text-red-600 text-4xl">!</span>
+          <AlertCircle className="h-12 w-12 text-red-600" />
         </div>
-        <h3 className="text-2xl font-bold mb-2 text-gray-900">Error Loading Members</h3>
-        <p className="text-gray-500 max-w-md mb-6">{error}</p>
-        <Button
-          onClick={() => window.location.reload()}
-          className="gap-2 bg-blue-600 hover:bg-blue-700"
-        >
+        <h3 className="text-2xl font-bold mb-2 text-slate-900">Error Loading Members</h3>
+        <p className="text-slate-500 max-w-md mb-6">{error}</p>
+        <Button onClick={() => window.location.reload()} className="gap-2 bg-blue-600 hover:bg-blue-700">
+          <RefreshCw className="h-4 w-4" />
           Retry
         </Button>
       </div>
@@ -449,123 +605,26 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="h-full w-full bg-white overflow-y-auto">
-      <div className="w-full max-w-[1400px] mx-auto px-3 py-4 sm:px-4 md:px-6 space-y-4 sm:space-y-6 md:space-y-8">
-        <div className="flex flex-col space-y-1 sm:space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Team Members</h1>
-          <p className="text-sm sm:text-base text-gray-500">Manage your team members and their access permissions.</p>
-        </div>
-
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 xs:gap-3 md:gap-4">
-          <Card className="p-3 xs:p-4 md:p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs xs:text-sm font-medium text-gray-600">Total Members</p>
-                <h3 className="text-xl xs:text-2xl font-bold text-gray-900">{stats.total}</h3>
-              </div>
-              <div className="h-8 w-8 xs:h-10 xs:w-10 md:h-12 md:w-12 rounded-full bg-blue-200 flex items-center justify-center">
-                <Users className="h-4 w-4 xs:h-5 xs:w-5 md:h-6 md:w-6 text-blue-600" />
-              </div>
-            </div>
-            <Progress
-              value={(stats.total / 10) * 100}
-              className="h-1 mt-4 bg-blue-200"
-            />
-          </Card>
-
-          <Card className="p-3 xs:p-4 md:p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs xs:text-sm font-medium text-gray-600">Active Members</p>
-                <h3 className="text-xl xs:text-2xl font-bold text-gray-900">{stats.active}</h3>
-              </div>
-              <div className="h-8 w-8 xs:h-10 xs:w-10 md:h-12 md:w-12 rounded-full bg-green-200 flex items-center justify-center">
-                <CheckCircle2 className="h-4 w-4 xs:h-5 xs:w-5 md:h-6 md:w-6 text-green-600" />
-              </div>
-            </div>
-            <Progress
-              value={(stats.active / stats.total) * 100}
-              className="h-1 mt-4 bg-green-200"
-              indicatorClassName="bg-green-600"
-            />
-          </Card>
-
-          <Card className="p-3 xs:p-4 md:p-6 bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs xs:text-sm font-medium text-gray-600">Pending Approval</p>
-                <h3 className="text-xl xs:text-2xl font-bold text-gray-900">{stats.pending}</h3>
-              </div>
-              <div className="h-8 w-8 xs:h-10 xs:w-10 md:h-12 md:w-12 rounded-full bg-amber-200 flex items-center justify-center">
-                <Clock className="h-4 w-4 xs:h-5 xs:w-5 md:h-6 md:w-6 text-amber-600" />
-              </div>
-            </div>
-            <Progress
-              value={(stats.pending / stats.total) * 100}
-              className="h-1 mt-4 bg-amber-200"
-              indicatorClassName="bg-amber-600"
-            />
-          </Card>
-
-          <Card className="p-3 xs:p-4 md:p-6 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs xs:text-sm font-medium text-gray-600">Pending Invites</p>
-                <h3 className="text-xl xs:text-2xl font-bold text-gray-900">{pendingInvites.length}</h3>
-              </div>
-              <div className="h-8 w-8 xs:h-10 xs:w-10 md:h-12 md:w-12 rounded-full bg-purple-200 flex items-center justify-center">
-                <Mail className="h-4 w-4 xs:h-5 xs:w-5 md:h-6 md:w-6 text-purple-600" />
-              </div>
-            </div>
-            <Progress
-              value={(pendingInvites.length / 5) * 100}
-              className="h-1 mt-4 bg-purple-200"
-              indicatorClassName="bg-purple-600"
-            />
-          </Card>
-        </div>
-
-        <div className="flex flex-col xs:flex-row justify-between gap-2 xs:gap-3 md:gap-4">
-          <div className="flex flex-col xs:flex-row gap-2 flex-1 w-full">
-            <div className="relative flex-1 min-w-0">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-              <Input
-                placeholder="Search members..."
-                className="pl-8 border-gray-300 w-full"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            <div className="w-full xs:w-auto">
-              <Select defaultValue="all">
-                <SelectTrigger className="w-full border-gray-300 min-w-[120px]">
-                  <SelectValue placeholder="Filter by role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="owner">Owner</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="member">Member</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="container mx-auto p-6 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Team Members</h1>
+            <p className="text-slate-500">Manage your team members and their access permissions</p>
           </div>
 
-          <div className="w-full xs:w-auto">
-            <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-              <DialogTrigger asChild>
-                <Button className="gap-2 bg-blue-600 hover:bg-blue-700 w-full xs:w-auto">
-                  <UserPlus className="h-4 w-4" />
-                  Invite Member
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
+          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-md transition-all hover:shadow-lg">
+                <UserPlus className="h-4 w-4" />
+                Invite Member
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
                 <DialogTitle>Invite team member</DialogTitle>
-                <DialogDescription>
-                  Choose how you&apos;d like to invite team members.
-                </DialogDescription>
+                <DialogDescription>Choose how you&apos;d like to invite team members.</DialogDescription>
               </DialogHeader>
 
               <Tabs value={inviteMethod} onValueChange={setInviteMethod} className="w-full">
@@ -590,13 +649,13 @@ export default function MembersPage() {
                         placeholder="colleague@example.com"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
-                        className="border-gray-300"
+                        className="border-slate-300"
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="role">Role</Label>
                       <Select value={inviteRole} onValueChange={setInviteRole}>
-                        <SelectTrigger id="role" className="border-gray-300">
+                        <SelectTrigger id="role" className="border-slate-300">
                           <SelectValue placeholder="Select a role" />
                         </SelectTrigger>
                         <SelectContent>
@@ -613,7 +672,7 @@ export default function MembersPage() {
                     <div className="grid gap-2">
                       <Label htmlFor="link-role">Role for invite link</Label>
                       <Select value={inviteRole} onValueChange={setInviteRole}>
-                        <SelectTrigger id="link-role" className="border-gray-300">
+                        <SelectTrigger id="link-role" className="border-slate-300">
                           <SelectValue placeholder="Select a role" />
                         </SelectTrigger>
                         <SelectContent>
@@ -623,24 +682,20 @@ export default function MembersPage() {
                       </Select>
                     </div>
                     {inviteLink && (
-                      <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-md">
-                        <Input
-                          readOnly
-                          value={inviteLink}
-                          className="border-gray-300"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={copyToClipboard}
-                          className="shrink-0"
-                        >
-                          {copied ? (
-                            <Check className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
+                      <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-md">
+                        <Input readOnly value={inviteLink} className="border-slate-300 text-sm" />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="outline" size="icon" onClick={copyToClipboard} className="shrink-0">
+                                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{copied ? "Copied!" : "Copy to clipboard"}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     )}
                   </div>
@@ -651,99 +706,298 @@ export default function MembersPage() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setShowInviteDialog(false);
-                    setInviteLink("");
-                    setInviteEmail("");
-                    setInviteRole("MEMBER");
+                    setShowInviteDialog(false)
+                    setInviteLink("")
+                    setInviteEmail("")
+                    setInviteRole("MEMBER")
                   }}
-                  className="border-gray-300"
+                  className="border-slate-300"
                 >
                   Cancel
                 </Button>
                 {inviteMethod === "email" ? (
-                  <Button
-                    onClick={sendInvite}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
+                  <Button onClick={sendInvite} className="bg-blue-600 hover:bg-blue-700">
                     Send invitation
                   </Button>
                 ) : (
-                  <Button
-                    onClick={generateInviteLink}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
+                  <Button onClick={generateInviteLink} className="bg-blue-600 hover:bg-blue-700">
                     Generate Link
                   </Button>
                 )}
               </DialogFooter>
             </DialogContent>
-            </Dialog>
+          </Dialog>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">Total Members</h3>
+                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-4 pt-6 bg-white">
+              <div className="flex items-end justify-between">
+                <div className="text-3xl font-bold text-slate-900">{stats.total}</div>
+                <div className="text-sm text-slate-500">Team size</div>
+              </div>
+              <Progress
+                value={(stats.total / 10) * 100}
+                className="h-1 mt-4 bg-blue-100"
+                indicatorClassName="bg-blue-500"
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all">
+            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">Active Members</h3>
+                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-4 pt-6 bg-white">
+              <div className="flex items-end justify-between">
+                <div className="text-3xl font-bold text-slate-900">{stats.active}</div>
+                <div className="text-sm text-slate-500">
+                  {stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}% of total
+                </div>
+              </div>
+              <Progress
+                value={(stats.active / (stats.total || 1)) * 100}
+                className="h-1 mt-4 bg-emerald-100"
+                indicatorClassName="bg-emerald-500"
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all">
+            <div className="bg-gradient-to-br from-amber-500 to-amber-600 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">Pending Approval</h3>
+                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-4 pt-6 bg-white">
+              <div className="flex items-end justify-between">
+                <div className="text-3xl font-bold text-slate-900">{stats.pending}</div>
+                <div className="text-sm text-slate-500">
+                  {stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}% of total
+                </div>
+              </div>
+              <Progress
+                value={(stats.pending / (stats.total || 1)) * 100}
+                className="h-1 mt-4 bg-amber-100"
+                indicatorClassName="bg-amber-500"
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-none shadow-md hover:shadow-lg transition-all">
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium text-white">Pending Invites</h3>
+                <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <Mail className="h-5 w-5 text-white" />
+                </div>
+              </div>
+            </div>
+            <CardContent className="p-4 pt-6 bg-white">
+              <div className="flex items-end justify-between">
+                <div className="text-3xl font-bold text-slate-900">{pendingInvites.length}</div>
+                <div className="text-sm text-slate-500">Awaiting response</div>
+              </div>
+              <Progress
+                value={(pendingInvites.length / 5) * 100}
+                className="h-1 mt-4 bg-purple-100"
+                indicatorClassName="bg-purple-500"
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="flex flex-col md:flex-row justify-between gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 flex-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
+              <Input
+                placeholder="Search members..."
+                className="pl-8 border-slate-300"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] border-slate-300">
+                <SelectValue placeholder="Filter by role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="owner">Owner</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+                <SelectItem value="member">Member</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="border-slate-300 gap-2">
+                  <ArrowUpDown className="h-4 w-4" />
+                  Sort
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSortField("name")
+                    setSortOrder("asc")
+                  }}
+                >
+                  Name (A-Z)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSortField("name")
+                    setSortOrder("desc")
+                  }}
+                >
+                  Name (Z-A)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSortField("role")
+                    setSortOrder("asc")
+                  }}
+                >
+                  Role (ascending)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSortField("status")
+                    setSortOrder("asc")
+                  }}
+                >
+                  Status (ascending)
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSortField("lastActive")
+                    setSortOrder("desc")
+                  }}
+                >
+                  Most recently active
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
+        {/* Members Tabs */}
         <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 w-full max-w-full xs:max-w-[400px] bg-gray-100 overflow-x-auto">
-            <TabsTrigger value="all" className="data-[state=active]:bg-white">
+          <TabsList className="grid grid-cols-4 w-full sm:w-[400px] bg-slate-100 p-1">
+            <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
               All
             </TabsTrigger>
-            <TabsTrigger value="active" className="data-[state=active]:bg-white">
+            <TabsTrigger value="active" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
               Active
             </TabsTrigger>
-            <TabsTrigger value="inactive" className="data-[state=active]:bg-white">
+            <TabsTrigger value="inactive" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
               Inactive
             </TabsTrigger>
-            <TabsTrigger value="pending" className="data-[state=active]:bg-white">
+            <TabsTrigger value="pending" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
               Pending
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="mt-4 sm:mt-6">
-            <Card className="overflow-hidden border border-gray-200">
-              <div className="overflow-x-auto -mx-3 sm:mx-0">
-                <table className="w-full min-w-[640px] table-auto">
+          <TabsContent value="all" className="mt-6">
+            <Card className="overflow-hidden border-none shadow-md">
+              <div className="overflow-x-auto">
+                <table className="w-full">
                   <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700">Member</th>
-                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden sm:table-cell">Role</th>
-                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden md:table-cell">Status</th>
-                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden lg:table-cell">Last Active</th>
-                      <th className="text-right p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700">Actions</th>
+                    <tr className="border-b bg-slate-50">
+                      <th className="text-left p-4 font-medium text-slate-700">Member</th>
+                      <th className="text-left p-4 font-medium text-slate-700 hidden md:table-cell">Role</th>
+                      <th className="text-left p-4 font-medium text-slate-700 hidden lg:table-cell">Status</th>
+                      <th className="text-left p-4 font-medium text-slate-700 hidden lg:table-cell">Last Active</th>
+                      <th className="text-right p-4 font-medium text-slate-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map((member) => (
-                        <tr key={member.id} className="border-b hover:bg-gray-50 transition-colors">
-                          <td className="p-2 xs:p-3 md:p-4">
-                            <div className="flex items-center gap-2 xs:gap-3">
-                              <Avatar className="h-8 w-8 xs:h-9 xs:w-9 md:h-10 md:w-10 border border-gray-200">
+                        <tr key={member.id} className="border-b hover:bg-slate-50 transition-colors">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-10 w-10 border border-slate-200 shadow-sm">
                                 <AvatarImage src={member.avatar} alt={member.name} />
-                                <AvatarFallback className="bg-gray-100 text-gray-700 text-xs xs:text-sm">
-                                  {member.name?.charAt(0) || 'U'}
+                                <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 font-medium">
+                                  {member.name?.charAt(0) || "U"}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="font-medium text-xs xs:text-sm md:text-base text-gray-900">{member.name}</p>
-                                <p className="text-xs xs:text-sm text-gray-500">{member.email}</p>
+                                <HoverCard>
+                                  <HoverCardTrigger asChild>
+                                    <p className="font-medium text-slate-900 cursor-pointer">{member.name}</p>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="w-80">
+                                    <div className="flex justify-between space-x-4">
+                                      <Avatar className="h-12 w-12">
+                                        <AvatarImage src={member.avatar} />
+                                        <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 font-medium">
+                                          {member.name?.charAt(0) || "U"}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div className="space-y-1 flex-1">
+                                        <h4 className="text-sm font-semibold">{member.name}</h4>
+                                        <p className="text-sm text-slate-500">{member.email}</p>
+                                        <div className="flex items-center gap-2 pt-2">
+                                          {getRoleBadge(member.role)}
+                                          {getStatusBadge(member.status, member.userId)}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </HoverCardContent>
+                                </HoverCard>
+                                <p className="text-sm text-slate-500">{member.email}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="p-2 xs:p-3 md:p-4 hidden sm:table-cell">{getRoleBadge(member.role)}</td>
-                          <td className="p-2 xs:p-3 md:p-4 hidden md:table-cell">{getStatusBadge(member.status)}</td>
-                          <td className="p-2 xs:p-3 md:p-4 hidden lg:table-cell">
-                            <span className="text-xs xs:text-sm text-gray-600">{member.lastActive}</span>
+                          <td className="p-4 hidden md:table-cell">{getRoleBadge(member.role)}</td>
+                          <td className="p-4 hidden lg:table-cell">{getStatusBadge(member.status, member.userId)}</td>
+                          <td className="p-4 hidden lg:table-cell">
+                            <span className="text-sm text-slate-600">{getFormattedLastActiveTime(member)}</span>
                           </td>
-                          <td className="p-2 xs:p-3 md:p-4 text-right">
-                            <div className="flex items-center justify-end gap-1 xs:gap-2">
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
                               {member.status?.toLowerCase() === "pending" && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => approveMember(member.id)}
-                                  className="text-xs xs:text-sm text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 px-2 py-1 h-auto"
-                                >
-                                  Approve
-                                </Button>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => approveMember(member.id)}
+                                        className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700"
+                                      >
+                                        <Check className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Approve member</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
 
                               <DropdownMenu>
@@ -751,43 +1005,49 @@ export default function MembersPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-7 w-7 xs:h-8 xs:w-8 text-gray-500 hover:text-gray-700"
+                                    className="h-8 w-8 text-slate-500 hover:text-slate-700"
                                   >
-                                    <MoreVertical className="h-3 w-3 xs:h-4 xs:w-4" />
+                                    <MoreVertical className="h-4 w-4" />
                                     <span className="sr-only">More options</span>
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Manage Member</DropdownMenuLabel>
                                   {member.status?.toLowerCase() !== "active" && (
                                     <DropdownMenuItem onClick={() => approveMember(member.id)}>
+                                      <CheckCircle2 className="h-4 w-4 mr-2 text-emerald-500" />
                                       Approve
                                     </DropdownMenuItem>
                                   )}
                                   {member.status?.toLowerCase() === "active" && (
                                     <DropdownMenuItem onClick={() => deactivateMember(member.id)}>
+                                      <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
                                       Deactivate
                                     </DropdownMenuItem>
                                   )}
-                                  <DropdownMenuItem>
-                                    <Select
-                                      onValueChange={(value) => changeMemberRole(member.id, value)}
-                                      defaultValue={member.role}
-                                    >
-                                      <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Change Role" />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="MEMBER">Member</SelectItem>
-                                        <SelectItem value="MANAGER">Manager</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </DropdownMenuItem>
+                                  <DropdownMenuSub>
+                                    <DropdownMenuSubTrigger>
+                                      <UserCog className="h-4 w-4 mr-2" />
+                                      Change Role
+                                    </DropdownMenuSubTrigger>
+                                    <DropdownMenuPortal>
+                                      <DropdownMenuSubContent>
+                                        <DropdownMenuItem onClick={() => changeMemberRole(member.id, "MEMBER")}>
+                                          Member
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => changeMemberRole(member.id, "MANAGER")}>
+                                          Manager
+                                        </DropdownMenuItem>
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuPortal>
+                                  </DropdownMenuSub>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     className="text-red-600"
                                     onClick={() => removeMember(member.id)}
                                     disabled={member.role?.toUpperCase() === "OWNER"}
                                   >
+                                    <UserMinus className="h-4 w-4 mr-2" />
                                     Remove Member
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -798,8 +1058,23 @@ export default function MembersPage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="p-8 text-center text-gray-500">
-                          No members found matching your criteria
+                        <td colSpan={5} className="p-8 text-center text-slate-500">
+                          <div className="flex flex-col items-center justify-center py-8">
+                            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                              <Users className="h-6 w-6 text-slate-400" />
+                            </div>
+                            <p className="text-slate-500 mb-2">No members found matching your criteria</p>
+                            <Button
+                              variant="link"
+                              onClick={() => {
+                                setSearchQuery("")
+                                setRoleFilter("all")
+                                setActiveTab("all")
+                              }}
+                            >
+                              Clear filters
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -812,80 +1087,110 @@ export default function MembersPage() {
           {/* Other tab contents would be similar to the "all" tab but with filtered data */}
         </Tabs>
 
+        {/* Pending Invitations */}
         {pendingInvites.length > 0 && (
-          <div className="mt-6 sm:mt-8">
-            <div className="flex flex-col xs:flex-row xs:items-center justify-between mb-3 sm:mb-4 gap-2 xs:gap-0">
-              <h2 className="text-lg xs:text-xl font-semibold text-gray-900">Pending Invitations</h2>
-              <Button variant="outline" size="sm" className="border-gray-300 text-xs xs:text-sm h-auto py-1.5 xs:py-2 w-full xs:w-auto">
-                <Mail className="h-3 w-3 xs:h-4 xs:w-4 mr-1 xs:mr-2 text-gray-600" />
+          <Collapsible open={showInvites} onOpenChange={setShowInvites} className="w-full">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-0 hover:bg-transparent">
+                    {showInvites ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <h2 className="text-xl font-semibold text-slate-900">Pending Invitations ({pendingInvites.length})</h2>
+              </div>
+              <Button variant="outline" size="sm" className="border-slate-300 gap-2" onClick={resendAllInvites}>
+                <RefreshCw className="h-3.5 w-3.5 text-slate-600" />
                 Resend All
               </Button>
             </div>
 
-            <Card className="overflow-hidden border border-gray-200">
-              <div className="overflow-x-auto -mx-3 sm:mx-0">
-                <table className="w-full min-w-[640px] table-auto">
-                  <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700">Email</th>
-                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden sm:table-cell">Role</th>
-                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden md:table-cell">Sent</th>
-                      <th className="text-right p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingInvites.map((invite) => (
-                      <tr key={invite.id} className="border-b hover:bg-gray-50 transition-colors">
-                        <td className="p-2 xs:p-3 md:p-4">
-                          <p className="font-medium text-xs xs:text-sm md:text-base text-gray-900">{invite.email}</p>
-                        </td>
-                        <td className="p-2 xs:p-3 md:p-4 hidden sm:table-cell">
-                          {getRoleBadge(invite.role)}
-                        </td>
-                        <td className="p-2 xs:p-3 md:p-4 hidden md:table-cell">
-                          <span className="text-xs xs:text-sm text-gray-600">{invite.sentAt}</span>
-                        </td>
-                        <td className="p-2 xs:p-3 md:p-4 text-right">
-                          <div className="flex items-center justify-end gap-1 xs:gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => resendInvite(invite.id)}
-                              className="text-xs xs:text-sm border-gray-300 px-2 py-1 h-auto"
-                            >
-                              Resend
-                            </Button>
-
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => cancelInvite(invite.id)}
-                              className="text-xs xs:text-sm text-red-600 hover:text-red-700 px-2 py-1 h-auto"
-                            >
-                              Cancel
-                            </Button>
-                          </div>
-                        </td>
+            <CollapsibleContent>
+              <Card className="overflow-hidden border-none shadow-md">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b bg-slate-50">
+                        <th className="text-left p-4 font-medium text-slate-700">Email</th>
+                        <th className="text-left p-4 font-medium text-slate-700 hidden md:table-cell">Role</th>
+                        <th className="text-left p-4 font-medium text-slate-700 hidden lg:table-cell">Sent</th>
+                        <th className="text-right p-4 font-medium text-slate-700">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </div>
+                    </thead>
+                    <tbody>
+                      {pendingInvites.map((invite) => (
+                        <tr key={invite.id} className="border-b hover:bg-slate-50 transition-colors">
+                          <td className="p-4">
+                            <p className="font-medium text-slate-900">{invite.email}</p>
+                          </td>
+                          <td className="p-4 hidden md:table-cell">{getRoleBadge(invite.role)}</td>
+                          <td className="p-4 hidden lg:table-cell">
+                            <span className="text-sm text-slate-600">{invite.sentAt}</span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => resendInvite(invite.id)}
+                                      className="border-slate-300"
+                                    >
+                                      <RefreshCw className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Resend invitation</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => cancelInvite(invite.id)}
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Cancel invitation</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
         )}
 
-        {filteredMembers.length === 0 && activeTab === "all" && searchQuery === "" && (
-          <div className="flex flex-col items-center justify-center p-6 xs:p-8 sm:p-12 text-center bg-white border border-gray-200 rounded-lg">
-            <div className="h-16 w-16 xs:h-20 xs:w-20 sm:h-24 sm:w-24 rounded-full bg-blue-100 flex items-center justify-center mb-4 sm:mb-6">
-              <UserPlus className="h-8 w-8 xs:h-10 xs:w-10 sm:h-12 sm:w-12 text-blue-600" />
+        {/* Empty State */}
+        {filteredMembers.length === 0 && activeTab === "all" && searchQuery === "" && roleFilter === "all" && (
+          <div className="flex flex-col items-center justify-center p-12 text-center bg-white border border-slate-200 rounded-lg shadow-md">
+            <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center mb-6">
+              <UserPlus className="h-12 w-12 text-blue-600" />
             </div>
-            <h3 className="text-xl xs:text-2xl font-bold mb-1 sm:mb-2 text-gray-900">No Members Yet</h3>
-            <p className="text-sm xs:text-base text-gray-500 max-w-md mb-4 sm:mb-6">
+            <h3 className="text-2xl font-bold mb-2 text-slate-900">No Members Yet</h3>
+            <p className="text-slate-500 max-w-md mb-6">
               Your team doesn&apos;t have any members yet. Start building your team by inviting colleagues.
             </p>
-            <Button onClick={() => setShowInviteDialog(true)} className="gap-2 bg-blue-600 hover:bg-blue-700 text-xs xs:text-sm h-auto py-1.5 xs:py-2">
-              <UserPlus className="h-3 w-3 xs:h-4 xs:w-4" />
+            <Button
+              onClick={() => setShowInviteDialog(true)}
+              className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-md transition-all hover:shadow-lg"
+            >
+              <UserPlus className="h-4 w-4" />
               Invite Your First Team Member
             </Button>
           </div>
