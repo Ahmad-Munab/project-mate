@@ -1,7 +1,7 @@
 import type React from "react";
 import { Suspense } from "react";
 import ProjectSkeleton from "@/components/kanban/ProjectSkeleton";
-import { UserNav } from "@/components/shared/UserNav";
+import UserNav from "@/components/shared/UserNav";
 import Sidebar from "@/components/shared/sidebar";
 
 export default function DashboardLayout({
