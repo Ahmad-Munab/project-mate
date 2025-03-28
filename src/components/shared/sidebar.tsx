@@ -5,8 +5,24 @@ import { motion } from "framer-motion"
 import { Sparkles, Calendar, Code, Settings, Star, Users } from "lucide-react"
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { useParams, usePathname } from 'next/navigation'
 
 export default function Sidebar() {
+  // Get the current project ID from the URL
+  const params = useParams();
+  const pathname = usePathname();
+
+  // Extract projectId from params
+  const projectId = params?.projectId as string;
+
+  // Check if we're on a project page
+  const isProjectPage = pathname?.includes('/projects/') && projectId;
+
+  // Check if we're on the members page
+  const isMembersPage = pathname?.includes('/members');
+
+  // Check if we're on the main dashboard page
+  const isDashboardPage = pathname === '/dashboard' || pathname === '/dashboard/projects';
   return (
     <motion.div
       initial={{ x: -20, opacity: 0 }}
@@ -33,36 +49,42 @@ export default function Sidebar() {
 
       <div className="flex-1 overflow-auto py-4 px-2">
         <nav className="space-y-2">
-          <Button 
-            variant="secondary" 
-            className="w-full justify-start bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5 transition-all duration-300" 
+          <Button
+            variant={isDashboardPage ? "secondary" : "ghost"}
+            className={`w-full justify-start transition-all duration-300 ${isDashboardPage
+              ? "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5"
+              : "hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent"}`}
             asChild
           >
-            <a href="#" className="font-medium">
+            <Link href="/dashboard" className="font-medium">
               <Code className="mr-2 h-4 w-4 text-primary" />
               Projects
-            </a>
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start hover:bg-gradient-to-r hover:from-green-500/10 hover:to-transparent transition-all duration-300" 
-            asChild
-          >
-            <a href="#" className="font-medium">
-              <Calendar className="mr-2 h-4 w-4 text-green-500" />
-              Calendar
-            </a>
-          </Button>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start hover:bg-gradient-to-r hover:from-green-500/10 hover:to-transparent transition-all duration-300" 
-            asChild
-          >
-            <Link href="/dashboard/members" className="font-medium">
-              <Users className="mr-2 h-4 w-4 text-green-500" />
-              Members
             </Link>
           </Button>
+          <Button
+            variant="ghost"
+            className="w-full justify-start hover:bg-gradient-to-r hover:from-green-500/10 hover:to-transparent transition-all duration-300"
+            asChild
+          >
+            <Link href="#" className="font-medium">
+              <Calendar className="mr-2 h-4 w-4 text-green-500" />
+              Calendar
+            </Link>
+          </Button>
+          {isProjectPage && (
+            <Button
+              variant={isMembersPage ? "secondary" : "ghost"}
+              className={`w-full justify-start transition-all duration-300 ${isMembersPage
+                ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent hover:from-green-500/20 hover:to-green-500/5"
+                : "hover:bg-gradient-to-r hover:from-green-500/10 hover:to-transparent"}`}
+              asChild
+            >
+              <Link href={`/dashboard/projects/${projectId}/members`} className="font-medium">
+                <Users className="mr-2 h-4 w-4 text-green-500" />
+                Members
+              </Link>
+            </Button>
+          )}
         </nav>
       </div>
 
