@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -29,7 +29,6 @@ import { tasks } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import TaskCreateDialog from "./TaskCreateDialog";
 import { usePermissions } from "@/hooks/usePermissions";
-import usePresenceStore from "@/store/presenceStore";
 
 export type Task = InferSelectModel<typeof tasks>;
 
@@ -164,35 +163,30 @@ export default function ProjectBoard({
   const [inviteRole, setInviteRole] = useState<"MEMBER" | "MANAGER">("MEMBER");
   const boardRef = useRef<HTMLDivElement>(null);
 
-  // Get presence store functions
-  const { updatePresence, initialize, cleanup } = usePresenceStore();
-
-  // Track user activity
-  const updateUserActivity = useCallback(() => {
-    if (!projectId) return;
-
-    // Get the current user ID from localStorage
-    const userId = localStorage.getItem('userId');
-    if (userId) {
-      updatePresence(userId, projectId, 'kanban');
-    }
-  }, [projectId, updatePresence]);
-
-  // Initialize presence tracking
+  // Simple presence tracking
   useEffect(() => {
     if (!projectId) return;
 
-    initialize();
+    // Update last active time in the database
+    const updateLastActive = async () => {
+      try {
+        await fetch(`/api/projects/${projectId}/members/update-activity`, {
+          method: 'POST',
+        });
+      } catch (error) {
+        console.error('Error updating activity:', error);
+      }
+    };
 
     // Update presence immediately
-    updateUserActivity();
+    updateLastActive();
 
     // Set up interval to update presence every minute
-    const interval = setInterval(updateUserActivity, 60000);
+    const interval = setInterval(updateLastActive, 60000);
 
     // Set up activity listeners
     const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    const handleActivity = () => updateUserActivity();
+    const handleActivity = () => updateLastActive();
 
     activityEvents.forEach(event => {
       window.addEventListener(event, handleActivity);
@@ -204,9 +198,8 @@ export default function ProjectBoard({
       activityEvents.forEach(event => {
         window.removeEventListener(event, handleActivity);
       });
-      cleanup();
     };
-  }, [initialize, cleanup, updateUserActivity, projectId]);
+  }, [projectId]);
 
   // Add function to handle invite link creation
   const createInviteLink = async () => {
