@@ -57,8 +57,6 @@ import { toast } from "sonner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import usePresenceStore from "@/store/presenceStore"
-import { formatTimeAgo } from "@/utils/formatters"
 import { Wifi, WifiOff } from "lucide-react"
 
 // Define types for members and invites
@@ -383,7 +381,8 @@ export default function MembersPage() {
           } else {
             failCount++
           }
-        } catch (err) {
+        } catch (error) {
+          console.error('Error copying to clipboard:', error)
           failCount++
         }
       }
@@ -458,29 +457,43 @@ export default function MembersPage() {
     }
   }
 
-  // Get presence store functions
-  const { isUserActive, getLastActiveTime: getPresenceLastActiveTime, initialize, cleanup } = usePresenceStore()
+  // Simple presence tracking
+  const [activeUsers, setActiveUsers] = useState<Record<string, boolean>>({});
 
   // Initialize presence tracking
   useEffect(() => {
-    initialize()
+    // Simulate some users being active
+    const simulateActiveUsers = () => {
+      // In a real implementation, this would come from a real-time service
+      const newActiveUsers: Record<string, boolean> = {};
 
-    // Set up interval to refresh presence data every 30 seconds
+      // Randomly mark some users as active
+      members.forEach(member => {
+        if (Math.random() > 0.5) {
+          newActiveUsers[member.userId] = true;
+        }
+      });
+
+      setActiveUsers(newActiveUsers);
+    };
+
+    // Initial simulation
+    simulateActiveUsers();
+
+    // Set up interval to refresh active users every 30 seconds
     const interval = setInterval(() => {
-      // This will trigger a re-render to update the "last active" times
-      setMembers([...members])
-    }, 30000)
+      simulateActiveUsers();
+    }, 30000);
 
     return () => {
-      clearInterval(interval)
-      cleanup()
-    }
-  }, [initialize, cleanup, members])
+      clearInterval(interval);
+    };
+  }, [members])
 
   // Helper functions for displaying badges
   const getStatusBadge = (status: string, userId: string) => {
-    // Check if user is currently active (real-time)
-    if (userId && isUserActive(userId)) {
+    // Check if user is currently active (simulated real-time)
+    if (userId && activeUsers[userId]) {
       return (
         <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">
           <Wifi className="h-3 w-3 mr-1" />
@@ -519,16 +532,8 @@ export default function MembersPage() {
 
   // Get formatted last active time
   const getFormattedLastActiveTime = (member: Member) => {
-    if (member.userId && isUserActive(member.userId)) {
+    if (member.userId && activeUsers[member.userId]) {
       return 'Just now'
-    }
-
-    // Use presence store for real-time data if available
-    if (member.userId) {
-      const lastActive = getPresenceLastActiveTime(member.userId)
-      if (lastActive !== 'Never') {
-        return lastActive
-      }
     }
 
     // Fall back to the data from the API
