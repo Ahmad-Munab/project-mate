@@ -458,21 +458,24 @@ export default function MembersPage() {
     }
   }
 
-  // Refresh the member list periodically to get updated activity status
+  // Use a counter to trigger re-renders without fetching data
+  const [refreshCounter, setRefreshCounter] = useState(0);
+
+  // Refresh the status display periodically without fetching new data
   useEffect(() => {
-    // Set up interval to refresh data every 30 seconds
+    // Set up interval to update the display every 30 seconds
     const interval = setInterval(() => {
-      // Trigger a re-fetch of members data
-      fetchMembersAndInvites();
+      // Just increment the counter to trigger a re-render
+      setRefreshCounter(prev => prev + 1);
     }, 30000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [fetchMembersAndInvites]);
+  }, []);
 
   // Helper function to determine if a user is currently active
-  const isUserActive = (member: Member) => {
+  const isUserActive = useCallback((member: Member) => {
     if (!member.lastActive) return false;
 
     // Consider a user active if they've been active in the last 2 minutes
@@ -481,10 +484,10 @@ export default function MembersPage() {
     twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
 
     return lastActiveDate > twoMinutesAgo;
-  }
+  }, [refreshCounter]); // Depend on refreshCounter to recalculate every 30 seconds
 
   // Helper functions for displaying badges
-  const getStatusBadge = (member: Member) => {
+  const getStatusBadge = useCallback((member: Member) => {
     const status = member.status;
 
     // Check if user is currently active based on lastActive timestamp
@@ -523,10 +526,10 @@ export default function MembersPage() {
       default:
         return <Badge className="bg-slate-500 hover:bg-slate-600 text-white">Unknown</Badge>
     }
-  }
+  }, [isUserActive]); // Depend on isUserActive which changes with the timer
 
   // Format time ago in a human-readable format
-  const formatTimeAgo = (date: string | Date | null): string => {
+  const formatTimeAgo = useCallback((date: string | Date | null): string => {
     if (!date) return 'Never';
 
     const now = new Date();
@@ -550,17 +553,17 @@ export default function MembersPage() {
 
     const diffInYears = Math.floor(diffInMonths / 12);
     return `${diffInYears} year${diffInYears !== 1 ? 's' : ''} ago`;
-  };
+  }, [refreshCounter]); // Depend on refreshCounter to recalculate every 30 seconds
 
   // Get formatted last active time
-  const getFormattedLastActiveTime = (member: Member) => {
+  const getFormattedLastActiveTime = useCallback((member: Member) => {
     if (isUserActive(member)) {
       return 'Just now';
     }
 
     // Format the last active time as "time ago"
     return formatTimeAgo(member.lastActive);
-  }
+  }, [isUserActive, formatTimeAgo]); // Depend on the functions that might change
 
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
