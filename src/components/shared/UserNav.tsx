@@ -36,14 +36,14 @@ export default function UserNav() {
   const params = useParams();
   const pathname = usePathname();
   const projectId = params?.projectId as string;
-  
+
   const [userData, setUserData] = useState<UserData>({
     email: undefined,
     avatarUrl: undefined,
     name: undefined,
     id: undefined,
   });
-  
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
@@ -61,14 +61,14 @@ export default function UserNav() {
           name: user.user_metadata.full_name || user.email?.split('@')[0],
           id: user.id,
         });
-        
+
         // Fetch user's projects
         try {
           const response = await fetch('/api/projects');
           if (response.ok) {
             const projectsData = await response.json();
             setProjects(projectsData);
-            
+
             // If we're on a project page, find the current project
             if (projectId) {
               const current = projectsData.find((p: Project) => p.id === projectId);
@@ -101,10 +101,10 @@ export default function UserNav() {
     : userData.email
     ? userData.email[0].toUpperCase()
     : "?";
-    
+
   // Format display name
   const displayName = userData.name || userData.email?.split('@')[0] || 'User';
-  
+
   // Format role badge
   const getRoleBadge = (role: string) => {
     switch (role?.toUpperCase()) {
@@ -134,15 +134,15 @@ export default function UserNav() {
           <span className="font-medium text-sm max-w-[120px] truncate">
             {displayName}
           </span>
-          
+
           {/* Only show project name when on a project page */}
           {currentProject && (
             <div className="flex items-center">
               <span className="text-muted-foreground mx-1">/</span>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="flex items-center gap-1 px-2 py-1 h-8 text-sm hover:bg-accent/50 transition-colors"
                   >
                     <span className="max-w-[120px] sm:max-w-[180px] truncate font-medium">
@@ -153,24 +153,70 @@ export default function UserNav() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64" align="start">
                   <div className="max-h-[400px] overflow-y-auto px-1 py-1">
-                    {/* Projects list */}
-                    {projects.map(project => (
-                      <DropdownMenuItem 
-                        key={project.id} 
-                        className={`flex items-center gap-2 rounded-md my-0.5 ${project.id === currentProject.id ? 'bg-accent/50 font-medium' : ''}`}
-                        onSelect={() => router.push(`/dashboard/projects/${project.id}`)}
+                    {/* Current Project */}
+                    <div className="mb-2">
+                      <DropdownMenuItem
+                        key={currentProject.id}
+                        className="flex items-center gap-2 rounded-md my-0.5 bg-accent/50 font-medium"
+                        disabled
                       >
-                        <div className="flex-1 truncate">
-                          {project.name}
+                        <div className="flex-1 truncate flex items-center">
+                          <FolderKanban className="h-4 w-4 mr-2 text-primary" />
+                          <span>{currentProject.name}</span>
+                          {getRoleBadge(currentProject.myRole)}
                         </div>
                       </DropdownMenuItem>
-                    ))}
+                    </div>
+
+                    {/* My Projects */}
+                    {projects.filter(p => p.isOwner && p.id !== currentProject.id).length > 0 && (
+                      <div className="mb-2">
+                        <div className="text-xs font-medium text-muted-foreground mb-1 px-2">My Projects</div>
+                        {projects.filter(p => p.isOwner && p.id !== currentProject.id).map(project => (
+                          <DropdownMenuItem
+                            key={project.id}
+                            className="flex items-center gap-2 rounded-md my-0.5"
+                            onSelect={() => router.push(`/dashboard/projects/${project.id}`)}
+                          >
+                            <div className="flex-1 truncate flex items-center">
+                              <FolderKanban className="h-4 w-4 mr-2 text-primary" />
+                              <span>{project.name}</span>
+                              {getRoleBadge(project.myRole)}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Shared With Me */}
+                    {projects.filter(p => !p.isOwner && p.id !== currentProject.id).length > 0 && (
+                      <div className="mb-2">
+                        <div className="text-xs font-medium text-muted-foreground mb-1 px-2">Shared With Me</div>
+                        {projects.filter(p => !p.isOwner && p.id !== currentProject.id).map(project => (
+                          <DropdownMenuItem
+                            key={project.id}
+                            className="flex items-center gap-2 rounded-md my-0.5"
+                            onSelect={() => router.push(`/dashboard/projects/${project.id}`)}
+                          >
+                            <div className="flex-1 truncate flex items-center">
+                              <FolderKanban className={`h-4 w-4 mr-2 ${project.myRole === 'MANAGER' ? 'text-purple-500' : 'text-green-500'}`} />
+                              <span>{project.name}</span>
+                              {getRoleBadge(project.myRole)}
+                            </div>
+                          </DropdownMenuItem>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <DropdownMenuSeparator />
                   <div className="px-1">
                     <DropdownMenuItem onSelect={() => router.push('/dashboard')} className="rounded-md">
                       <Home className="h-4 w-4 mr-2" />
                       All Projects
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => router.push('/dashboard/projects/new')} className="rounded-md">
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Project
                     </DropdownMenuItem>
                   </div>
                 </DropdownMenuContent>
@@ -179,7 +225,7 @@ export default function UserNav() {
           )}
         </div>
       </div>
-      
+
       {/* Right side: User Menu */}
       <div className="flex items-center gap-2">
         <DropdownMenu>
