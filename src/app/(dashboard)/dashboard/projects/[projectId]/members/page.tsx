@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -104,40 +104,41 @@ export default function MembersPage() {
   const [members, setMembers] = useState<Member[]>([])
   const [pendingInvites, setPendingInvites] = useState<Invite[]>([])
 
-  // Fetch members and invites
-  useEffect(() => {
+  // Fetch members and invites - wrapped in useCallback to prevent unnecessary re-renders
+  const fetchMembersAndInvites = useCallback(async () => {
     if (!projectId) return
 
-    const fetchMembers = async () => {
-      try {
-        setLoading(true)
-        setError(null)
+    try {
+      setLoading(true)
+      setError(null)
 
-        // Fetch project members
-        const membersResponse = await fetch(`/api/projects/${projectId}/members`)
-        if (!membersResponse.ok) {
-          throw new Error("Failed to fetch members")
-        }
-        const membersData = await membersResponse.json()
-        setMembers(membersData)
-
-        // Fetch pending invites
-        const invitesResponse = await fetch(`/api/projects/${projectId}/invites`)
-        if (!invitesResponse.ok) {
-          throw new Error("Failed to fetch invites")
-        }
-        const invitesData = await invitesResponse.json()
-        setPendingInvites(invitesData)
-      } catch (err) {
-        console.error("Error fetching data:", err)
-        setError(err instanceof Error ? err.message : "An error occurred")
-      } finally {
-        setLoading(false)
+      // Fetch project members
+      const membersResponse = await fetch(`/api/projects/${projectId}/members`)
+      if (!membersResponse.ok) {
+        throw new Error("Failed to fetch members")
       }
-    }
+      const membersData = await membersResponse.json()
+      setMembers(membersData)
 
-    fetchMembers()
+      // Fetch pending invites
+      const invitesResponse = await fetch(`/api/projects/${projectId}/invites`)
+      if (!invitesResponse.ok) {
+        throw new Error("Failed to fetch invites")
+      }
+      const invitesData = await invitesResponse.json()
+      setPendingInvites(invitesData)
+    } catch (err) {
+      console.error("Error fetching data:", err)
+      setError(err instanceof Error ? err.message : "An error occurred")
+    } finally {
+      setLoading(false)
+    }
   }, [projectId])
+
+  // Initial fetch
+  useEffect(() => {
+    fetchMembersAndInvites()
+  }, [fetchMembersAndInvites])
 
   // Filter and sort members
   const filteredMembers = members
@@ -457,43 +458,37 @@ export default function MembersPage() {
     }
   }
 
-  // Simple presence tracking
-  const [activeUsers, setActiveUsers] = useState<Record<string, boolean>>({});
-
-  // Initialize presence tracking
+  // Refresh the member list periodically to get updated activity status
   useEffect(() => {
-    // Simulate some users being active
-    const simulateActiveUsers = () => {
-      // In a real implementation, this would come from a real-time service
-      const newActiveUsers: Record<string, boolean> = {};
-
-      // Randomly mark some users as active
-      members.forEach(member => {
-        if (Math.random() > 0.5) {
-          newActiveUsers[member.userId] = true;
-        }
-      });
-
-      setActiveUsers(newActiveUsers);
-    };
-
-    // Initial simulation
-    simulateActiveUsers();
-
-    // Set up interval to refresh active users every 30 seconds
+    // Set up interval to refresh data every 30 seconds
     const interval = setInterval(() => {
-      simulateActiveUsers();
+      // Trigger a re-fetch of members data
+      fetchMembersAndInvites();
     }, 30000);
 
     return () => {
       clearInterval(interval);
     };
-  }, [members])
+  }, [fetchMembersAndInvites]);
+
+  // Helper function to determine if a user is currently active
+  const isUserActive = (member: Member) => {
+    if (!member.lastActive) return false;
+
+    // Consider a user active if they've been active in the last 2 minutes
+    const lastActiveDate = new Date(member.lastActive);
+    const twoMinutesAgo = new Date();
+    twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
+
+    return lastActiveDate > twoMinutesAgo;
+  }
 
   // Helper functions for displaying badges
-  const getStatusBadge = (status: string, userId: string) => {
-    // Check if user is currently active (simulated real-time)
-    if (userId && activeUsers[userId]) {
+  const getStatusBadge = (member: Member) => {
+    const status = member.status;
+
+    // Check if user is currently active based on lastActive timestamp
+    if (isUserActive(member)) {
       return (
         <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">
           <Wifi className="h-3 w-3 mr-1" />
@@ -530,14 +525,41 @@ export default function MembersPage() {
     }
   }
 
+  // Format time ago in a human-readable format
+  const formatTimeAgo = (date: string | Date | null): string => {
+    if (!date) return 'Never';
+
+    const now = new Date();
+    const pastDate = new Date(date);
+    const diffInSeconds = Math.floor((now.getTime() - pastDate.getTime()) / 1000);
+
+    if (diffInSeconds < 5) return 'Just now';
+    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
+
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes !== 1 ? 's' : ''} ago`;
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours !== 1 ? 's' : ''} ago`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) return `${diffInDays} day${diffInDays !== 1 ? 's' : ''} ago`;
+
+    const diffInMonths = Math.floor(diffInDays / 30);
+    if (diffInMonths < 12) return `${diffInMonths} month${diffInMonths !== 1 ? 's' : ''} ago`;
+
+    const diffInYears = Math.floor(diffInMonths / 12);
+    return `${diffInYears} year${diffInYears !== 1 ? 's' : ''} ago`;
+  };
+
   // Get formatted last active time
   const getFormattedLastActiveTime = (member: Member) => {
-    if (member.userId && activeUsers[member.userId]) {
-      return 'Just now'
+    if (isUserActive(member)) {
+      return 'Just now';
     }
 
-    // Fall back to the data from the API
-    return member.lastActive || 'Never'
+    // Format the last active time as "time ago"
+    return formatTimeAgo(member.lastActive);
   }
 
   const getRoleBadge = (role: string) => {
@@ -968,7 +990,7 @@ export default function MembersPage() {
                                         <p className="text-sm text-slate-500">{member.email}</p>
                                         <div className="flex items-center gap-2 pt-2">
                                           {getRoleBadge(member.role)}
-                                          {getStatusBadge(member.status, member.userId)}
+                                          {getStatusBadge(member)}
                                         </div>
                                       </div>
                                     </div>
@@ -979,7 +1001,7 @@ export default function MembersPage() {
                             </div>
                           </td>
                           <td className="p-4 hidden md:table-cell">{getRoleBadge(member.role)}</td>
-                          <td className="p-4 hidden lg:table-cell">{getStatusBadge(member.status, member.userId)}</td>
+                          <td className="p-4 hidden lg:table-cell">{getStatusBadge(member)}</td>
                           <td className="p-4 hidden lg:table-cell">
                             <span className="text-sm text-slate-600">{getFormattedLastActiveTime(member)}</span>
                           </td>
