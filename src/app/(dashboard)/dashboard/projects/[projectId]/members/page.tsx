@@ -449,22 +449,22 @@ export default function MembersPage() {
   }
 
   return (
-    <div className="h-full bg-white overflow-y-auto">
-      <div className="container mx-auto p-4 md:p-6 space-y-6 md:space-y-8">
-        <div className="flex flex-col space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Team Members</h1>
-          <p className="text-gray-500">Manage your team members and their access permissions.</p>
+    <div className="h-full w-full bg-white overflow-y-auto">
+      <div className="w-full max-w-[1400px] mx-auto px-3 py-4 sm:px-4 md:px-6 space-y-4 sm:space-y-6 md:space-y-8">
+        <div className="flex flex-col space-y-1 sm:space-y-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">Team Members</h1>
+          <p className="text-sm sm:text-base text-gray-500">Manage your team members and their access permissions.</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          <Card className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 xs:gap-3 md:gap-4">
+          <Card className="p-3 xs:p-4 md:p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Members</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.total}</h3>
+                <p className="text-xs xs:text-sm font-medium text-gray-600">Total Members</p>
+                <h3 className="text-xl xs:text-2xl font-bold text-gray-900">{stats.total}</h3>
               </div>
-              <div className="h-12 w-12 rounded-full bg-blue-200 flex items-center justify-center">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="h-8 w-8 xs:h-10 xs:w-10 md:h-12 md:w-12 rounded-full bg-blue-200 flex items-center justify-center">
+                <Users className="h-4 w-4 xs:h-5 xs:w-5 md:h-6 md:w-6 text-blue-600" />
               </div>
             </div>
             <Progress
@@ -473,14 +473,14 @@ export default function MembersPage() {
             />
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+          <Card className="p-3 xs:p-4 md:p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Members</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.active}</h3>
+                <p className="text-xs xs:text-sm font-medium text-gray-600">Active Members</p>
+                <h3 className="text-xl xs:text-2xl font-bold text-gray-900">{stats.active}</h3>
               </div>
-              <div className="h-12 w-12 rounded-full bg-green-200 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
+              <div className="h-8 w-8 xs:h-10 xs:w-10 md:h-12 md:w-12 rounded-full bg-green-200 flex items-center justify-center">
+                <CheckCircle2 className="h-4 w-4 xs:h-5 xs:w-5 md:h-6 md:w-6 text-green-600" />
               </div>
             </div>
             <Progress
@@ -490,14 +490,14 @@ export default function MembersPage() {
             />
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200">
+          <Card className="p-3 xs:p-4 md:p-6 bg-gradient-to-br from-amber-50 to-amber-100 border border-amber-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Approval</p>
-                <h3 className="text-2xl font-bold text-gray-900">{stats.pending}</h3>
+                <p className="text-xs xs:text-sm font-medium text-gray-600">Pending Approval</p>
+                <h3 className="text-xl xs:text-2xl font-bold text-gray-900">{stats.pending}</h3>
               </div>
-              <div className="h-12 w-12 rounded-full bg-amber-200 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-amber-600" />
+              <div className="h-8 w-8 xs:h-10 xs:w-10 md:h-12 md:w-12 rounded-full bg-amber-200 flex items-center justify-center">
+                <Clock className="h-4 w-4 xs:h-5 xs:w-5 md:h-6 md:w-6 text-amber-600" />
               </div>
             </div>
             <Progress
@@ -507,14 +507,14 @@ export default function MembersPage() {
             />
           </Card>
 
-          <Card className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+          <Card className="p-3 xs:p-4 md:p-6 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Invites</p>
-                <h3 className="text-2xl font-bold text-gray-900">{pendingInvites.length}</h3>
+                <p className="text-xs xs:text-sm font-medium text-gray-600">Pending Invites</p>
+                <h3 className="text-xl xs:text-2xl font-bold text-gray-900">{pendingInvites.length}</h3>
               </div>
-              <div className="h-12 w-12 rounded-full bg-purple-200 flex items-center justify-center">
-                <Mail className="h-6 w-6 text-purple-600" />
+              <div className="h-8 w-8 xs:h-10 xs:w-10 md:h-12 md:w-12 rounded-full bg-purple-200 flex items-center justify-center">
+                <Mail className="h-4 w-4 xs:h-5 xs:w-5 md:h-6 md:w-6 text-purple-600" />
               </div>
             </div>
             <Progress
@@ -525,40 +525,43 @@ export default function MembersPage() {
           </Card>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-between gap-3 md:gap-4">
-          <div className="flex flex-col xs:flex-row gap-2 flex-1">
-            <div className="relative flex-1">
+        <div className="flex flex-col xs:flex-row justify-between gap-2 xs:gap-3 md:gap-4">
+          <div className="flex flex-col xs:flex-row gap-2 flex-1 w-full">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
                 placeholder="Search members..."
-                className="pl-8 border-gray-300"
+                className="pl-8 border-gray-300 w-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
 
-            <Select defaultValue="all">
-              <SelectTrigger className="w-full xs:w-[180px] border-gray-300">
-                <SelectValue placeholder="Filter by role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="owner">Owner</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="member">Member</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="w-full xs:w-auto">
+              <Select defaultValue="all">
+                <SelectTrigger className="w-full border-gray-300 min-w-[120px]">
+                  <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-                <UserPlus className="h-4 w-4" />
-                Invite Member
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
+          <div className="w-full xs:w-auto">
+            <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 bg-blue-600 hover:bg-blue-700 w-full xs:w-auto">
+                  <UserPlus className="h-4 w-4" />
+                  Invite Member
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
                 <DialogTitle>Invite team member</DialogTitle>
                 <DialogDescription>
                   Choose how you&apos;d like to invite team members.
@@ -674,11 +677,12 @@ export default function MembersPage() {
                 )}
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </div>
 
         <Tabs defaultValue="all" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 w-full max-w-[400px] bg-gray-100">
+          <TabsList className="grid grid-cols-4 w-full max-w-full xs:max-w-[400px] bg-gray-100 overflow-x-auto">
             <TabsTrigger value="all" className="data-[state=active]:bg-white">
               All
             </TabsTrigger>
@@ -693,50 +697,50 @@ export default function MembersPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="mt-6">
+          <TabsContent value="all" className="mt-4 sm:mt-6">
             <Card className="overflow-hidden border border-gray-200">
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <table className="w-full min-w-[640px]">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="w-full min-w-[640px] table-auto">
                   <thead>
                     <tr className="border-b bg-gray-50">
-                      <th className="text-left p-4 font-medium text-gray-700">Member</th>
-                      <th className="text-left p-4 font-medium text-gray-700 hidden md:table-cell">Role</th>
-                      <th className="text-left p-4 font-medium text-gray-700 hidden lg:table-cell">Status</th>
-                      <th className="text-left p-4 font-medium text-gray-700 hidden lg:table-cell">Last Active</th>
-                      <th className="text-right p-4 font-medium text-gray-700">Actions</th>
+                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700">Member</th>
+                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden sm:table-cell">Role</th>
+                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden md:table-cell">Status</th>
+                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden lg:table-cell">Last Active</th>
+                      <th className="text-right p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map((member) => (
                         <tr key={member.id} className="border-b hover:bg-gray-50 transition-colors">
-                          <td className="p-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-10 w-10 border border-gray-200">
+                          <td className="p-2 xs:p-3 md:p-4">
+                            <div className="flex items-center gap-2 xs:gap-3">
+                              <Avatar className="h-8 w-8 xs:h-9 xs:w-9 md:h-10 md:w-10 border border-gray-200">
                                 <AvatarImage src={member.avatar} alt={member.name} />
-                                <AvatarFallback className="bg-gray-100 text-gray-700">
+                                <AvatarFallback className="bg-gray-100 text-gray-700 text-xs xs:text-sm">
                                   {member.name?.charAt(0) || 'U'}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
-                                <p className="font-medium text-gray-900">{member.name}</p>
-                                <p className="text-sm text-gray-500">{member.email}</p>
+                                <p className="font-medium text-xs xs:text-sm md:text-base text-gray-900">{member.name}</p>
+                                <p className="text-xs xs:text-sm text-gray-500">{member.email}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="p-4 hidden md:table-cell">{getRoleBadge(member.role)}</td>
-                          <td className="p-4 hidden lg:table-cell">{getStatusBadge(member.status)}</td>
-                          <td className="p-4 hidden lg:table-cell">
-                            <span className="text-sm text-gray-600">{member.lastActive}</span>
+                          <td className="p-2 xs:p-3 md:p-4 hidden sm:table-cell">{getRoleBadge(member.role)}</td>
+                          <td className="p-2 xs:p-3 md:p-4 hidden md:table-cell">{getStatusBadge(member.status)}</td>
+                          <td className="p-2 xs:p-3 md:p-4 hidden lg:table-cell">
+                            <span className="text-xs xs:text-sm text-gray-600">{member.lastActive}</span>
                           </td>
-                          <td className="p-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                          <td className="p-2 xs:p-3 md:p-4 text-right">
+                            <div className="flex items-center justify-end gap-1 xs:gap-2">
                               {member.status?.toLowerCase() === "pending" && (
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => approveMember(member.id)}
-                                  className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+                                  className="text-xs xs:text-sm text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700 px-2 py-1 h-auto"
                                 >
                                   Approve
                                 </Button>
@@ -747,9 +751,9 @@ export default function MembersPage() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-gray-500 hover:text-gray-700"
+                                    className="h-7 w-7 xs:h-8 xs:w-8 text-gray-500 hover:text-gray-700"
                                   >
-                                    <MoreVertical className="h-4 w-4" />
+                                    <MoreVertical className="h-3 w-3 xs:h-4 xs:w-4" />
                                     <span className="sr-only">More options</span>
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -809,45 +813,45 @@ export default function MembersPage() {
         </Tabs>
 
         {pendingInvites.length > 0 && (
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Pending Invitations</h2>
-              <Button variant="outline" size="sm" className="border-gray-300">
-                <Mail className="h-4 w-4 mr-2 text-gray-600" />
+          <div className="mt-6 sm:mt-8">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between mb-3 sm:mb-4 gap-2 xs:gap-0">
+              <h2 className="text-lg xs:text-xl font-semibold text-gray-900">Pending Invitations</h2>
+              <Button variant="outline" size="sm" className="border-gray-300 text-xs xs:text-sm h-auto py-1.5 xs:py-2 w-full xs:w-auto">
+                <Mail className="h-3 w-3 xs:h-4 xs:w-4 mr-1 xs:mr-2 text-gray-600" />
                 Resend All
               </Button>
             </div>
 
             <Card className="overflow-hidden border border-gray-200">
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <table className="w-full min-w-[640px]">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <table className="w-full min-w-[640px] table-auto">
                   <thead>
                     <tr className="border-b bg-gray-50">
-                      <th className="text-left p-4 font-medium text-gray-700">Email</th>
-                      <th className="text-left p-4 font-medium text-gray-700 hidden md:table-cell">Role</th>
-                      <th className="text-left p-4 font-medium text-gray-700 hidden lg:table-cell">Sent</th>
-                      <th className="text-right p-4 font-medium text-gray-700">Actions</th>
+                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700">Email</th>
+                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden sm:table-cell">Role</th>
+                      <th className="text-left p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700 hidden md:table-cell">Sent</th>
+                      <th className="text-right p-2 xs:p-3 md:p-4 font-medium text-xs xs:text-sm text-gray-700">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pendingInvites.map((invite) => (
                       <tr key={invite.id} className="border-b hover:bg-gray-50 transition-colors">
-                        <td className="p-4">
-                          <p className="font-medium text-gray-900">{invite.email}</p>
+                        <td className="p-2 xs:p-3 md:p-4">
+                          <p className="font-medium text-xs xs:text-sm md:text-base text-gray-900">{invite.email}</p>
                         </td>
-                        <td className="p-4 hidden md:table-cell">
+                        <td className="p-2 xs:p-3 md:p-4 hidden sm:table-cell">
                           {getRoleBadge(invite.role)}
                         </td>
-                        <td className="p-4 hidden lg:table-cell">
-                          <span className="text-sm text-gray-600">{invite.sentAt}</span>
+                        <td className="p-2 xs:p-3 md:p-4 hidden md:table-cell">
+                          <span className="text-xs xs:text-sm text-gray-600">{invite.sentAt}</span>
                         </td>
-                        <td className="p-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <td className="p-2 xs:p-3 md:p-4 text-right">
+                          <div className="flex items-center justify-end gap-1 xs:gap-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => resendInvite(invite.id)}
-                              className="border-gray-300"
+                              className="text-xs xs:text-sm border-gray-300 px-2 py-1 h-auto"
                             >
                               Resend
                             </Button>
@@ -856,7 +860,7 @@ export default function MembersPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => cancelInvite(invite.id)}
-                              className="text-red-600 hover:text-red-700"
+                              className="text-xs xs:text-sm text-red-600 hover:text-red-700 px-2 py-1 h-auto"
                             >
                               Cancel
                             </Button>
@@ -872,16 +876,16 @@ export default function MembersPage() {
         )}
 
         {filteredMembers.length === 0 && activeTab === "all" && searchQuery === "" && (
-          <div className="flex flex-col items-center justify-center p-12 text-center bg-white border border-gray-200 rounded-lg">
-            <div className="h-24 w-24 rounded-full bg-blue-100 flex items-center justify-center mb-6">
-              <UserPlus className="h-12 w-12 text-blue-600" />
+          <div className="flex flex-col items-center justify-center p-6 xs:p-8 sm:p-12 text-center bg-white border border-gray-200 rounded-lg">
+            <div className="h-16 w-16 xs:h-20 xs:w-20 sm:h-24 sm:w-24 rounded-full bg-blue-100 flex items-center justify-center mb-4 sm:mb-6">
+              <UserPlus className="h-8 w-8 xs:h-10 xs:w-10 sm:h-12 sm:w-12 text-blue-600" />
             </div>
-            <h3 className="text-2xl font-bold mb-2 text-gray-900">No Members Yet</h3>
-            <p className="text-gray-500 max-w-md mb-6">
+            <h3 className="text-xl xs:text-2xl font-bold mb-1 sm:mb-2 text-gray-900">No Members Yet</h3>
+            <p className="text-sm xs:text-base text-gray-500 max-w-md mb-4 sm:mb-6">
               Your team doesn&apos;t have any members yet. Start building your team by inviting colleagues.
             </p>
-            <Button onClick={() => setShowInviteDialog(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
-              <UserPlus className="h-4 w-4" />
+            <Button onClick={() => setShowInviteDialog(true)} className="gap-2 bg-blue-600 hover:bg-blue-700 text-xs xs:text-sm h-auto py-1.5 xs:py-2">
+              <UserPlus className="h-3 w-3 xs:h-4 xs:w-4" />
               Invite Your First Team Member
             </Button>
           </div>
