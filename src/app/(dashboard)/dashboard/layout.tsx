@@ -11,10 +11,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex h-screen bg-background">
-      <aside className="w-64 border-r bg-card">
-        <div className="flex h-16 items-center px-4 border-b">
-          <h2 className="text-lg font-semibold">Projects</h2>
-        </div>
+      <aside className="w-64 border-r bg-card"> 
         <Suspense fallback={<ProjectSkeleton />}>
           <Sidebar />
         </Suspense>
