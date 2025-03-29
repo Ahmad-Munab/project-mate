@@ -1,30 +1,38 @@
-import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+"use client";
 
-export default async function SignUpPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined }
-}) {
-  const supabase = await createClient();
+import { useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { createClient } from "@/utils/supabase/client";
 
-  // Check if user is already authenticated
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    // If there's an invite token, redirect to invite acceptance
-    const inviteToken = searchParams.invite;
-    if (inviteToken && typeof inviteToken === 'string') {
-      redirect(`/invite/${inviteToken}`);
-    }
-    redirect("/dashboard");
-  }
+export default function SignUpPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite');
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // If there's an invite token, redirect to invite acceptance
+        if (inviteToken) {
+          router.push(`/invite/${inviteToken}`);
+        } else {
+          router.push("/dashboard");
+        }
+      }
+    };
+
+    checkAuth();
+  }, [router, inviteToken]);
 
   return (
     <div>
       {/* Your sign-up form */}
-      {searchParams.invite && (
+      {inviteToken && (
         <p className="text-sm text-muted-foreground">
-          You've been invited to join. Please sign up to accept the invitation.
+          You&apos;ve been invited to join. Please sign up to accept the invitation.
         </p>
       )}
     </div>

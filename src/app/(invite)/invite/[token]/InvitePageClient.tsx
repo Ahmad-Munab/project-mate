@@ -34,7 +34,12 @@ const permissionsList: { [key: string]: string[] } = {
 
 export default function InvitePageClient({ token }: { token: string }) {
   const router = useRouter();
-  const [inviteDetails, setInviteDetails] = useState<any>(null);
+  interface InviteDetails {
+    projectName: string;
+    role: keyof typeof permissionsList;
+  }
+
+  const [inviteDetails, setInviteDetails] = useState<InviteDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [accepting, setAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -160,11 +165,11 @@ export default function InvitePageClient({ token }: { token: string }) {
         <h1 className="text-2xl font-bold">Project Invitation</h1>
         <div className="space-y-4">
           <p>
-            You've been invited to join <strong>{inviteDetails.projectName}</strong> as a{" "}
-            <strong>{inviteDetails.role.toLowerCase()}</strong>.
+            You&apos;ve been invited to join <strong>{inviteDetails.projectName}</strong> as a{" "}
+            <strong>{typeof inviteDetails.role === 'string' ? inviteDetails.role.toLowerCase() : inviteDetails.role}</strong>.
           </p>
           <div className="bg-gray-100 p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">You'll be able to:</h3>
+            <h3 className="font-semibold mb-2">You&apos;ll be able to:</h3>
             <ul className="list-disc list-inside space-y-1">
               {permissionsList[inviteDetails.role]?.map((perm, index) => (
                 <li key={index}>{perm}</li>
