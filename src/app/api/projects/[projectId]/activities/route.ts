@@ -9,8 +9,8 @@ export async function GET(
   context: { params: { projectId: string } }
 ) {
   try {
-    // Get projectId from context.params
-    const { projectId } = context.params;
+    // In Next.js 15, context.params should be awaited
+    const { projectId } = await context.params;
     console.log(`API: Fetching activities for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

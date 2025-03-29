@@ -6,11 +6,11 @@ import { eq, and } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  context: { params: { projectId: string } }
 ) {
   try {
-    // In Next.js 15, params should be awaited
-    const { projectId } = await params;
+    // In Next.js 15, context.params should be awaited
+    const { projectId } = await context.params;
     console.log(`API: Fetching members for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -106,8 +106,8 @@ export async function PATCH(
       );
     }
 
-    // Get projectId from context
-    const { projectId } = context.params;
+    // In Next.js 15, context.params should be awaited
+    const { projectId } = await context.params;
 
     // Check if user is project owner or manager
     const [membership] = await db
@@ -220,8 +220,8 @@ export async function DELETE(
       );
     }
 
-    // Get projectId from context
-    const { projectId } = context.params;
+    // In Next.js 15, context.params should be awaited
+    const { projectId } = await context.params;
 
     // Check if user is project owner or manager
     const [membership] = await db

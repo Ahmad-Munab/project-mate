@@ -9,8 +9,8 @@ export async function POST(
   context: { params: { projectId: string } }
 ) {
   try {
-    // Get projectId from context.params
-    const { projectId } = context.params;
+    // In Next.js 15, context.params should be awaited
+    const { projectId } = await context.params;
     console.log(`API: Updating activity for project ${projectId}`);
 
     const supabase = await createClient();

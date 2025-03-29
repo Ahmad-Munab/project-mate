@@ -22,8 +22,8 @@ export async function GET(
       );
     }
 
-    // Get projectId from context.params
-    const { projectId } = context.params;
+    // In Next.js 15, context.params should be awaited
+    const { projectId } = await context.params;
 
     const projectTasks = await db
       .select()

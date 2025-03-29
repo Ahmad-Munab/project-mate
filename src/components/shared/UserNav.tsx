@@ -126,6 +126,7 @@ export default function UserNav() {
         <div className="flex items-center gap-2">
           <DropdownMenu>
           <DropdownMenuTrigger asChild>
+          <Button>
           <Avatar className="h-8 w-8 border border-border">
             <AvatarImage
               src={userData.avatarUrl}
@@ -133,6 +134,7 @@ export default function UserNav() {
             />
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
+          </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="start">
             <DropdownMenuLabel>
