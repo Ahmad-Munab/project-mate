@@ -3,8 +3,10 @@ import {
   uuid,
   text,
   timestamp,
+  boolean,
   pgEnum,
   pgSchema,
+  uniqueIndex
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", ["OWNER", "MANAGER", "MEMBER"]);
@@ -19,6 +21,17 @@ export const priorityLevelEnum = pgEnum("priority_level", [
   "MEDIUM",
   "HIGH",
   "URGENT",
+]);
+export const inviteStatusEnum = pgEnum("invite_status", [
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+  "EXPIRED",
+]);
+export const memberStatusEnum = pgEnum("member_status", [
+  "ACTIVE",
+  "INACTIVE",
+  "PENDING",
 ]);
 
 const authSchema = pgSchema("auth");
@@ -42,15 +55,20 @@ export const projects = pgTable("projects", {
 
 export const projectMembers = pgTable("project_members", {
   id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
   projectId: uuid("project_id")
     .references(() => projects.id)
     .notNull(),
-  userId: uuid("user_id")
-    .references(() => authUsers.id)
-    .notNull(),
-  role: userRoleEnum("role").notNull().default("MEMBER"),
-  joinedAt: timestamp("joined_at").defaultNow(),
-});
+  role: userRoleEnum("role").notNull(),
+  status: memberStatusEnum("status").notNull().default("PENDING"),
+  lastActive: timestamp("last_active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueMembership: uniqueIndex("unique_project_membership").on(table.userId, table.projectId)
+}));
 
 export const tasks = pgTable("tasks", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -102,3 +120,100 @@ export const projectInvites = pgTable("project_invites", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Invites table
+export const invites = pgTable("invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email"), // Optional (nullable)
+  token: text("token").notNull(),
+  role: userRoleEnum("role").notNull(),
+  status: inviteStatusEnum("status").notNull().default("PENDING"),
+  projectId: uuid("project_id") // Add this field
+    .references(() => projects.id)
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  createdBy: uuid("created_by")
+    .references(() => authUsers.id)
+    .notNull(),
+});
+
+// Users table with role
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  role: userRoleEnum("role").notNull().default("MEMBER"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Permissions table
+export const permissions = pgTable("permissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  role: userRoleEnum("role").notNull(),
+  canCreateProjects: boolean("can_create_projects").notNull().default(false),
+  canDeleteProjects: boolean("can_delete_projects").notNull().default(false),
+  canInviteUsers: boolean("can_invite_users").notNull().default(false),
+  canManageUsers: boolean("can_manage_users").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Role permissions mapping
+export const rolePermissions = pgTable("role_permissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  role: userRoleEnum("role").notNull(),
+  permissionId: uuid("permission_id")
+    .references(() => permissions.id)
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// User permissions table
+export const userPermissions = pgTable("user_permissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .references(() => users.id)
+    .notNull(),
+  permissionId: uuid("permission_id")
+    .references(() => permissions.id)
+    .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Insert default permissions
+export const defaultPermissions = [
+  {
+    role: "OWNER",
+    canView: true,
+    canEdit: true,
+    canDelete: true,
+    canManageProject: true,
+    canInvite: false, // Owner cannot invite new users
+    canApprove: true,
+    canDeleteProject: true,
+  },
+  {
+    role: "MANAGER",
+    canView: true,
+    canEdit: true,
+    canDelete: true,
+    canManageProject: true,
+    canInvite: true,
+    canApprove: true,
+    canDeleteProject: false,
+  },
+  {
+    role: "MEMBER",
+    canView: true,
+    canEdit: false,
+    canDelete: false,
+    canManageProject: false,
+    canInvite: false,
+    canApprove: false,
+    canDeleteProject: false,
+  },
+];

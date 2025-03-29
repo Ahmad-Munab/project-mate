@@ -11,6 +11,8 @@ import { Github } from "lucide-react";
 import { motion } from "framer-motion";
 import { oAuthSignIn, signInWithMagicLink } from "@/actions/auth/auth";
 import { useRouter } from "next/navigation";
+import { storeUserId } from "@/actions/auth/storeUserId";
+import { createClient } from "@/utils/supabase/client";
 
 const schema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -43,6 +45,15 @@ export default function SignInForm() {
       const formData = new FormData();
       formData.append("email", data.email);
 
+      // Set up a listener for when the user returns from magic link
+      const supabase = createClient();
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Store the user ID in localStorage for presence tracking
+          storeUserId(session.user.id);
+        }
+      });
+
       const result = await signInWithMagicLink(formData);
 
       if (result.error) {
@@ -71,6 +82,15 @@ export default function SignInForm() {
 
       // Client-side redirect to the OAuth provider
       if (result?.url) {
+        // Set up a listener for when the user returns from OAuth
+        const supabase = createClient();
+        supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'SIGNED_IN' && session?.user) {
+            // Store the user ID in localStorage for presence tracking
+            storeUserId(session.user.id);
+          }
+        });
+
         window.location.href = result.url;
       }
     } catch (error) {

@@ -1,0 +1,191 @@
+{
+  "_comment": "These guidelines are designed to ensure code quality, maintainability, a stable build process, and learning opportunities through thorough explanations and comments in the generated code.",
+  "git": {
+    "git_commits": "Always commit changes with clear and concise messages and add 'Amaan - (you're commit message) make commits like that'"
+  },
+  "code_quality": {
+    "type_safe": true,
+    "eslint_errors": true,
+    "avoid_redundant_code": true,
+    "no_unnecessary_libraries": true,
+    "modular_and_maintainable": true,
+    "explanations_in_comments": true,
+    "avoid_redundant_code_files": true,
+    "no_code_smells": true,
+    "follow_best_practices_for_scalability": true,
+    "ensure_code_is_ready_for_build": true
+  },
+
+  "code_structure": {
+    "limit_file_size_to_200_400_lines": true,
+    "focus_on_modularization": true,
+    "split_large_components_or_files": true,
+    "ensure_scalability_by_modular_code": true,
+    "avoid_large_monolithic_files": true,
+    "create_small_but_reusable_code_fragments": true,
+    "split_large_logic_into_smaller_modules": true,
+    "refactor_complex_code_to_be_more_readable": true,
+    "maintain_clarity_with_small_functions": true,
+    "optimize_for_long_term_maintenance": true
+  },
+
+  "folder_structure": {
+    "/types": "Contains type definitions and validation schemas using Zod.",
+    "/store": "Holds state management logic using Zustand.",
+    "/components": "UI components for the application.",
+    "/utils": "Helper functions and utility modules."
+  },
+
+  "type_safety": {
+    "use_zod_for_validation": true,
+    "types_in_types_folder": true,
+    "typesafety_for_all_api_responses": true
+  },
+
+
+  "dependencies_management": {
+    "fit_existing_package_json": true,
+    "no_unnecessary_libraries": true,
+    "use_zod_and_zustand": true,
+    "only_add_libraries_when_necessary": true
+  },
+
+  "testing_and_build": {
+    "manual_testing_required": true,
+    "manual_build_process": true,
+    "ensure_tests_coverage": true,
+    "ensure_no_errors_during_build": true
+  },
+
+  "state_management": {
+    "zustand_for_state_management": true,
+    "keep_states_in_store_folder": true
+  },
+
+  "code_explanation": {
+    "explain_changes_in_comments": true,
+    "add_documentation_for_files_and_important_functions": true,
+    "keep_comments_clear_and_understandable": true,
+    "add_context_for_logic_changes": true,
+    "add_explanations_for_code_decisions": true,
+    "ensure_comments_are_informative": true,
+    "explain_purpose_of_functions_and_modules": true,
+    "comment_significant_changes_for_education": true
+  },
+
+  "folder_structure_guidelines": {
+    "types_folder": "Store type definitions and validation schemas using Zod.",
+    "store_folder": "Manage application state using Zustand.",
+    "components_folder": "Develop reusable UI components.",
+    "pages_folder": "Define routing and page components in Next.js.",
+    "utils_folder": "Implement helper functions and utilities."
+  },
+
+  "error_handling": {
+    "catch_all_exceptions_in_api_calls": true,
+    "validate_api_responses_with_zod": true
+  },
+
+  "code_removal": {
+    "do_not_remove_existing_code": true
+  },
+
+  "build_stability": {
+    "ensure_no_build_errors": true,
+    "use_strict_type_checking_for_all_components": true,
+    "include_type_definitions_for_all_files": true,
+    "always_generate_type-safe_code": true,
+    "ensure_no_warnings_or_errors_in_build": true
+  },
+
+  "comments_and_explanations": {
+    "always_add_comments_for_code_logic": true,
+    "explain_changes_in_code_with_context": true,
+    "explain_why_a_decision_was_made_in_the_code": true,
+    "write_comments_that_are_helpful_for_future_ai_readers": true,
+    "add_detailed_explanations_for_complex_logic": true,
+    "document_edge_cases_and_edge_conditions": true,
+    "clarify_purpose_of_variables_and_functions": true
+  },
+  "ui_design": {
+    "focus_on_aesthetics": true,
+    "ensure_beautiful_design": true,
+    "ensure_responsiveness": true,
+    "animations_subtle_and_engaging": true,
+    "animations_with_framer_motion": true,
+    "use_shadcn_for_components": true,
+    "design_elements_consistent_and_clean": true,
+    "follow_best_design_principles": true,
+    "make_sure_designs_are_cool_and_fresh": true,
+    "optimize_for_user_experience": true,
+    "prioritize_accessibility": true,
+    "use_appropriate_colors_and_themes": true,
+    "include_interactive_elements": true,
+    "use_smooth_transitions": true,
+    "ensure_design_matches_the_brand_identity": true,
+    "include_visual_hierarchy_and_spacing": true,
+    "ensure_that_design_is_user_friendly": true,
+    "responsive_layouts_for_all_devices": true,
+    "ensure_design_sensibility_and_proportions": true
+  },
+
+  "animations": {
+    "use_framer_motion_for_smooth_animations": true,
+    "make_ui_elements_animated": true,
+    "animations_should_enhance_user_experience": true,
+    "focus_on_subtle_transitions": true,
+    "animate_key_interactions_and_components": true
+  },
+
+  "components_and_styles": {
+    "use_shadcn_components_for_aesthetic_design": true,
+    "apply_consistent_spacing_and_padding": true,
+    "use_reusable_and_modular_ui_components": true,
+    "style_components_with_attention_to_detail": true,
+    "ensure_buttons_and_interactions_are_engaging": true,
+    "ensure_form_elements_are_user-friendly": true,
+    "create_interactive_and_animated_buttons": true,
+    "maintain_clear_ctas": true
+  },
+
+  "responsiveness": {
+    "ensure_responsive_design_for_all_screen_sizes": true,
+    "use_media_queries_for_mobile_and_desktop": true,
+    "test_responsiveness_on_all_devices": true,
+    "optimize_for_touchscreens_and_clicks": true,
+    "ensure_mobile_friendly_layouts": true,
+    "ensure_typography_and_elements_scale_appropriately": true
+  },
+
+  "color_and_theme": {
+    "use_consistent_color_scheme": true,
+    "ensure_colors_are_inclusive_and_accessible": true,
+    "opt_for_high_contrast_colors_for_readability": true,
+    "use_theme_for_consistent_visuals": true
+  },
+
+  "interactivity": {
+    "use_hover_and_focus_states_for_interactivity": true,
+    "ensure_interactive_elements_are_clear": true,
+    "use_transitions_on_buttons_and_links": true,
+    "create_visually_appealing_scroll_effects": true,
+    "use_interactive_icons_for_actionable_elements": true
+  },
+
+  "user_experience": {
+    "optimize_for_usability_and_flow": true,
+    "ensure_every_element_has_a_purpose": true,
+    "reduce_clutter_and_ensure_clean_design": true,
+    "maintain_clearly_marked_navigation": true,
+    "create_simple_and_intuitive_forms": true
+  },
+  "database_migrations": {
+    "never_modify_migration_files_directly": true,
+    "work_only_with_drizzle_schema_files": true,
+    "use_drizzle_schema_for_defining_models_and_migrations": true,
+    "use_supabase_for_backend_storage_and_operations": true,
+    "only_generate_drizzle_migrations_when_needed": true,
+    "ensure_migrations_are_generated_through_drizzle_schema": true,
+    "avoid_modifying_migration_files": true
+  }
+}

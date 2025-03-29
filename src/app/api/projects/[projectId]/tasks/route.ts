@@ -4,13 +4,13 @@ import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ projectId: string }> }
-) {
-  const { projectId } = await params;
-
+export async function GET(request: NextRequest) {
   try {
+    // Extract projectId from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.length - 2]; // projectId is the second-to-last part
+
     const supabase = await createClient();
     const {
       data: { user },
@@ -23,6 +23,8 @@ export async function GET(
         { status: 401 }
       );
     }
+
+    // projectId is already extracted from URL
 
     const projectTasks = await db
       .select()

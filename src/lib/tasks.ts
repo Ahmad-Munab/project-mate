@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-export async function getProjectTasks(projectId: string) {
+export async function getProjectTasks(project_id: string) {
   const supabase = await createClient();
 
   const {
@@ -22,7 +22,7 @@ export async function getProjectTasks(projectId: string) {
     const projectTasks = await db
       .select()
       .from(tasks)
-      .where(eq(tasks.project_id, projectId))
+      .where(eq(tasks.project_id, project_id))
       .orderBy(tasks.created_at);
 
     return projectTasks;

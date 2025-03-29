@@ -1,0 +1,129 @@
+{
+  "project": {
+    "name": "Project Mate",
+    "type": "next.js",
+    "description": "AI-powered Project Management Platform",
+    "version": "0.1.0"
+  },
+
+  "architecture": {
+    "database": {
+      "type": "supabase",
+      "orm": "drizzle",
+      "schema_path": "src/db/schema.ts",
+      "migrations_path": "src/db/migrations"
+    },
+    "state_management": {
+      "type": "zustand",
+      "store_path": "src/store"
+    },
+    "api": {
+      "type": "next.js",
+      "base_path": "src/app/api"
+    }
+  },
+
+  "folder_structure": {
+    "components": "src/components",
+    "pages": "src/app",
+    "api": "src/app/api",
+    "utils": "src/utils",
+    "types": "src/types",
+    "store": "src/store",
+    "db": "src/db",
+    "actions": "src/actions",
+    "hooks": "src/hooks",
+    "lib": "src/lib"
+  },
+
+  "dependencies": {
+    "ui": {
+      "framework": "shadcn",
+      "styling": "tailwind",
+      "icons": "lucide"
+    },
+    "database": {
+      "main": "supabase",
+      "orm": "drizzle"
+    },
+    "state": "zustand",
+    "validation": "zod",
+    "email": "resend",
+    "ai": "groq"
+  },
+
+  "code_style": {
+    "typescript": {
+      "strict": true,
+      "paths": {
+        "@/*": ["./src/*"]
+      },
+      "always_index_codebase": true,
+      "check_the_previus_chats": true,
+      "incremental": true,
+      "tsx": "preserve"
+    },
+    "components": {
+      "default_extension": ".tsx",
+      "style": "functional"
+    }
+  },
+
+  "database_schema": {
+    "tables": {
+      "projects": {
+        "path": "src/db/schema.ts",
+        "relations": ["users", "tasks", "project_members", "project_invites"]
+      },
+      "tasks": {
+        "path": "src/db/schema.ts",
+        "relations": ["projects", "users", "task_assignees"]
+      },
+      "users": {
+        "path": "src/db/schema.ts",
+        "relations": ["projects", "tasks", "permissions"]
+      }
+    }
+  },
+
+  "api_structure": {
+    "projects": {
+      "base": "/api/projects",
+      "endpoints": {
+        "create": {
+          "path": "src/app/api/projects/create/route.ts",
+          "method": "POST"
+        },
+        "edit": {
+          "path": "src/app/api/projects/edit/route.ts",
+          "method": "PATCH"
+        },
+        "delete": {
+          "path": "src/app/api/projects/delete/route.ts",
+          "method": "DELETE"
+        },
+        "invite": {
+          "path": "src/app/api/projects/[projectId]/invite/route.ts",
+          "method": "POST"
+        }
+      }
+    }
+  },
+
+  "state_management": {
+    "stores": {
+      "project": {
+        "path": "src/store/projectStore.ts",
+        "type": "zustand"
+      }
+    }
+  },
+
+  "auth": {
+    "provider": "supabase",
+    "protected_routes": ["/dashboard", "/projects"],
+    "public_routes": ["/signin", "/signup"]
+  }
+
+
+}
