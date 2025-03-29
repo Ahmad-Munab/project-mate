@@ -23,7 +23,7 @@ export async function GET(
     }
 
     // Make sure to use the projectId from context.params
-    const projectId = context.params.projectId;
+    const { projectId } = await context.params;
 
     const projectTasks = await db
       .select()
