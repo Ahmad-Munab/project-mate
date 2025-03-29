@@ -150,13 +150,13 @@ export default function UserNav() {
                       <span className="max-w-[120px] sm:max-w-[180px] truncate font-medium">
                         {currentProject.name}
                       </span>
-                      {!currentProject.isOwner && getRoleBadge(currentProject.myRole)}
+                      {getRoleBadge(currentProject.myRole)}
                       <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-1" />
                     </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-72" align="start">
-                  <div className="max-h-[400px] overflow-y-auto px-1 py-1">
+                <DropdownMenuContent className="w-[350px]" align="start">
+                  <div className="px-1 py-1">
                     {/* Current Project */}
                     <div className="mb-2">
                       <DropdownMenuItem
@@ -166,7 +166,7 @@ export default function UserNav() {
                       >
                         <div className="flex-1 flex items-center">
                           <FolderKanban className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
-                          <span className="truncate">{currentProject.name}</span>
+                          <span className="break-words whitespace-normal">{currentProject.name}</span>
                           {getRoleBadge(currentProject.myRole)}
                         </div>
                       </DropdownMenuItem>
@@ -184,7 +184,7 @@ export default function UserNav() {
                           >
                             <div className="flex-1 flex items-center">
                               <FolderKanban className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
-                              <span className="truncate">{project.name}</span>
+                              <span className="break-words whitespace-normal">{project.name}</span>
                             </div>
                           </DropdownMenuItem>
                         ))}
@@ -202,12 +202,12 @@ export default function UserNav() {
                             onSelect={() => router.push(`/dashboard/projects/${project.id}`)}
                           >
                             <div className="flex-1 flex items-center">
-                              <FolderKanban 
+                              <FolderKanban
                                 className={`h-4 w-4 mr-2 flex-shrink-0 ${
                                   project.myRole === 'MANAGER' ? 'text-purple-500' : 'text-green-500'
-                                }`} 
+                                }`}
                               />
-                              <span className="truncate">{project.name}</span>
+                              <span className="break-words whitespace-normal">{project.name}</span>
                               {getRoleBadge(project.myRole)}
                             </div>
                           </DropdownMenuItem>
