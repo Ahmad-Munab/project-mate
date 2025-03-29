@@ -9,11 +9,11 @@ import type { Role } from "@/types/permissions";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  context: { params: { projectId: string } }
 ) {
   try {
-    // In Next.js 15, params should be awaited
-    const { projectId } = await params;
+    // Get projectId from context.params
+    const { projectId } = context.params;
     console.log(`API: Fetching invites for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -80,11 +80,11 @@ export async function GET(
 // Create a new invite
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  context: { params: { projectId: string } }
 ) {
   try {
-    // In Next.js 15, params should be awaited
-    const { projectId } = await params;
+    // Get projectId from context.params
+    const { projectId } = context.params;
     console.log('🚀 Starting invite creation process...');
     console.log('📝 Project ID:', projectId);
 

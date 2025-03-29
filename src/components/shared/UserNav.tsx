@@ -134,18 +134,10 @@ export default function UserNav() {
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
+          <DropdownMenuContent className="w-56" align="start">
             <DropdownMenuLabel>
               <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10 border border-border">
-                  <AvatarImage
-                    src={userData.avatarUrl}
-                    alt={displayName || "User avatar"}
-                  />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
                 <div className="flex flex-col">
-                  <p className="text-sm font-medium leading-none">{displayName}</p>
                   <p className="text-xs leading-none text-muted-foreground mt-1">
                     {userData.email}
                   </p>

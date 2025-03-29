@@ -6,13 +6,13 @@ import { eq, and } from "drizzle-orm";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  context: { params: { projectId: string } }
 ) {
   try {
-    // In Next.js 15, params should be awaited
-    const { projectId } = await params;
+    // Get projectId from context.params
+    const { projectId } = context.params;
     console.log(`API: Updating activity for project ${projectId}`);
-    
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -27,7 +27,7 @@ export async function POST(
     // Update the lastActive timestamp and set status to ACTIVE
     const result = await db
       .update(projectMembers)
-      .set({ 
+      .set({
         lastActive: new Date(),
         status: 'ACTIVE',
         updatedAt: new Date()
@@ -40,7 +40,7 @@ export async function POST(
       );
 
     console.log(`API: Updated activity for user ${user.id} in project ${projectId}`);
-    
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error updating activity:", error);

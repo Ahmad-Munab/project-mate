@@ -22,8 +22,8 @@ export async function GET(
       );
     }
 
-    // Make sure to use the projectId from context.params
-    const { projectId } = await context.params;
+    // Get projectId from context.params
+    const { projectId } = context.params;
 
     const projectTasks = await db
       .select()

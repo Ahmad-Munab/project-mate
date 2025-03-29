@@ -6,11 +6,11 @@ import { eq, and, desc } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  context: { params: { projectId: string } }
 ) {
   try {
-    // In Next.js 15, params should be awaited
-    const { projectId } = await params;
+    // Get projectId from context.params
+    const { projectId } = context.params;
     console.log(`API: Fetching activities for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
