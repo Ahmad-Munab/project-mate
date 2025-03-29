@@ -5,7 +5,6 @@ import { invites, projectMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { assignUserPermissions } from "@/services/permissions";
-import { memberStatusEnum } from "@/db/schema";
 
 export async function POST(request: Request) {
     try {
@@ -92,11 +91,7 @@ export async function POST(request: Request) {
                 userId: user.id,
                 projectId: invite.projectId,
                 role: invite.role,
-                status:
-                    invite.role === "OWNER"
-                        ? memberStatusEnum.enumValues[0]
-                        : memberStatusEnum.enumValues[2], // Owners are automatically active, others need approval
-                lastActive: new Date(), // Set initial last active time
+
                 createdAt: new Date(),
                 updatedAt: new Date(),
             };
@@ -126,12 +121,7 @@ export async function POST(request: Request) {
                     .update(projectMembers)
                     .set({
                         role: invite.role,
-                        // Don't change status if already active
-                        status:
-                            existingMember.status === "ACTIVE"
-                                ? "ACTIVE"
-                                : "PENDING",
-                        lastActive: new Date(), // Update last active time
+
                         updatedAt: new Date(),
                     })
                     .where(

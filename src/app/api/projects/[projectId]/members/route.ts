@@ -3,7 +3,7 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projectMembers, authUsers } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { userRoleEnum, memberStatusEnum } from "@/db/schema";
+import { userRoleEnum } from "@/db/schema";
 
 export async function GET(request: NextRequest) {
     try {
@@ -33,8 +33,6 @@ export async function GET(request: NextRequest) {
                 userId: projectMembers.userId,
                 projectId: projectMembers.projectId,
                 role: projectMembers.role,
-                status: projectMembers.status,
-                lastActive: projectMembers.lastActive,
                 createdAt: projectMembers.createdAt,
                 updatedAt: projectMembers.updatedAt,
                 email: sql<string>`COALESCE(${user.email}, '')`,
@@ -58,27 +56,6 @@ export async function GET(request: NextRequest) {
         const membersWithProfiles = members.map((member) => {
             const profile = profiles?.find((p) => p.id === member.userId);
 
-            // Format last active time
-            let lastActiveTime = "Never";
-            if (member.lastActive) {
-                lastActiveTime = new Date(member.lastActive).toLocaleString();
-            } else if (profile?.last_sign_in_at) {
-                lastActiveTime = new Date(
-                    profile.last_sign_in_at
-                ).toLocaleString();
-
-                // Update the lastActive field in the database if it's not set
-                if (!member.lastActive) {
-                    db.update(projectMembers)
-                        .set({ lastActive: new Date(profile.last_sign_in_at) })
-                        .where(eq(projectMembers.id, member.id))
-                        .execute()
-                        .catch((err) =>
-                            console.error("Failed to update lastActive:", err)
-                        );
-                }
-            }
-
             return {
                 ...member,
                 name:
@@ -86,9 +63,6 @@ export async function GET(request: NextRequest) {
                     member.email?.split("@")[0] ||
                     "Unknown User",
                 avatar: profile?.avatar_url || "",
-                lastActive: lastActiveTime,
-                // Convert status to lowercase for frontend consistency
-                status: member.status?.toLowerCase() || "pending",
             };
         });
 
@@ -190,8 +164,6 @@ export async function PATCH(request: NextRequest) {
         const updateData: {
             updatedAt: Date;
             role?: (typeof userRoleEnum.enumValues)[number];
-            status?: (typeof memberStatusEnum.enumValues)[number];
-            lastActive?: Date;
         } = {
             updatedAt: new Date(),
         };
@@ -203,21 +175,6 @@ export async function PATCH(request: NextRequest) {
             if (userRoleEnum.enumValues.includes(role as any)) {
                 updateData.role =
                     role as (typeof userRoleEnum.enumValues)[number];
-            }
-        }
-
-        // Add status to update if provided
-        if (status) {
-            // Validate status is one of the allowed values
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if (memberStatusEnum.enumValues.includes(status as any)) {
-                updateData.status =
-                    status as (typeof memberStatusEnum.enumValues)[number];
-            }
-
-            // If activating a member, update their lastActive time
-            if (status.toUpperCase() === "ACTIVE") {
-                updateData.lastActive = new Date();
             }
         }
 
