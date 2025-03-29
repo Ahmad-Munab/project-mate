@@ -774,6 +774,6 @@ export default function Dashboard() {
   )
 }
 
-// Import all required icons
-import { MoreHorizontal, Eye, Filter } from "lucide-react"
+// Additional imports
+import { MoreHorizontal, Eye } from "lucide-react"
 
