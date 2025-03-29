@@ -162,14 +162,16 @@ export default function Sidebar() {
       isActive: isMembersPage,
       showAlways: false,
       showWhen: isProjectPage
-    },
+    }
+  ];
+
+  // Bottom navigation items
+  const bottomNavItems = [
     {
       name: "Settings",
       href: "/settings",
       icon: <Settings className="h-4 w-4 text-muted-foreground" />,
-      isActive: isSettingsPage,
-      showAlways: true,
-      isBottom: true
+      isActive: isSettingsPage
     }
   ];
 
@@ -198,7 +200,7 @@ export default function Sidebar() {
       <div className="flex-1 overflow-auto py-4 px-2">
         <nav className="space-y-2">
           {navItems
-            .filter(item => (item.showAlways || item.showWhen) && !item.isBottom)
+            .filter(item => item.showAlways || item.showWhen)
             .map((item, index) => (
               <Button
                 key={index}
@@ -239,26 +241,24 @@ export default function Sidebar() {
           </Badge>
         </Button>
         
-        {navItems
-          .filter(item => item.isBottom && (item.showAlways || item.showWhen))
-          .map((item, index) => (
-            <Button
-              key={index}
-              variant={item.isActive ? "secondary" : "ghost"}
-              className={cn(
-                "w-full justify-start transition-all duration-300",
-                item.isActive
-                  ? "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5"
-                  : "hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent"
-              )}
-              asChild
-            >
-              <Link href={item.href} className="font-medium">
-                <span className="mr-2">{item.icon}</span>
-                {item.name}
-              </Link>
-            </Button>
-          ))}
+        {bottomNavItems.map((item, index) => (
+          <Button
+            key={index}
+            variant={item.isActive ? "secondary" : "ghost"}
+            className={cn(
+              "w-full justify-start transition-all duration-300",
+              item.isActive
+                ? "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5"
+                : "hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent"
+            )}
+            asChild
+          >
+            <Link href={item.href} className="font-medium">
+              <span className="mr-2">{item.icon}</span>
+              {item.name}
+            </Link>
+          </Button>
+        ))}
       </div>
     </div>
   );

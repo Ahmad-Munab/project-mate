@@ -11,11 +11,9 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="flex h-screen bg-background">
-      <aside className="w-64 border-r bg-card">
-        <Suspense fallback={<ProjectSkeleton />}>
-          <Sidebar />
-        </Suspense>
-      </aside>
+      <Suspense fallback={<ProjectSkeleton />}>
+        <Sidebar />
+      </Suspense>
 
       <div className="flex-1 flex flex-col">
         <header className="h-16 border-b bg-card px-6 flex items-center">
