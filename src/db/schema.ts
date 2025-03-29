@@ -56,7 +56,7 @@ export const projects = pgTable("projects", {
 export const projectMembers = pgTable("project_members", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
-    .references(() => users.id)
+    .references(() => authUsers.id)
     .notNull(),
   projectId: uuid("project_id")
     .references(() => projects.id)
