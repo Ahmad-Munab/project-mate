@@ -146,13 +146,16 @@ export default function UserNav() {
                     variant="ghost"
                     className="flex items-center gap-1 px-2 py-1 h-8 text-sm hover:bg-accent/50 transition-colors"
                   >
-                    <span className="max-w-[120px] sm:max-w-[180px] truncate font-medium">
-                      {currentProject.name}
-                    </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-1" />
+                    <div className="flex items-center">
+                      <span className="max-w-[120px] sm:max-w-[180px] truncate font-medium">
+                        {currentProject.name}
+                      </span>
+                      {!currentProject.isOwner && getRoleBadge(currentProject.myRole)}
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-1" />
+                    </div>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64" align="start">
+                <DropdownMenuContent className="w-72" align="start">
                   <div className="max-h-[400px] overflow-y-auto px-1 py-1">
                     {/* Current Project */}
                     <div className="mb-2">
@@ -161,9 +164,9 @@ export default function UserNav() {
                         className="flex items-center gap-2 rounded-md my-0.5 bg-accent/50 font-medium"
                         disabled
                       >
-                        <div className="flex-1 truncate flex items-center">
-                          <FolderKanban className="h-4 w-4 mr-2 text-primary" />
-                          <span>{currentProject.name}</span>
+                        <div className="flex-1 flex items-center">
+                          <FolderKanban className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+                          <span className="truncate">{currentProject.name}</span>
                           {getRoleBadge(currentProject.myRole)}
                         </div>
                       </DropdownMenuItem>
@@ -179,10 +182,9 @@ export default function UserNav() {
                             className="flex items-center gap-2 rounded-md my-0.5"
                             onSelect={() => router.push(`/dashboard/projects/${project.id}`)}
                           >
-                            <div className="flex-1 truncate flex items-center">
-                              <FolderKanban className="h-4 w-4 mr-2 text-primary" />
-                              <span>{project.name}</span>
-                              {getRoleBadge(project.myRole)}
+                            <div className="flex-1 flex items-center">
+                              <FolderKanban className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
+                              <span className="truncate">{project.name}</span>
                             </div>
                           </DropdownMenuItem>
                         ))}
@@ -199,9 +201,13 @@ export default function UserNav() {
                             className="flex items-center gap-2 rounded-md my-0.5"
                             onSelect={() => router.push(`/dashboard/projects/${project.id}`)}
                           >
-                            <div className="flex-1 truncate flex items-center">
-                              <FolderKanban className={`h-4 w-4 mr-2 ${project.myRole === 'MANAGER' ? 'text-purple-500' : 'text-green-500'}`} />
-                              <span>{project.name}</span>
+                            <div className="flex-1 flex items-center">
+                              <FolderKanban 
+                                className={`h-4 w-4 mr-2 flex-shrink-0 ${
+                                  project.myRole === 'MANAGER' ? 'text-purple-500' : 'text-green-500'
+                                }`} 
+                              />
+                              <span className="truncate">{project.name}</span>
                               {getRoleBadge(project.myRole)}
                             </div>
                           </DropdownMenuItem>
