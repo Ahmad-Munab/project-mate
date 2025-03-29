@@ -389,12 +389,14 @@ export default function Dashboard() {
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
                         >
-                          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/5 hover:border-primary/20 relative">
+                          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/5 hover:border-primary/20 relative bg-card/80 backdrop-blur-sm hover:backdrop-blur-md">
                             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-all duration-500 -translate-y-4 translate-x-4 group-hover:translate-y-0 group-hover:translate-x-0"></div>
                             <CardHeader className="pb-2 p-4 sm:p-6 relative">
                               <div className="flex justify-between items-start gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <CardTitle className="text-base sm:text-lg truncate group-hover:text-primary transition-colors duration-300">
+                                  <CardTitle className="text-base sm:text-lg truncate group-hover:text-primary transition-colors duration-300 flex items-center">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-primary mr-2 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-0 group-hover:scale-100"></span>
                                     {project.name || 'Untitled Project'}
                                   </CardTitle>
                                   <CardDescription className="line-clamp-2 text-xs sm:text-sm mt-1">
@@ -433,7 +435,8 @@ export default function Dashboard() {
                             <CardContent className="pb-2 px-4 sm:px-6 relative">
                               <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                                 <div className="flex items-center">
-                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap font-medium transition-all duration-300 group-hover:border-primary/30`}>
+                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap font-medium transition-all duration-300 group-hover:border-primary/30 shadow-sm group-hover:shadow`}>
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>
                                     {project.status}
                                   </Badge>
                                 </div>
@@ -441,24 +444,25 @@ export default function Dashboard() {
                                   <div className="relative">
                                     <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px] overflow-hidden rounded-full bg-muted/50 group-hover:bg-muted/70 transition-colors duration-300" />
                                     <div className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 group-hover:scale-x-100 transition-transform duration-1000 ease-out" style={{ transform: `scaleX(${project.progress / 100})` }}></div>
                                   </div>
                                   <span className="text-xs font-medium">{project.progress}%</span>
                                 </div>
                               </div>
                               {project.dueDate && (
-                                <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                                  <Calendar className="h-3 w-3 mr-1.5 text-muted-foreground/70" />
+                                <div className="flex items-center text-xs sm:text-sm text-muted-foreground p-1.5 -mx-1.5 rounded-md group-hover:bg-muted/30 transition-colors duration-300">
+                                  <Calendar className="h-3 w-3 mr-1.5 text-primary/70 group-hover:text-primary transition-colors duration-300" />
                                   <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
                                 </div>
                               )}
                             </CardContent>
-                            <CardFooter className="pt-2 px-4 sm:px-6 relative border-t border-border/40 mt-2">
+                            <CardFooter className="pt-2 px-4 sm:px-6 relative border-t border-border/40 mt-2 bg-gradient-to-b from-transparent to-muted/10 group-hover:to-muted/20 transition-colors duration-300">
                               <div className="flex justify-between items-center w-full gap-2">
                                 <div className="flex -space-x-2 flex-shrink-0">
                                   {project.members?.slice(0, 3).map((member, i) => (
-                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background transition-transform duration-300 hover:scale-110 hover:z-10">
+                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background transition-all duration-300 hover:scale-110 hover:z-10 hover:border-primary/20 hover:shadow-sm">
                                       <AvatarImage src={member.avatar} alt={member.name} />
-                                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{member.name?.charAt(0)}</AvatarFallback>
+                                      <AvatarFallback className="text-xs bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors duration-300">{member.name?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                   ))}
                                   {project.members && project.members.length > 3 && (
@@ -473,12 +477,13 @@ export default function Dashboard() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm rounded-full group-hover:bg-primary/5 transition-all duration-300"
+                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm rounded-full group-hover:bg-primary/5 transition-all duration-300 overflow-hidden relative"
                                   asChild
                                 >
                                   <Link href={`/dashboard/projects/${project.id}`} className="flex items-center gap-1">
-                                    <span>View Tasks</span>
-                                    <ChevronRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
+                                    <span className="relative z-10">View Tasks</span>
+                                    <ChevronRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5 relative z-10" />
+                                    <span className="absolute inset-0 bg-primary/10 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 rounded-full"></span>
                                   </Link>
                                 </Button>
                               </div>
@@ -502,8 +507,9 @@ export default function Dashboard() {
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
                         >
-                          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/5 hover:border-primary/20 relative">
+                          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/5 hover:border-primary/20 relative bg-card/80 backdrop-blur-sm hover:backdrop-blur-md">
                             <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-all duration-500 -translate-y-4 translate-x-4 group-hover:translate-y-0 group-hover:translate-x-0"></div>
                             <CardHeader className="pb-2 p-4 sm:p-6">
                               <div className="flex justify-between items-start gap-2">
                                 <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
@@ -512,7 +518,10 @@ export default function Dashboard() {
                                     <AvatarFallback>{project.ownerInfo?.name?.[0]}</AvatarFallback>
                                   </Avatar>
                                   <div className="min-w-0">
-                                    <CardTitle className="text-base sm:text-lg truncate group-hover:text-primary transition-colors duration-300">{project.name}</CardTitle>
+                                    <CardTitle className="text-base sm:text-lg truncate group-hover:text-primary transition-colors duration-300 flex items-center">
+                                      <span className="inline-block w-2 h-2 rounded-full bg-primary mr-2 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-0 group-hover:scale-100"></span>
+                                      {project.name}
+                                    </CardTitle>
                                     <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                       By {project.ownerInfo?.name} • You are {project.myRole}
                                     </p>
@@ -538,7 +547,8 @@ export default function Dashboard() {
                             <CardContent className="pb-2 px-4 sm:px-6 relative">
                               <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                                 <div className="flex items-center">
-                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap font-medium transition-all duration-300 group-hover:border-primary/30`}>
+                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap font-medium transition-all duration-300 group-hover:border-primary/30 shadow-sm group-hover:shadow`}>
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>
                                     {project.status}
                                   </Badge>
                                 </div>
@@ -546,24 +556,25 @@ export default function Dashboard() {
                                   <div className="relative">
                                     <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px] overflow-hidden rounded-full bg-muted/50 group-hover:bg-muted/70 transition-colors duration-300" />
                                     <div className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 group-hover:scale-x-100 transition-transform duration-1000 ease-out" style={{ transform: `scaleX(${project.progress / 100})` }}></div>
                                   </div>
                                   <span className="text-xs font-medium">{project.progress}%</span>
                                 </div>
                               </div>
                               {project.dueDate && (
-                                <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
-                                  <Calendar className="h-3 w-3 mr-1.5 text-muted-foreground/70" />
+                                <div className="flex items-center text-xs sm:text-sm text-muted-foreground p-1.5 -mx-1.5 rounded-md group-hover:bg-muted/30 transition-colors duration-300">
+                                  <Calendar className="h-3 w-3 mr-1.5 text-primary/70 group-hover:text-primary transition-colors duration-300" />
                                   <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
                                 </div>
                               )}
                             </CardContent>
-                            <CardFooter className="pt-2 px-4 sm:px-6 relative border-t border-border/40 mt-2">
+                            <CardFooter className="pt-2 px-4 sm:px-6 relative border-t border-border/40 mt-2 bg-gradient-to-b from-transparent to-muted/10 group-hover:to-muted/20 transition-colors duration-300">
                               <div className="flex justify-between items-center w-full gap-2">
                                 <div className="flex -space-x-2 flex-shrink-0">
                                   {project.members?.slice(0, 3).map((member, i) => (
-                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background transition-transform duration-300 hover:scale-110 hover:z-10">
+                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background transition-all duration-300 hover:scale-110 hover:z-10 hover:border-primary/20 hover:shadow-sm">
                                       <AvatarImage src={member.avatar} alt={member.name} />
-                                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{member.name?.charAt(0)}</AvatarFallback>
+                                      <AvatarFallback className="text-xs bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors duration-300">{member.name?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                   ))}
                                   {project.members && project.members.length > 3 && (
@@ -578,12 +589,13 @@ export default function Dashboard() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm rounded-full group-hover:bg-primary/5 transition-all duration-300"
+                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm rounded-full group-hover:bg-primary/5 transition-all duration-300 overflow-hidden relative"
                                   asChild
                                 >
                                   <Link href={`/dashboard/projects/${project.id}`} className="flex items-center gap-1">
-                                    <span>View Tasks</span>
-                                    <ChevronRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
+                                    <span className="relative z-10">View Tasks</span>
+                                    <ChevronRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5 relative z-10" />
+                                    <span className="absolute inset-0 bg-primary/10 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 rounded-full"></span>
                                   </Link>
                                 </Button>
                               </div>
