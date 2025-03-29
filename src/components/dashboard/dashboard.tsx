@@ -12,6 +12,8 @@ import {
   Edit,
   Trash2,
   Filter,
+  Calendar,
+  ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -387,18 +389,21 @@ export default function Dashboard() {
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
                         >
-                          <Card className="overflow-hidden hover:shadow-md transition-shadow border-primary/5 hover:border-primary/10">
-                            <CardHeader className="pb-2 p-4 sm:p-6">
+                          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/5 hover:border-primary/20 relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <CardHeader className="pb-2 p-4 sm:p-6 relative">
                               <div className="flex justify-between items-start gap-2">
                                 <div className="flex-1 min-w-0">
-                                  <CardTitle className="text-base sm:text-lg truncate">{project.name || 'Untitled Project'}</CardTitle>
+                                  <CardTitle className="text-base sm:text-lg truncate group-hover:text-primary transition-colors duration-300">
+                                    {project.name || 'Untitled Project'}
+                                  </CardTitle>
                                   <CardDescription className="line-clamp-2 text-xs sm:text-sm mt-1">
                                     {project.description || 'No description provided'}
                                   </CardDescription>
                                 </div>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 transition-colors duration-200">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -425,42 +430,55 @@ export default function Dashboard() {
                                 </DropdownMenu>
                               </div>
                             </CardHeader>
-                            <CardContent className="pb-2 px-4 sm:px-6">
-                              <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                            <CardContent className="pb-2 px-4 sm:px-6 relative">
+                              <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                                 <div className="flex items-center">
-                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap`}>
+                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap font-medium transition-all duration-300 group-hover:border-primary/30`}>
                                     {project.status}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px]" />
-                                  <span className="text-xs">{project.progress}%</span>
+                                  <div className="relative">
+                                    <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px] overflow-hidden rounded-full bg-muted/50 group-hover:bg-muted/70 transition-colors duration-300" />
+                                    <div className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  </div>
+                                  <span className="text-xs font-medium">{project.progress}%</span>
                                 </div>
                               </div>
                               {project.dueDate && (
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  Due: {new Date(project.dueDate).toLocaleDateString()}
-                                </p>
+                                <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                                  <Calendar className="h-3 w-3 mr-1.5 text-muted-foreground/70" />
+                                  <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
+                                </div>
                               )}
                             </CardContent>
-                            <CardFooter className="pt-2 px-4 sm:px-6">
+                            <CardFooter className="pt-2 px-4 sm:px-6 relative border-t border-border/40 mt-2">
                               <div className="flex justify-between items-center w-full gap-2">
                                 <div className="flex -space-x-2 flex-shrink-0">
                                   {project.members?.slice(0, 3).map((member, i) => (
-                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background">
+                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background transition-transform duration-300 hover:scale-110 hover:z-10">
                                       <AvatarImage src={member.avatar} alt={member.name} />
-                                      <AvatarFallback className="text-xs">{member.name?.charAt(0)}</AvatarFallback>
+                                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{member.name?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                   ))}
+                                  {project.members && project.members.length > 3 && (
+                                    <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-background">
+                                      +{project.members.length - 3}
+                                    </div>
+                                  )}
+                                  {(!project.members || project.members.length === 0) && (
+                                    <div className="text-xs text-muted-foreground">No members</div>
+                                  )}
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm"
+                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm rounded-full group-hover:bg-primary/5 transition-all duration-300"
                                   asChild
                                 >
-                                  <Link href={`/dashboard/projects/${project.id}`}>
-                                    View Tasks
+                                  <Link href={`/dashboard/projects/${project.id}`} className="flex items-center gap-1">
+                                    <span>View Tasks</span>
+                                    <ChevronRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
                                   </Link>
                                 </Button>
                               </div>
@@ -484,7 +502,8 @@ export default function Dashboard() {
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
                         >
-                          <Card className="overflow-hidden hover:shadow-md transition-shadow border-primary/5 hover:border-primary/10">
+                          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 border-primary/5 hover:border-primary/20 relative">
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                             <CardHeader className="pb-2 p-4 sm:p-6">
                               <div className="flex justify-between items-start gap-2">
                                 <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
@@ -493,7 +512,7 @@ export default function Dashboard() {
                                     <AvatarFallback>{project.ownerInfo?.name?.[0]}</AvatarFallback>
                                   </Avatar>
                                   <div className="min-w-0">
-                                    <CardTitle className="text-base sm:text-lg truncate">{project.name}</CardTitle>
+                                    <CardTitle className="text-base sm:text-lg truncate group-hover:text-primary transition-colors duration-300">{project.name}</CardTitle>
                                     <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                       By {project.ownerInfo?.name} • You are {project.myRole}
                                     </p>
@@ -501,7 +520,7 @@ export default function Dashboard() {
                                 </div>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-primary/10 transition-colors duration-200">
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
@@ -516,42 +535,55 @@ export default function Dashboard() {
                                 </DropdownMenu>
                               </div>
                             </CardHeader>
-                            <CardContent className="pb-2 px-4 sm:px-6">
-                              <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                            <CardContent className="pb-2 px-4 sm:px-6 relative">
+                              <div className="flex flex-wrap justify-between items-center gap-2 mb-3">
                                 <div className="flex items-center">
-                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap`}>
+                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap font-medium transition-all duration-300 group-hover:border-primary/30`}>
                                     {project.status}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px]" />
-                                  <span className="text-xs">{project.progress}%</span>
+                                  <div className="relative">
+                                    <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px] overflow-hidden rounded-full bg-muted/50 group-hover:bg-muted/70 transition-colors duration-300" />
+                                    <div className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                  </div>
+                                  <span className="text-xs font-medium">{project.progress}%</span>
                                 </div>
                               </div>
                               {project.dueDate && (
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  Due: {new Date(project.dueDate).toLocaleDateString()}
-                                </p>
+                                <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
+                                  <Calendar className="h-3 w-3 mr-1.5 text-muted-foreground/70" />
+                                  <span>Due: {new Date(project.dueDate).toLocaleDateString()}</span>
+                                </div>
                               )}
                             </CardContent>
-                            <CardFooter className="pt-2 px-4 sm:px-6">
+                            <CardFooter className="pt-2 px-4 sm:px-6 relative border-t border-border/40 mt-2">
                               <div className="flex justify-between items-center w-full gap-2">
                                 <div className="flex -space-x-2 flex-shrink-0">
                                   {project.members?.slice(0, 3).map((member, i) => (
-                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background">
+                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background transition-transform duration-300 hover:scale-110 hover:z-10">
                                       <AvatarImage src={member.avatar} alt={member.name} />
-                                      <AvatarFallback className="text-xs">{member.name?.charAt(0)}</AvatarFallback>
+                                      <AvatarFallback className="text-xs bg-primary/10 text-primary">{member.name?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                   ))}
+                                  {project.members && project.members.length > 3 && (
+                                    <div className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-muted flex items-center justify-center text-xs border-2 border-background">
+                                      +{project.members.length - 3}
+                                    </div>
+                                  )}
+                                  {(!project.members || project.members.length === 0) && (
+                                    <div className="text-xs text-muted-foreground">No members</div>
+                                  )}
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm"
+                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm rounded-full group-hover:bg-primary/5 transition-all duration-300"
                                   asChild
                                 >
-                                  <Link href={`/dashboard/projects/${project.id}`}>
-                                    View Tasks
+                                  <Link href={`/dashboard/projects/${project.id}`} className="flex items-center gap-1">
+                                    <span>View Tasks</span>
+                                    <ChevronRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5" />
                                   </Link>
                                 </Button>
                               </div>
