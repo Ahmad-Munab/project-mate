@@ -124,6 +124,10 @@ export default function UserNav() {
       <div className="flex items-center">
         <div className="flex items-center gap-2 md:ml-0 ml-14"> {/* Add left margin on mobile to avoid hamburger overlap */}
           <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8 border border-border">
               <AvatarImage
                 src={userData.avatarUrl}
@@ -134,6 +138,39 @@ export default function UserNav() {
             <span className="font-medium text-sm max-w-[120px] truncate">
               {displayName}
             </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuLabel>
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-10 w-10 border border-border">
+                  <AvatarImage
+                    src={userData.avatarUrl}
+                    alt={displayName || "User avatar"}
+                  />
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium leading-none">{displayName}</p>
+                  <p className="text-xs leading-none text-muted-foreground mt-1">
+                    {userData.email}
+                  </p>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => router.push("/settings")}>
+              <User className="h-4 w-4 mr-2" />
+              Profile Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
           </div>
 
           {/* Only show project name when on a project page */}
@@ -234,44 +271,7 @@ export default function UserNav() {
       </div>
 
       {/* Right side: User Menu */}
-      <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-              <User className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
-            <DropdownMenuLabel>
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10 border border-border">
-                  <AvatarImage
-                    src={userData.avatarUrl}
-                    alt={displayName || "User avatar"}
-                  />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <p className="text-sm font-medium leading-none">{displayName}</p>
-                  <p className="text-xs leading-none text-muted-foreground mt-1">
-                    {userData.email}
-                  </p>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => router.push("/settings")}>
-              <User className="h-4 w-4 mr-2" />
-              Profile Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+ 
     </div>
   );
 }

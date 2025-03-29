@@ -7,7 +7,7 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import { Plus, ArrowUpDown } from "lucide-react";
+import { Plus, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -126,7 +126,7 @@ const sortTasks = (
 export default function ProjectBoard({
   projectId,
   initialTasks,
-  isOwner, // Add this prop
+  isOwner,
 }: {
   projectId?: string;
   initialTasks: Task[];
@@ -134,25 +134,13 @@ export default function ProjectBoard({
 }) {
   const { can, isManager, role, permissions } = usePermissions();
 
-  console.log('ProjectBoard: User role from hook:', role);
-  console.log('ProjectBoard: isOwner prop:', isOwner);
-  console.log('ProjectBoard: Permissions from hook:', permissions);
-
   // Determine if user is a manager based on role or permissions
   const userIsManager = isManager() || permissions?.canManageProject === true;
-  console.log('ProjectBoard: User is manager:', userIsManager);
 
   // Modify permission checks to allow owners and managers
-  // Managers should have the same permissions as owners in the kanban board
   const canCreateTasks = isOwner || userIsManager || can("canEdit");
   const canInviteMembers = isOwner || userIsManager || can("canInvite");
   const canDragTasks = isOwner || userIsManager || can("canEdit");
-
-  console.log('ProjectBoard: Permission checks:', {
-    canCreateTasks,
-    canInviteMembers,
-    canDragTasks
-  });
 
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
   const [isLoading, setIsLoading] = useState(false);
@@ -162,6 +150,26 @@ export default function ProjectBoard({
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteRole, setInviteRole] = useState<"MEMBER" | "MANAGER">("MEMBER");
   const boardRef = useRef<HTMLDivElement>(null);
+  
+  // Mobile responsive state
+  const [activeColumn, setActiveColumn] = useState<keyof typeof columnHeaders>("TODO");
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check screen size on mount and when window resizes
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Initial check
+    checkScreenSize();
+
+    // Add event listener
+    window.addEventListener('resize', checkScreenSize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Simple presence tracking
   useEffect(() => {
@@ -250,7 +258,6 @@ export default function ProjectBoard({
   }, [projectId]);
 
   const handleTaskUpdate = async (updatedTask: Task) => {
-    console.log('Attempting to update task, permissions:', { isOwner, userIsManager, canEdit: can("canEdit") });
     if (!isOwner && !userIsManager && !can("canEdit")) {
       toast.error("You don't have permission to edit tasks");
       return;
@@ -276,7 +283,6 @@ export default function ProjectBoard({
   };
 
   const handleTaskDelete = async (taskId: string) => {
-    console.log('Attempting to delete task, permissions:', { isOwner, userIsManager, canDelete: can("canDelete") });
     if (!isOwner && !userIsManager && !can("canDelete")) {
       toast.error("You don't have permission to delete tasks");
       return;
@@ -304,15 +310,12 @@ export default function ProjectBoard({
 
     // Check permissions before allowing drag
     if (!isOwner && !userIsManager && !can("canEdit")) {
-      console.log('Drag prevented: insufficient permissions');
       toast.error("You don't have permission to move tasks");
       return;
     }
 
     const newStatus = destination.droppableId;
     const taskId = draggableId;
-
-    console.log(`Moving task ${taskId} to ${newStatus}`);
 
     try {
       setProjectTasks((prevTasks) =>
@@ -324,11 +327,22 @@ export default function ProjectBoard({
       );
 
       await updateTaskStatus(taskId, newStatus);
-      console.log(`Task ${taskId} status updated successfully`);
     } catch (error) {
       console.error("Failed to update task status:", error);
       toast.error("Failed to update task status");
       setProjectTasks(initialTasks);
+    }
+  };
+
+  // Navigate to next/previous column on mobile
+  const navigateColumn = (direction: 'next' | 'prev') => {
+    const columns = Object.keys(columnHeaders) as Array<keyof typeof columnHeaders>;
+    const currentIndex = columns.indexOf(activeColumn);
+    
+    if (direction === 'next' && currentIndex < columns.length - 1) {
+      setActiveColumn(columns[currentIndex + 1]);
+    } else if (direction === 'prev' && currentIndex > 0) {
+      setActiveColumn(columns[currentIndex - 1]);
     }
   };
 
@@ -348,36 +362,42 @@ export default function ProjectBoard({
     );
   }
 
-  const columns = Object.keys(columnHeaders) as Array<
-    keyof typeof columnHeaders
-  >;
+  const columns = Object.keys(columnHeaders) as Array<keyof typeof columnHeaders>;
 
   return (
     <div className="h-full flex flex-col" ref={boardRef}>
-      <div className="flex items-center justify-between p-6 border-b">
+      <div className="flex flex-col md:flex-row md:items-center justify-between p-4 md:p-6 border-b gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Project Board</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl md:text-2xl font-semibold">Project Board</h1>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">
             Manage and track your project tasks
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {canCreateTasks && (
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="text-xs md:text-sm h-8 md:h-10"
+            >
+              <Plus className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
               Add Task
             </Button>
           )}
           {canInviteMembers && (
-            <Button variant="outline" onClick={() => setIsInviteDialogOpen(true)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsInviteDialogOpen(true)}
+              className="text-xs md:text-sm h-8 md:h-10"
+            >
               Invite Members
             </Button>
           )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <ArrowUpDown className="h-4 w-4" />
+              <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10">
+                <ArrowUpDown className="h-3 w-3 md:h-4 md:w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -422,6 +442,38 @@ export default function ProjectBoard({
         </div>
       </div>
 
+      {/* Mobile Column Navigation */}
+      {isMobile && (
+        <div className="flex items-center justify-between px-4 py-2 bg-muted/30">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigateColumn('prev')}
+            disabled={activeColumn === columns[0]}
+            className="h-8 w-8"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <h3 className="font-medium text-sm">
+            {columnHeaders[activeColumn]}
+            <span className="ml-2 text-xs bg-background rounded-full px-2 py-1">
+              {projectTasks.filter((task) => task.status === activeColumn).length}
+            </span>
+          </h3>
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => navigateColumn('next')}
+            disabled={activeColumn === columns[columns.length - 1]}
+            className="h-8 w-8"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Invite Dialog */}
       <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
         <DialogContent>
@@ -453,39 +505,23 @@ export default function ProjectBoard({
       )}
 
       <DragDropContext onDragEnd={(isOwner || userIsManager || canDragTasks) ? onDragEnd : () => {}}>
-        <div className="flex-1 overflow-x-auto p-6">
-          <div className="flex h-full gap-6 min-w-fit">
-            {columns.map((status) => (
+        <div className="flex-1 overflow-x-auto p-4 md:p-6">
+          <div className={`flex h-full ${isMobile ? 'flex-col' : 'flex-row'} gap-4 md:gap-6 ${!isMobile && 'min-w-fit'}`}>
+            {isMobile ? (
+              // Mobile view - show only active column
               <div
-                key={status}
-                className="flex-1 min-w-[320px] max-w-[400px] flex flex-col h-full"
+                key={activeColumn}
+                className="flex-1 min-h-[calc(100vh-220px)] flex flex-col"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <h3 className="font-semibold text-sm">
-                      {columnHeaders[status]}
-                    </h3>
-                    <span className="ml-2 text-xs bg-background rounded-full px-2 py-1">
-                      {
-                        projectTasks.filter((task) => task.status === status)
-                          .length
-                      }
-                    </span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <Droppable droppableId={status}>
+                <Droppable droppableId={activeColumn}>
                   {(provided) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[status]} overflow-y-auto min-h-[200px] max-h-[calc(100vh-220px)]`}
+                      className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[activeColumn]} overflow-y-auto min-h-[200px]`}
                     >
                       {projectTasks
-                        .filter((task) => task.status === status)
+                        .filter((task) => task.status === activeColumn)
                         .map((task, index) => (
                           <Draggable
                             key={task.id}
@@ -512,7 +548,76 @@ export default function ProjectBoard({
                   )}
                 </Droppable>
               </div>
-            ))}
+            ) : (
+              // Desktop view - show all columns
+              columns.map((status) => (
+                <div
+                  key={status}
+                  className="flex-1 min-w-[280px] md:min-w-[320px] md:max-w-[400px] flex flex-col h-full"
+                >
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex items-center">
+                      <h3 className="font-semibold text-sm">
+                        {columnHeaders[status]}
+                      </h3>
+                      <span className="ml-2 text-xs bg-background rounded-full px-2 py-1">
+                        {
+                          projectTasks.filter((task) => task.status === status)
+                            .length
+                        }
+                      </span>
+                    </div>
+                    {canCreateTasks && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => {
+                          setIsCreateDialogOpen(true);
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <Droppable droppableId={status}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[status]} overflow-y-auto min-h-[200px] max-h-[calc(100vh-220px)]`}
+                      >
+                        {projectTasks
+                          .filter((task) => task.status === status)
+                          .map((task, index) => (
+                            <Draggable
+                              key={task.id}
+                              draggableId={task.id}
+                              index={index}
+                            >
+                              {(provided) => (
+                                <div
+                                  ref={provided.innerRef}
+                                  {...provided.draggableProps}
+                                  {...provided.dragHandleProps}
+                                >
+                                  <TaskCard
+                                    task={task}
+                                    onTaskUpdate={handleTaskUpdate}
+                                    onTaskDelete={handleTaskDelete}
+                                  />
+                                </div>
+                              )}
+                            </Draggable>
+                          ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </DragDropContext>
