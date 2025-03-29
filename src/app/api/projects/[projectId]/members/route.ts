@@ -3,14 +3,14 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projectMembers, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { userRoleEnum, memberStatusEnum } from "@/db/schema";
 
-export async function GET(
-  request: NextRequest,
-  context: { params: { projectId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    // In Next.js 15, context.params should be awaited
-    const { projectId } = await context.params;
+    // Extract projectId from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.length - 2]; // projectId is the second-to-last part
     console.log(`API: Fetching members for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -91,11 +91,13 @@ export async function GET(
 }
 
 // Update member role
-export async function PATCH(
-  request: NextRequest,
-  context: { params: { projectId: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
+    // Extract projectId from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.length - 2]; // projectId is the second-to-last part
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -105,9 +107,6 @@ export async function PATCH(
         { status: 401 }
       );
     }
-
-    // In Next.js 15, context.params should be awaited
-    const { projectId } = await context.params;
 
     // Check if user is project owner or manager
     const [membership] = await db
@@ -169,18 +168,32 @@ export async function PATCH(
     }
 
     // Prepare update data
-    const updateData: any = {
+    // Prepare update data with correct types
+    const updateData: {
+      updatedAt: Date;
+      role?: typeof userRoleEnum.enumValues[number];
+      status?: typeof memberStatusEnum.enumValues[number];
+      lastActive?: Date
+    } = {
       updatedAt: new Date()
     };
 
     // Add role to update if provided
     if (role) {
-      updateData.role = role;
+      // Validate role is one of the allowed values
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (userRoleEnum.enumValues.includes(role as any)) {
+        updateData.role = role as typeof userRoleEnum.enumValues[number];
+      }
     }
 
     // Add status to update if provided
     if (status) {
-      updateData.status = status;
+      // Validate status is one of the allowed values
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (memberStatusEnum.enumValues.includes(status as any)) {
+        updateData.status = status as typeof memberStatusEnum.enumValues[number];
+      }
 
       // If activating a member, update their lastActive time
       if (status.toUpperCase() === 'ACTIVE') {
@@ -205,11 +218,13 @@ export async function PATCH(
 }
 
 // Remove member from project
-export async function DELETE(
-  request: NextRequest,
-  context: { params: { projectId: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
+    // Extract projectId from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.length - 2]; // projectId is the second-to-last part
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -219,9 +234,6 @@ export async function DELETE(
         { status: 401 }
       );
     }
-
-    // In Next.js 15, context.params should be awaited
-    const { projectId } = await context.params;
 
     // Check if user is project owner or manager
     const [membership] = await db

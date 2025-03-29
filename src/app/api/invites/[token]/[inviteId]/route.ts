@@ -4,13 +4,15 @@ import { db } from "@/db";
 import { invites, projectMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
-// Cancel an invite
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { inviteId: string } }
-) {
+// Simple route handler for DELETE
+export async function DELETE(request: NextRequest) {
   try {
-    console.log(`API: Cancelling invite ${params.inviteId}`);
+    // Extract params from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const inviteId = pathParts[pathParts.length - 1];
+
+    console.log(`API: Cancelling invite ${inviteId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -26,7 +28,7 @@ export async function DELETE(
     const [invite] = await db
       .select()
       .from(invites)
-      .where(eq(invites.id, params.inviteId));
+      .where(eq(invites.id, inviteId));
 
     if (!invite) {
       return NextResponse.json(
@@ -56,7 +58,7 @@ export async function DELETE(
     // Delete the invite
     await db
       .delete(invites)
-      .where(eq(invites.id, params.inviteId));
+      .where(eq(invites.id, inviteId));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -68,13 +70,15 @@ export async function DELETE(
   }
 }
 
-// Resend an invite
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { inviteId: string } }
-) {
+// Simple route handler for POST
+export async function POST(request: NextRequest) {
   try {
-    console.log(`API: Resending invite ${params.inviteId}`);
+    // Extract params from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const inviteId = pathParts[pathParts.length - 1];
+
+    console.log(`API: Resending invite ${inviteId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -90,7 +94,7 @@ export async function POST(
     const [invite] = await db
       .select()
       .from(invites)
-      .where(eq(invites.id, params.inviteId));
+      .where(eq(invites.id, inviteId));
 
     if (!invite) {
       return NextResponse.json(
@@ -120,12 +124,12 @@ export async function POST(
     // Update the invite with a new timestamp
     await db
       .update(invites)
-      .set({ 
+      .set({
         updatedAt: new Date(),
         // Reset expiration date (7 days from now)
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       })
-      .where(eq(invites.id, params.inviteId));
+      .where(eq(invites.id, inviteId));
 
     // TODO: Send email notification if email is present
 

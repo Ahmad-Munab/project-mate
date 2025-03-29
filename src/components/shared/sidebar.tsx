@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion } from "framer-motion"
-import { 
-  Sparkles, 
-  Calendar, 
-  Code, 
-  Settings, 
-  Star, 
-  Users, 
-  Menu, 
-  X, 
-  Home
+import {
+  Sparkles,
+  Calendar,
+  Code,
+  Settings,
+  Star,
+  Users,
+  Menu,
+  X
+  // Home - not used
 } from "lucide-react"
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -241,7 +241,7 @@ export default function Sidebar() {
             </Badge>
           </div>
         </Button>
-        
+
         {/* Settings Button */}
         {navItems
           .filter(item => item.isBottom && (item.showAlways || item.showWhen))
@@ -271,9 +271,9 @@ export default function Sidebar() {
   const MobileMenu = () => (
     <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
       <SheetTrigger asChild>
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="md:hidden fixed top-4 left-4 z-50 bg-background/80 backdrop-blur-sm border rounded-full h-10 w-10 shadow-md"
         >
           <Menu className="h-5 w-5" />
@@ -299,9 +299,9 @@ export default function Sidebar() {
               </Link>
             </div>
             <SheetClose asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="rounded-full h-8 w-8"
               >
                 <X className="h-4 w-4" />

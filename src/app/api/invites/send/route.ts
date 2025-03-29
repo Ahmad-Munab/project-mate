@@ -9,10 +9,10 @@ import { eq } from 'drizzle-orm';
 export async function POST(request: Request) {
   try {
     console.log('🚀 Starting invite process...');
-    
+
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       console.error('❌ Authentication error:', authError);
       return NextResponse.json(
@@ -107,9 +107,9 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('❌ Error in invite process:', error);
     return NextResponse.json(
-      { 
+      {
         error: "Failed to send invite",
-        details: error.message 
+        details: error && typeof error === 'object' && 'message' in error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

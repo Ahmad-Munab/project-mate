@@ -5,14 +5,14 @@ import { invites, projectMembers, projects } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 // Get invite details
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { token: string } }
-) {
-  const supabase = await createClient();
+export async function GET(request: NextRequest) {
+  // const supabase = await createClient(); // Not needed in this route
 
   try {
-    const token = params.token;
+    // Extract token from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const token = pathParts[pathParts.length - 1];
 
     // First, get the invite details
     const [invite] = await db
@@ -73,13 +73,12 @@ export async function GET(
 }
 
 // Cancel an invite
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { token: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
-    // In Next.js 15, params should be awaited
-    const { token } = await params;
+    // Extract token from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const token = pathParts[pathParts.length - 1];
     console.log(`API: Cancelling invite with token ${token}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -139,13 +138,12 @@ export async function DELETE(
 }
 
 // Resend an invite
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { token: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    // In Next.js 15, params should be awaited
-    const { token } = await params;
+    // Extract token from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const token = pathParts[pathParts.length - 1];
     console.log(`API: Resending invite with token ${token}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();

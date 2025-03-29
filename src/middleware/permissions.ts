@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { getUserPermissions } from "@/services/permissions";
+import type { Permissions } from "@/types/permissions";
 
 export async function permissionsMiddleware(
   request: NextRequest,
@@ -18,7 +19,7 @@ export async function permissionsMiddleware(
   }
 
   const permissions = await getUserPermissions(user.id);
-  
+
   if (!permissions) {
     return NextResponse.json(
       { error: "No permissions found" },

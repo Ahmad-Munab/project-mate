@@ -37,8 +37,8 @@ export async function createClient(cookieStore?: ReturnType<typeof cookies>) {
               options.expires = new Date(Date.now() + options.maxAge * 1000);
             }
             // We can't await here, but we can still call the method
-            // Use any type assertion to avoid the type error
-            (cookieHandler as any).set(name, value, options as any);
+            // Use type assertion to avoid the type error
+            (cookieHandler as { set(name: string, value: string, options: unknown): void }).set(name, value, options as unknown);
             // Update our local map for future gets
             cookieMap.set(name, value);
           } catch (error) {
@@ -47,8 +47,8 @@ export async function createClient(cookieStore?: ReturnType<typeof cookies>) {
         },
         remove: (name: string, options?: CookieOptions): void => {
           try {
-            // Use any type assertion to avoid the type error
-            (cookieHandler as any).set(name, '', { ...options, expires: new Date(0) } as any);
+            // Use type assertion to avoid the type error
+            (cookieHandler as { set(name: string, value: string, options: unknown): void }).set(name, '', { ...options, expires: new Date(0) } as unknown);
             // Update our local map
             cookieMap.delete(name);
           } catch (error) {

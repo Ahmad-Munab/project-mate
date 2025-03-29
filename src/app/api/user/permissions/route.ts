@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { permissions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     console.log('API: Fetching user permissions');
     const supabase = await createClient();

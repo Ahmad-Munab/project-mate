@@ -4,13 +4,12 @@ import { db } from "@/db";
 import { projectMembers, invites } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 
-export async function GET(
-  request: NextRequest,
-  context: { params: { projectId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    // In Next.js 15, context.params should be awaited
-    const { projectId } = await context.params;
+    // Extract projectId from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.length - 2]; // projectId is the second-to-last part
     console.log(`API: Fetching activities for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -113,7 +112,7 @@ export async function GET(
     // Invite activities
     for (const invite of projectInvites) {
       // Find who created the invite
-      const creator = members.find(m => m.userId === invite.createdBy);
+      // const creator = members.find(m => m.userId === invite.createdBy); // Not used
       const creatorProfile = profiles?.find(p => p.id === invite.createdBy);
       const creatorName = creatorProfile?.full_name || 'Unknown User';
       const creatorAvatar = creatorProfile?.avatar_url || '';

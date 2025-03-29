@@ -7,13 +7,12 @@ import { randomUUID } from "crypto";
 import { sendInviteEmail } from "@/services/email";
 import type { Role } from "@/types/permissions";
 
-export async function GET(
-  request: NextRequest,
-  context: { params: { projectId: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    // In Next.js 15, context.params should be awaited
-    const { projectId } = await context.params;
+    // Extract projectId from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.length - 2]; // projectId is the second-to-last part
     console.log(`API: Fetching invites for project ${projectId}`);
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -78,13 +77,12 @@ export async function GET(
 }
 
 // Create a new invite
-export async function POST(
-  request: NextRequest,
-  context: { params: { projectId: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    // In Next.js 15, context.params should be awaited
-    const { projectId } = await context.params;
+    // Extract projectId from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.length - 2]; // projectId is the second-to-last part
     console.log('🚀 Starting invite creation process...');
     console.log('📝 Project ID:', projectId);
 
@@ -227,7 +225,7 @@ export async function POST(
   } catch (error) {
     console.error("❌ Error creating invite:", error);
     return NextResponse.json(
-      { error: "Failed to create invite", details: error.message },
+      { error: "Failed to create invite", details: error && typeof error === 'object' && 'message' in error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

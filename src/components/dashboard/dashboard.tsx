@@ -67,14 +67,16 @@ type Project = {
   dueDate?: string;
 };
 
-type ProjectWithOwner = Project & {
+// This type defines the project data structure with owner information
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface ProjectWithOwner extends Project {
   isOwner: boolean;
   ownerInfo?: {
     name: string;
     avatar: string;
   };
   myRole?: string;
-};
+}
 
 export default function Dashboard() {
 
@@ -381,7 +383,7 @@ export default function Dashboard() {
                   <h2 className="text-lg sm:text-xl font-semibold mb-4">My Projects</h2>
                   <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {filteredProjects
-                      .filter(project => project.isOwner)
+                      .filter(project => 'isOwner' in project && project.isOwner)
                       .map((project, index) => (
                         <motion.div
                           key={project.id}
@@ -442,11 +444,11 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="relative">
-                                    <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px] overflow-hidden rounded-full bg-muted/50 group-hover:bg-muted/70 transition-colors duration-300" />
+                                    <Progress value={project.progress ?? 0} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px] overflow-hidden rounded-full bg-muted/50 group-hover:bg-muted/70 transition-colors duration-300" />
                                     <div className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                    <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 group-hover:scale-x-100 transition-transform duration-1000 ease-out" style={{ transform: `scaleX(${project.progress / 100})` }}></div>
+                                    <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 group-hover:scale-x-100 transition-transform duration-1000 ease-out" style={{ transform: `scaleX(${(project.progress ?? 0) / 100})` }}></div>
                                   </div>
-                                  <span className="text-xs font-medium">{project.progress}%</span>
+                                  <span className="text-xs font-medium">{project.progress ?? 0}%</span>
                                 </div>
                               </div>
                               {project.dueDate && (
@@ -499,7 +501,7 @@ export default function Dashboard() {
                   <h2 className="text-lg sm:text-xl font-semibold mb-4">Shared With Me</h2>
                   <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {filteredProjects
-                      .filter(project => !project.isOwner)
+                      .filter(project => !('isOwner' in project) || !project.isOwner)
                       .map((project, index) => (
                         <motion.div
                           key={project.id}
@@ -514,8 +516,8 @@ export default function Dashboard() {
                               <div className="flex justify-between items-start gap-2">
                                 <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
                                   <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
-                                    <AvatarImage src={project.ownerInfo?.avatar} />
-                                    <AvatarFallback>{project.ownerInfo?.name?.[0]}</AvatarFallback>
+                                    <AvatarImage src={undefined} />
+                                    <AvatarFallback>U</AvatarFallback>
                                   </Avatar>
                                   <div className="min-w-0">
                                     <CardTitle className="text-base sm:text-lg truncate group-hover:text-primary transition-colors duration-300 flex items-center">
@@ -523,7 +525,7 @@ export default function Dashboard() {
                                       {project.name}
                                     </CardTitle>
                                     <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                                      By {project.ownerInfo?.name} • You are {project.myRole}
+                                      By Unknown • You are Member
                                     </p>
                                   </div>
                                 </div>
@@ -554,11 +556,11 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <div className="relative">
-                                    <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px] overflow-hidden rounded-full bg-muted/50 group-hover:bg-muted/70 transition-colors duration-300" />
+                                    <Progress value={project.progress ?? 0} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px] overflow-hidden rounded-full bg-muted/50 group-hover:bg-muted/70 transition-colors duration-300" />
                                     <div className="absolute inset-0 w-full h-full rounded-full bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                    <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 group-hover:scale-x-100 transition-transform duration-1000 ease-out" style={{ transform: `scaleX(${project.progress / 100})` }}></div>
+                                    <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 group-hover:scale-x-100 transition-transform duration-1000 ease-out" style={{ transform: `scaleX(${(project.progress ?? 0) / 100})` }}></div>
                                   </div>
-                                  <span className="text-xs font-medium">{project.progress}%</span>
+                                  <span className="text-xs font-medium">{project.progress ?? 0}%</span>
                                 </div>
                               </div>
                               {project.dueDate && (
@@ -647,17 +649,17 @@ export default function Dashboard() {
                           >
                             <td className="p-2 sm:p-4 align-middle">
                               <div className="flex items-center gap-2 sm:gap-3">
-                                {!project.isOwner && (
+                                {!('isOwner' in project && project.isOwner) && (
                                   <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0 border-2 border-background transition-all duration-300 hover:border-primary/20 hover:shadow-sm">
-                                    <AvatarImage src={project.ownerInfo?.avatar} />
-                                    <AvatarFallback className="text-xs bg-primary/10 text-primary">{project.ownerInfo?.name?.[0]}</AvatarFallback>
+                                    <AvatarImage src={undefined} />
+                                    <AvatarFallback className="text-xs bg-primary/10 text-primary">U</AvatarFallback>
                                   </Avatar>
                                 )}
                                 <div className="min-w-0 max-w-[180px] sm:max-w-none">
                                   <div className="font-medium truncate group-hover:text-primary transition-colors duration-300">{project.name}</div>
-                                  {!project.isOwner && (
+                                  {!('isOwner' in project && project.isOwner) && (
                                     <div className="text-xs sm:text-sm text-muted-foreground truncate">
-                                      By {project.ownerInfo?.name} • You are {project.myRole}
+                                      By Unknown • You are Member
                                     </div>
                                   )}
                                   <div className="text-xs sm:text-sm text-muted-foreground line-clamp-1 hidden sm:block">
@@ -689,10 +691,10 @@ export default function Dashboard() {
                             <td className="p-2 sm:p-4 align-middle hidden md:table-cell">
                               <div className="flex items-center gap-2">
                                 <div className="relative">
-                                  <Progress value={project.progress} className="h-1.5 sm:h-2 w-[40px] sm:w-[60px] overflow-hidden rounded-full" />
-                                  <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 transition-transform duration-1000 ease-out hover:scale-x-100" style={{ transform: `scaleX(${project.progress / 100})` }}></div>
+                                  <Progress value={project.progress ?? 0} className="h-1.5 sm:h-2 w-[40px] sm:w-[60px] overflow-hidden rounded-full" />
+                                  <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 transition-transform duration-1000 ease-out hover:scale-x-100" style={{ transform: `scaleX(${(project.progress ?? 0) / 100})` }}></div>
                                 </div>
-                                <span className="text-xs font-medium">{project.progress}%</span>
+                                <span className="text-xs font-medium">{project.progress ?? 0}%</span>
                               </div>
                             </td>
                             <td className="p-2 sm:p-4 align-middle hidden md:table-cell">

@@ -5,12 +5,14 @@ import { invites, users, projectMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { assignUserPermissions } from "@/services/permissions";
+import { memberStatusEnum } from "@/db/schema";
 
-export async function POST(
-  request: Request,
-  { params }: { params: { token: string } }
-) {
+export async function POST(request: Request) {
   try {
+    // Extract token from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const token = pathParts[pathParts.length - 2]; // token is the second-to-last part
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -21,7 +23,7 @@ export async function POST(
       );
     }
 
-    const token = params.token;
+    // Token is already extracted from context.params
     console.log("Processing invite acceptance for token:", token);
 
     // Find and validate invite
@@ -83,7 +85,7 @@ export async function POST(
       // together or fail together, maintaining data consistency.
 
       // Update or create user
-      let [existingUser] = await tx
+      const [existingUser] = await tx
         .select()
         .from(users)
         .where(eq(users.id, user.id));
@@ -103,7 +105,8 @@ export async function POST(
           .insert(users)
           .values({
             id: user.id,
-            email: user.email,
+            email: user.email || '',
+            role: 'MEMBER',
             createdAt: new Date(),
             updatedAt: new Date()
           });
@@ -115,7 +118,7 @@ export async function POST(
         userId: user.id,
         projectId: invite.projectId,
         role: invite.role,
-        status: invite.role === 'OWNER' ? 'ACTIVE' : 'PENDING', // Owners are automatically active, others need approval
+        status: invite.role === 'OWNER' ? memberStatusEnum.enumValues[0] : memberStatusEnum.enumValues[2], // Owners are automatically active, others need approval
         lastActive: new Date(), // Set initial last active time
         createdAt: new Date(),
         updatedAt: new Date()
@@ -184,13 +187,13 @@ export async function POST(
   } catch (error) {
     console.error("Detailed error accepting invite:", error);
     // Log additional error details if available
-    if (error.code) console.error("Error code:", error.code);
-    if (error.detail) console.error("Error detail:", error.detail);
+    if (error && typeof error === 'object' && 'code' in error) console.error("Error code:", error.code);
+    if (error && typeof error === 'object' && 'detail' in error) console.error("Error detail:", error.detail);
 
     return NextResponse.json(
       {
         error: "Failed to accept invite",
-        details: error.message
+        details: error && typeof error === 'object' && 'message' in error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

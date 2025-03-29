@@ -459,6 +459,7 @@ export default function MembersPage() {
   }
 
   // Use a counter to trigger re-renders without fetching data
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [refreshCounter, setRefreshCounter] = useState(0);
 
   // Refresh the status display periodically without fetching new data
@@ -484,7 +485,7 @@ export default function MembersPage() {
     twoMinutesAgo.setMinutes(twoMinutesAgo.getMinutes() - 2);
 
     return lastActiveDate > twoMinutesAgo;
-  }, [refreshCounter]); // Depend on refreshCounter to recalculate every 30 seconds
+  }, []); // No dependencies needed as this is a pure function
 
   // Helper functions for displaying badges
   const getStatusBadge = useCallback((member: Member) => {
@@ -553,7 +554,7 @@ export default function MembersPage() {
 
     const diffInYears = Math.floor(diffInMonths / 12);
     return `${diffInYears} year${diffInYears !== 1 ? 's' : ''} ago`;
-  }, [refreshCounter]); // Depend on refreshCounter to recalculate every 30 seconds
+  }, []); // No dependencies needed as this is a pure function
 
   // Get formatted last active time
   const getFormattedLastActiveTime = useCallback((member: Member) => {

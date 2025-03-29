@@ -132,7 +132,7 @@ export default function ProjectBoard({
   initialTasks: Task[];
   isOwner: boolean;
 }) {
-  const { can, isManager, role, permissions } = usePermissions();
+  const { can, isManager, permissions } = usePermissions();
 
   // Determine if user is a manager based on role or permissions
   const userIsManager = isManager() || permissions?.canManageProject === true;
@@ -150,7 +150,7 @@ export default function ProjectBoard({
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteRole, setInviteRole] = useState<"MEMBER" | "MANAGER">("MEMBER");
   const boardRef = useRef<HTMLDivElement>(null);
-  
+
   // Mobile responsive state
   const [activeColumn, setActiveColumn] = useState<keyof typeof columnHeaders>("TODO");
   const [isMobile, setIsMobile] = useState(false);
@@ -338,7 +338,7 @@ export default function ProjectBoard({
   const navigateColumn = (direction: 'next' | 'prev') => {
     const columns = Object.keys(columnHeaders) as Array<keyof typeof columnHeaders>;
     const currentIndex = columns.indexOf(activeColumn);
-    
+
     if (direction === 'next' && currentIndex < columns.length - 1) {
       setActiveColumn(columns[currentIndex + 1]);
     } else if (direction === 'prev' && currentIndex > 0) {
@@ -375,8 +375,8 @@ export default function ProjectBoard({
         </div>
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
           {canCreateTasks && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsCreateDialogOpen(true)}
               className="text-xs md:text-sm h-8 md:h-10"
             >
@@ -385,8 +385,8 @@ export default function ProjectBoard({
             </Button>
           )}
           {canInviteMembers && (
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setIsInviteDialogOpen(true)}
               className="text-xs md:text-sm h-8 md:h-10"
             >
@@ -445,26 +445,26 @@ export default function ProjectBoard({
       {/* Mobile Column Navigation */}
       {isMobile && (
         <div className="flex items-center justify-between px-4 py-2 bg-muted/30">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => navigateColumn('prev')}
             disabled={activeColumn === columns[0]}
             className="h-8 w-8"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          
+
           <h3 className="font-medium text-sm">
             {columnHeaders[activeColumn]}
             <span className="ml-2 text-xs bg-background rounded-full px-2 py-1">
               {projectTasks.filter((task) => task.status === activeColumn).length}
             </span>
           </h3>
-          
-          <Button 
-            variant="ghost" 
-            size="icon" 
+
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => navigateColumn('next')}
             disabled={activeColumn === columns[columns.length - 1]}
             className="h-8 w-8"
@@ -568,9 +568,9 @@ export default function ProjectBoard({
                       </span>
                     </div>
                     {canCreateTasks && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-8 w-8 p-0"
                         onClick={() => {
                           setIsCreateDialogOpen(true);

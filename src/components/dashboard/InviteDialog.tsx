@@ -45,10 +45,10 @@ export function InviteDialog({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          email, 
+        body: JSON.stringify({
+          email,
           role,
-          projectId 
+          projectId
         }),
       });
 
@@ -57,15 +57,19 @@ export function InviteDialog({
         throw new Error(error.error || "Failed to create invite");
       }
 
-      const data = await response.json();
-      
+      await response.json(); // Response data not used
+
       toast.success("Invitation sent successfully");
       onOpenChange(false);
       setEmail("");
       setRole("MEMBER");
     } catch (error) {
       console.error("Error sending invite:", error);
-      toast.error(error.message || "Failed to send invitation");
+      toast.error(
+        error && typeof error === 'object' && 'message' in error
+          ? String(error.message)
+          : "Failed to send invitation"
+      );
     } finally {
       setIsLoading(false);
     }

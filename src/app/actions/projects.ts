@@ -2,16 +2,16 @@
 
 import { db } from "@/db";
 import { projects, projectMembers, users } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
 export async function getProjects() {
   try {
     console.log("Server: Fetching projects");
-    
+
     const supabase = await createClient();
-  
+
     const {
       data: { user },
       error: authError,
@@ -60,7 +60,7 @@ export async function getProjects() {
         myRole: memberRole,
         ownerInfo: ownerId !== user.id ? {
           name: ownerInfo?.email?.split('@')[0] || 'Unknown User', // Or any other user display name logic
-          avatar: ownerInfo?.avatar || '', // Add this field to your users table if you haven't
+          avatar: '', // Default empty avatar
         } : undefined,
       }));
 

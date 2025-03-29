@@ -4,13 +4,12 @@ import { db } from "@/db";
 import { projectMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
-export async function POST(
-  request: NextRequest,
-  context: { params: { projectId: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    // In Next.js 15, context.params should be awaited
-    const { projectId } = await context.params;
+    // Extract projectId from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const projectId = pathParts[pathParts.length - 3]; // projectId is the third-to-last part
     console.log(`API: Updating activity for project ${projectId}`);
 
     const supabase = await createClient();
@@ -25,7 +24,7 @@ export async function POST(
     }
 
     // Update the lastActive timestamp and set status to ACTIVE
-    const result = await db
+    await db
       .update(projectMembers)
       .set({
         lastActive: new Date(),

@@ -4,10 +4,7 @@ import { db } from "@/db";
 import { invites } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function POST(
-  request: Request,
-  { params }: { params: { token: string } }
-) {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -19,7 +16,10 @@ export async function POST(
       );
     }
 
-    const token = params.token;
+    // Extract token from URL
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/');
+    const token = pathParts[pathParts.length - 2]; // token is the second-to-last part
 
     await db
       .update(invites)
