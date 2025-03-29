@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { 
   Sparkles, 
   Calendar, 
@@ -17,14 +17,82 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetTrigger,
-  SheetTitle,
-  SheetClose
-} from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
+import * as SheetPrimitive from "@radix-ui/react-dialog"
+import { cva } from "class-variance-authority"
+
+// Custom Sheet components to avoid double close button
+const Sheet = SheetPrimitive.Root
+const SheetTrigger = SheetPrimitive.Trigger
+const SheetClose = SheetPrimitive.Close
+const SheetPortal = SheetPrimitive.Portal
+const SheetOverlay = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Overlay>,
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
+>(({ className, ...props }, ref) => (
+  <SheetPrimitive.Overlay
+    className={cn(
+      "fixed inset-0 z-50 bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      className
+    )}
+    {...props}
+    ref={ref}
+  />
+))
+SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
+
+const sheetVariants = cva(
+  "fixed z-50 gap-4 bg-background p-0 shadow-lg transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out",
+  {
+    variants: {
+      side: {
+        top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+        bottom:
+          "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+        right:
+          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+      },
+    },
+    defaultVariants: {
+      side: "right",
+    },
+  }
+)
+
+interface SheetContentProps
+  extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content> {
+  side?: "top" | "right" | "bottom" | "left"
+}
+
+const SheetContent = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Content>,
+  SheetContentProps
+>(({ side = "right", className, children, ...props }, ref) => (
+  <SheetPortal>
+    <SheetOverlay />
+    <SheetPrimitive.Content
+      ref={ref}
+      className={cn(sheetVariants({ side }), className)}
+      {...props}
+    >
+      {children}
+    </SheetPrimitive.Content>
+  </SheetPortal>
+))
+SheetContent.displayName = SheetPrimitive.Content.displayName
+
+const SheetTitle = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Title>,
+  React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
+>(({ className, ...props }, ref) => (
+  <SheetPrimitive.Title
+    ref={ref}
+    className={cn("text-foreground text-lg font-semibold", className)}
+    {...props}
+  />
+))
+SheetTitle.displayName = SheetPrimitive.Title.displayName
 
 export default function Sidebar() {
   // Get the current project ID from the URL
@@ -78,7 +146,6 @@ export default function Sidebar() {
       href: "/dashboard",
       icon: <Code className="h-4 w-4 text-primary" />,
       isActive: isDashboardPage,
-      color: "primary",
       showAlways: true
     },
     {
@@ -86,7 +153,6 @@ export default function Sidebar() {
       href: "#",
       icon: <Calendar className="h-4 w-4 text-green-500" />,
       isActive: false,
-      color: "green-500",
       showAlways: true
     },
     {
@@ -94,7 +160,6 @@ export default function Sidebar() {
       href: `/dashboard/projects/${projectId}/members`,
       icon: <Users className="h-4 w-4 text-green-500" />,
       isActive: isMembersPage,
-      color: "green-500",
       showAlways: false,
       showWhen: isProjectPage
     },
@@ -103,7 +168,6 @@ export default function Sidebar() {
       href: "/settings",
       icon: <Settings className="h-4 w-4 text-muted-foreground" />,
       isActive: isSettingsPage,
-      color: "muted-foreground",
       showAlways: true,
       isBottom: true
     }
@@ -247,20 +311,17 @@ export default function Sidebar() {
     </Sheet>
   );
 
+  // Only render the appropriate sidebar based on screen size
   return (
     <>
-      {/* Mobile Hamburger Menu */}
-      {isMobile && <MobileMenu />}
-
-      {/* Desktop Sidebar */}
-      <motion.div
-        initial={{ x: -20, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="hidden md:flex w-64 flex-col border-r bg-card/50 backdrop-blur-sm h-full"
-      >
-        <SidebarContent />
-      </motion.div>
+      {/* Mobile Hamburger Menu - Only show when mobile */}
+      {isMobile ? (
+        <MobileMenu />
+      ) : (
+        <div className="w-64 flex-col border-r bg-card/50 backdrop-blur-sm h-full">
+          <SidebarContent />
+        </div>
+      )}
     </>
   )
 }
