@@ -195,7 +195,7 @@ export default function Sidebar() {
         </div>
       )}
 
-      <div className="flex-1 overflow-auto py-4 px-2">
+      <div className="flex-1 overflow-y-auto py-4 px-2">
         <nav className="space-y-2">
           {navItems
             .filter(item => (item.showAlways || item.showWhen) && !item.isBottom)
@@ -212,8 +212,8 @@ export default function Sidebar() {
                 asChild
               >
                 <Link href={item.href} className="font-medium">
-                  <span className="mr-2">{item.icon}</span>
-                  {item.name}
+                  <span className="mr-2 flex-shrink-0">{item.icon}</span>
+                  <span className="truncate">{item.name}</span>
                   {item.isActive && (
                     <motion.div
                       layoutId="activeIndicator"
@@ -227,16 +227,16 @@ export default function Sidebar() {
         </nav>
       </div>
 
-      <div className="p-4 border-t space-y-2">
+      <div className="p-2 border-t mt-auto">
         {/* Upgrade to Pro Button */}
         <Button
           variant="outline"
-          className="w-full justify-start bg-gradient-to-r from-amber-500/10 to-transparent hover:from-amber-500/20 hover:to-amber-500/10 border-amber-500/20 transition-all duration-300"
+          className="w-full justify-start bg-gradient-to-r from-amber-500/10 to-transparent hover:from-amber-500/20 hover:to-amber-500/10 border-amber-500/20 transition-all duration-300 mb-2 h-auto py-2"
         >
           <div className="flex items-center w-full">
             <Star className="mr-2 h-4 w-4 text-amber-500 flex-shrink-0" />
-            <span className="text-left whitespace-nowrap overflow-hidden text-ellipsis">Upgrade to Pro</span>
-            <Badge variant="outline" className="ml-2 bg-amber-500/10 text-amber-500 border-amber-500/20 flex-shrink-0">
+            <span className="truncate">Upgrade to Pro</span>
+            <Badge variant="outline" className="ml-auto bg-amber-500/10 text-amber-500 border-amber-500/20 flex-shrink-0 text-xs px-1.5">
               New
             </Badge>
           </div>
@@ -258,8 +258,8 @@ export default function Sidebar() {
               asChild
             >
               <Link href={item.href} className="font-medium">
-                <span className="mr-2">{item.icon}</span>
-                {item.name}
+                <span className="mr-2 flex-shrink-0">{item.icon}</span>
+                <span className="truncate">{item.name}</span>
               </Link>
             </Button>
           ))}
@@ -310,7 +310,9 @@ export default function Sidebar() {
             </SheetClose>
           </div>
         </div>
-        <SidebarContent isMobile={true} />
+        <div className="flex flex-col h-[calc(100vh-73px)]">
+          <SidebarContent isMobile={true} />
+        </div>
       </SheetContent>
     </Sheet>
   );
