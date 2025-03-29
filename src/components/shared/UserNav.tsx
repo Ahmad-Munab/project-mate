@@ -122,7 +122,7 @@ export default function UserNav() {
     <div className="flex items-center justify-between w-full">
       {/* Left side: User and Project */}
       <div className="flex items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:ml-0 ml-14"> {/* Add left margin on mobile to avoid hamburger overlap */}
           <div className="flex items-center gap-2">
             <Avatar className="h-8 w-8 border border-border">
               <AvatarImage
