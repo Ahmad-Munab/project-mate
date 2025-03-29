@@ -1,7 +1,7 @@
 "use client";
 
 import { createClient } from "@/utils/supabase/client";
-import { useParams, useRouter, usePathname } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,8 +13,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect, useCallback } from "react";
-import { ChevronDown, FolderKanban, Share2, User, Home, ChevronRight, Plus, LogOut } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ChevronDown, FolderKanban, User, Home, Plus, LogOut } from "lucide-react";
 
 type UserData = {
   email: string | undefined;
@@ -34,7 +34,7 @@ type Project = {
 export default function UserNav() {
   const router = useRouter();
   const params = useParams();
-  const pathname = usePathname();
+  // No need for pathname
   const projectId = params?.projectId as string;
 
   const [userData, setUserData] = useState<UserData>({

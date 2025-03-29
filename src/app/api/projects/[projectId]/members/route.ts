@@ -93,7 +93,7 @@ export async function GET(
 // Update member role
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  context: { params: { projectId: string } }
 ) {
   try {
     const supabase = await createClient();
@@ -106,13 +106,16 @@ export async function PATCH(
       );
     }
 
+    // Get projectId from context
+    const { projectId } = context.params;
+
     // Check if user is project owner or manager
     const [membership] = await db
       .select()
       .from(projectMembers)
       .where(
         and(
-          eq(projectMembers.projectId, params.projectId),
+          eq(projectMembers.projectId, projectId),
           eq(projectMembers.userId, user.id)
         )
       );
@@ -153,7 +156,7 @@ export async function PATCH(
       .from(projectMembers)
       .where(
         and(
-          eq(projectMembers.projectId, params.projectId),
+          eq(projectMembers.projectId, projectId),
           eq(projectMembers.role, 'OWNER')
         )
       );
@@ -204,7 +207,7 @@ export async function PATCH(
 // Remove member from project
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  context: { params: { projectId: string } }
 ) {
   try {
     const supabase = await createClient();
@@ -217,13 +220,16 @@ export async function DELETE(
       );
     }
 
+    // Get projectId from context
+    const { projectId } = context.params;
+
     // Check if user is project owner or manager
     const [membership] = await db
       .select()
       .from(projectMembers)
       .where(
         and(
-          eq(projectMembers.projectId, params.projectId),
+          eq(projectMembers.projectId, projectId),
           eq(projectMembers.userId, user.id)
         )
       );
@@ -264,7 +270,7 @@ export async function DELETE(
       .from(projectMembers)
       .where(
         and(
-          eq(projectMembers.projectId, params.projectId),
+          eq(projectMembers.projectId, projectId),
           eq(projectMembers.role, 'OWNER')
         )
       );
