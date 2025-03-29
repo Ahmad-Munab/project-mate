@@ -609,7 +609,7 @@ export default function Dashboard() {
 
                   {/* List View */}
 
-              <TabsContent value="list">
+              <TabsContent value="list" className="relative">
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
@@ -617,7 +617,10 @@ export default function Dashboard() {
                   className="rounded-md border"
                 >
                   <div className="relative w-full overflow-x-auto">
-                    <table className="w-full caption-bottom text-xs sm:text-sm">
+                    <div className="md:hidden p-4 text-sm text-muted-foreground">
+                      <p>Swipe horizontally to view all columns</p>
+                    </div>
+                    <table className="w-full caption-bottom text-xs sm:text-sm min-w-[800px] md:min-w-0">
                       <thead className="[&_tr]:border-b">
                         <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                           <th className="h-10 sm:h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground">
@@ -645,13 +648,13 @@ export default function Dashboard() {
                             <td className="p-2 sm:p-4 align-middle">
                               <div className="flex items-center gap-2 sm:gap-3">
                                 {!project.isOwner && (
-                                  <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
+                                  <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0 border-2 border-background transition-all duration-300 hover:border-primary/20 hover:shadow-sm">
                                     <AvatarImage src={project.ownerInfo?.avatar} />
-                                    <AvatarFallback className="text-xs">{project.ownerInfo?.name?.[0]}</AvatarFallback>
+                                    <AvatarFallback className="text-xs bg-primary/10 text-primary">{project.ownerInfo?.name?.[0]}</AvatarFallback>
                                   </Avatar>
                                 )}
                                 <div className="min-w-0 max-w-[180px] sm:max-w-none">
-                                  <div className="font-medium truncate">{project.name}</div>
+                                  <div className="font-medium truncate group-hover:text-primary transition-colors duration-300">{project.name}</div>
                                   {!project.isOwner && (
                                     <div className="text-xs sm:text-sm text-muted-foreground truncate">
                                       By {project.ownerInfo?.name} • You are {project.myRole}
@@ -660,27 +663,45 @@ export default function Dashboard() {
                                   <div className="text-xs sm:text-sm text-muted-foreground line-clamp-1 hidden sm:block">
                                     {project.description}
                                   </div>
+
+                                  {/* Mobile-only status and progress */}
+                                  <div className="flex items-center gap-2 sm:hidden mt-1">
+                                    <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-[10px] whitespace-nowrap py-0 h-5`}>
+                                      {project.status}
+                                    </Badge>
+                                    <div className="flex items-center gap-1">
+                                      <Progress value={project.progress} className="h-1 w-[40px]" />
+                                      <span className="text-[10px]">{project.progress}%</span>
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </td>
                             <td className="p-2 sm:p-4 align-middle hidden sm:table-cell">
                               <Badge
                                 variant="outline"
-                                className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap`}
+                                className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap shadow-sm`}
                               >
+                                <span className="hidden sm:inline-block w-1.5 h-1.5 rounded-full bg-current mr-1.5 animate-pulse"></span>
                                 {project.status}
                               </Badge>
                             </td>
                             <td className="p-2 sm:p-4 align-middle hidden md:table-cell">
                               <div className="flex items-center gap-2">
-                                <Progress value={project.progress} className="h-1.5 sm:h-2 w-[40px] sm:w-[60px]" />
-                                <span className="text-xs">{project.progress}%</span>
+                                <div className="relative">
+                                  <Progress value={project.progress} className="h-1.5 sm:h-2 w-[40px] sm:w-[60px] overflow-hidden rounded-full" />
+                                  <div className="absolute inset-0 w-full scale-x-0 origin-left h-full rounded-full bg-primary/10 transition-transform duration-1000 ease-out hover:scale-x-100" style={{ transform: `scaleX(${project.progress / 100})` }}></div>
+                                </div>
+                                <span className="text-xs font-medium">{project.progress}%</span>
                               </div>
                             </td>
                             <td className="p-2 sm:p-4 align-middle hidden md:table-cell">
-                              <span className="text-xs sm:text-sm">
-                                {project.dueDate && new Date(project.dueDate).toLocaleDateString()}
-                              </span>
+                              <div className="flex items-center text-xs sm:text-sm text-muted-foreground rounded-md transition-colors duration-300 hover:text-foreground">
+                                <Calendar className="h-3 w-3 mr-1.5 text-primary/70 hidden sm:inline" />
+                                <span>
+                                  {project.dueDate && new Date(project.dueDate).toLocaleDateString()}
+                                </span>
+                              </div>
                             </td>
                             <td className="p-2 sm:p-4 align-middle hidden sm:table-cell">
                               <div className="flex -space-x-2">
@@ -694,20 +715,20 @@ export default function Dashboard() {
                             </td>
                             <td className="p-2 sm:p-4 align-middle">
                               <div className="flex items-center gap-1 sm:gap-2">
-                                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-primary/10 transition-colors duration-200" asChild>
                                   <Link href={`/dashboard/projects/${project.id}`}>
-                                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                                   </Link>
                                 </Button>
                                 {project.isOwner && (
                                   <>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => openEditProjectModal(project)}>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-primary/10 transition-colors duration-200" onClick={() => openEditProjectModal(project)}>
                                       <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     </Button>
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
+                                      className="h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-destructive/10 transition-colors duration-200 text-destructive hover:text-destructive"
                                       onClick={() => confirmDeleteProject(project.id)}
                                     >
                                       <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />

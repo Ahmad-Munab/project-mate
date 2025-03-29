@@ -126,7 +126,7 @@ export default function UserNav() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" 
-            className="flex items-center gap-1 px-2 py-1 h-8 w-[50%] text-sm hover:bg-accent/50 transition-colors">
+            className="flex items-center gap-1 px-2 py-1 h-8 w-[100%] text-sm hover:bg-accent/50 transition-colors">
             <Avatar className="h-8 w-8 border border-border">
               <AvatarImage
                 src={userData.avatarUrl}
