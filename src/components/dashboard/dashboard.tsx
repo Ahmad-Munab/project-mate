@@ -117,7 +117,7 @@ export default function Dashboard() {
       try {
         const fetchedProjects = await getProjects();
         console.log("Client: Received projects:", fetchedProjects);
-        
+
         if (mounted) {
           setProjects(fetchedProjects);
           if (fetchedProjects.length > 0) {
@@ -138,7 +138,7 @@ export default function Dashboard() {
         }
       }
     };
-    
+
     loadProjects();
 
     return () => {
@@ -148,7 +148,7 @@ export default function Dashboard() {
   }, [setError, setIsLoading, setProjects, setSelectedProject]);
 
   // First, define filteredProjects
-  const filteredProjects = Array.isArray(projects) 
+  const filteredProjects = Array.isArray(projects)
     ? projects.filter(project =>
         project?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         project?.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -177,7 +177,7 @@ export default function Dashboard() {
   console.log("Client: Rendering with projects:", projects);
   console.log("Client: Filtered projects:", filteredProjects);
 
-  
+
 
   const handleEditProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -297,40 +297,35 @@ export default function Dashboard() {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="flex justify-center bg-card/50 backdrop-blur-md mt-6"
+          className="flex justify-center bg-card/50 backdrop-blur-md mt-6 px-4 md:px-6"
         >
-          <div className="flex items-center justify-between h-16 px-4">
-            <div className="flex items-center space-x-4">
-            <Link href="/dashboard/projects/new">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Project
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full py-4 gap-4">
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              <Link href="/dashboard/projects/new">
+                <Button className="h-9 px-3 sm:px-4">
+                  <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+                  <span className="sm:inline">New Project</span>
                 </Button>
               </Link>
-              <div className="relative w-128 group">
+              <div className="relative flex-1 min-w-[200px] sm:w-auto group">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                 <Input
                   type="search"
                   placeholder="Search projects..."
-                  className="pl-8 bg-card/50 backdrop-blur-sm border-primary/20 focus:border-primary/40 transition-all"
+                  className="pl-8 bg-card/50 backdrop-blur-sm border-primary/20 focus:border-primary/40 transition-all w-full"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-gradient-to-r from-green-500/10 to-transparent hover:from-blue-500/20 hover:to-cyan-500/10 border-green-500/20"
-                  >
-                    <Filter className="h-4 w-4 mr-2 text-green-500" />
-                    Filter
+                variant="outline"
+                size="sm"
+                className="bg-gradient-to-r from-green-500/10 to-transparent hover:from-blue-500/20 hover:to-cyan-500/10 border-green-500/20 h-9 whitespace-nowrap"
+              >
+                <Filter className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <span className="sm:inline">Filter</span>
               </Button>
-
-
-
             </div>
-
- 
           </div>
         </motion.header>
 
@@ -342,25 +337,25 @@ export default function Dashboard() {
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.4 }}
             >
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold rainbow-text">
+                  <h1 className="text-2xl sm:text-3xl font-bold rainbow-text">
                     Projects
                   </h1>
-                  <p className="text-muted-foreground mt-1">
+                  <p className="text-sm sm:text-base text-muted-foreground mt-1">
                     Manage your development projects and tasks
                   </p>
                 </div>
-                
-                <div className="flex items-center space-x-2 mt-4 md:mt-0">
+
+                <div className="flex items-center mt-2 sm:mt-0">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setAiAssistantOpen(true)}
-                    className="bg-gradient-to-r from-primary/10 to-transparent hover:from-primary/20 hover:to-primary/10 border-primary/20"
+                    className="bg-gradient-to-r from-primary/10 to-transparent hover:from-primary/20 hover:to-primary/10 border-primary/20 w-full sm:w-auto h-9"
                   >
-                    <Zap className="h-4 w-4 mr-2 text-primary" />
-                    AI Assistant
+                    <Zap className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                    <span>AI Assistant</span>
                   </Button>
                 </div>
               </div>
@@ -381,8 +376,8 @@ export default function Dashboard() {
               <TabsContent value="grid" className="space-y-4">
                 {/* My Projects */}
                 <div className="mb-6">
-                  <h2 className="text-xl font-semibold mb-4">My Projects</h2>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-4">My Projects</h2>
+                  <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {filteredProjects
                       .filter(project => project.isOwner)
                       .map((project, index) => (
@@ -392,12 +387,12 @@ export default function Dashboard() {
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
                         >
-                          <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <CardTitle className="text-lg">{project.name || 'Untitled Project'}</CardTitle>
-                                  <CardDescription className="line-clamp-2">
+                          <Card className="overflow-hidden hover:shadow-md transition-shadow border-primary/5 hover:border-primary/10">
+                            <CardHeader className="pb-2 p-4 sm:p-6">
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <CardTitle className="text-base sm:text-lg truncate">{project.name || 'Untitled Project'}</CardTitle>
+                                  <CardDescription className="line-clamp-2 text-xs sm:text-sm mt-1">
                                     {project.description || 'No description provided'}
                                   </CardDescription>
                                 </div>
@@ -430,38 +425,38 @@ export default function Dashboard() {
                                 </DropdownMenu>
                               </div>
                             </CardHeader>
-                            <CardContent className="pb-2">
-                              <div className="flex justify-between items-center mb-2">
+                            <CardContent className="pb-2 px-4 sm:px-6">
+                              <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
                                 <div className="flex items-center">
-                                  <Badge variant="outline" className={getStatusColor(project.status || 'PENDING')}>
+                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap`}>
                                     {project.status}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <Progress value={project.progress} className="h-2 w-[60px]" />
+                                  <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px]" />
                                   <span className="text-xs">{project.progress}%</span>
                                 </div>
                               </div>
                               {project.dueDate && (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-xs sm:text-sm text-muted-foreground">
                                   Due: {new Date(project.dueDate).toLocaleDateString()}
                                 </p>
                               )}
                             </CardContent>
-                            <CardFooter className="pt-2">
-                              <div className="flex justify-between items-center w-full">
-                                <div className="flex -space-x-2">
+                            <CardFooter className="pt-2 px-4 sm:px-6">
+                              <div className="flex justify-between items-center w-full gap-2">
+                                <div className="flex -space-x-2 flex-shrink-0">
                                   {project.members?.slice(0, 3).map((member, i) => (
-                                    <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background">
                                       <AvatarImage src={member.avatar} alt={member.name} />
-                                      <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
+                                      <AvatarFallback className="text-xs">{member.name?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                   ))}
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm"
                                   asChild
                                 >
                                   <Link href={`/dashboard/projects/${project.id}`}>
@@ -478,8 +473,8 @@ export default function Dashboard() {
 
                 {/* Shared Projects */}
                 <div>
-                  <h2 className="text-xl font-semibold mb-4">Shared With Me</h2>
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <h2 className="text-lg sm:text-xl font-semibold mb-4">Shared With Me</h2>
+                  <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {filteredProjects
                       .filter(project => !project.isOwner)
                       .map((project, index) => (
@@ -489,17 +484,17 @@ export default function Dashboard() {
                           animate={{ y: 0, opacity: 1 }}
                           transition={{ duration: 0.3, delay: 0.1 * (index + 1) }}
                         >
-                          <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-8 w-8">
+                          <Card className="overflow-hidden hover:shadow-md transition-shadow border-primary/5 hover:border-primary/10">
+                            <CardHeader className="pb-2 p-4 sm:p-6">
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="flex items-start sm:items-center gap-2 flex-1 min-w-0">
+                                  <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
                                     <AvatarImage src={project.ownerInfo?.avatar} />
                                     <AvatarFallback>{project.ownerInfo?.name?.[0]}</AvatarFallback>
                                   </Avatar>
-                                  <div>
-                                    <CardTitle className="text-lg">{project.name}</CardTitle>
-                                    <p className="text-sm text-muted-foreground">
+                                  <div className="min-w-0">
+                                    <CardTitle className="text-base sm:text-lg truncate">{project.name}</CardTitle>
+                                    <p className="text-xs sm:text-sm text-muted-foreground truncate">
                                       By {project.ownerInfo?.name} • You are {project.myRole}
                                     </p>
                                   </div>
@@ -521,38 +516,38 @@ export default function Dashboard() {
                                 </DropdownMenu>
                               </div>
                             </CardHeader>
-                            <CardContent className="pb-2">
-                              <div className="flex justify-between items-center mb-2">
+                            <CardContent className="pb-2 px-4 sm:px-6">
+                              <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
                                 <div className="flex items-center">
-                                  <Badge variant="outline" className={getStatusColor(project.status || 'PENDING')}>
+                                  <Badge variant="outline" className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap`}>
                                     {project.status}
                                   </Badge>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  <Progress value={project.progress} className="h-2 w-[60px]" />
+                                  <Progress value={project.progress} className="h-1.5 sm:h-2 w-[50px] sm:w-[60px]" />
                                   <span className="text-xs">{project.progress}%</span>
                                 </div>
                               </div>
                               {project.dueDate && (
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-xs sm:text-sm text-muted-foreground">
                                   Due: {new Date(project.dueDate).toLocaleDateString()}
                                 </p>
                               )}
                             </CardContent>
-                            <CardFooter className="pt-2">
-                              <div className="flex justify-between items-center w-full">
-                                <div className="flex -space-x-2">
+                            <CardFooter className="pt-2 px-4 sm:px-6">
+                              <div className="flex justify-between items-center w-full gap-2">
+                                <div className="flex -space-x-2 flex-shrink-0">
                                   {project.members?.slice(0, 3).map((member, i) => (
-                                    <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                    <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background">
                                       <AvatarImage src={member.avatar} alt={member.name} />
-                                      <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
+                                      <AvatarFallback className="text-xs">{member.name?.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                   ))}
                                 </div>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="text-primary hover:text-primary hover:bg-primary/10"
+                                  className="text-primary hover:text-primary hover:bg-primary/10 h-8 px-2 sm:px-3 text-xs sm:text-sm"
                                   asChild
                                 >
                                   <Link href={`/dashboard/projects/${project.id}`}>
@@ -577,22 +572,22 @@ export default function Dashboard() {
                   transition={{ duration: 0.4, delay: 0.3 }}
                   className="rounded-md border"
                 >
-                  <div className="relative w-full overflow-auto">
-                    <table className="w-full caption-bottom text-sm">
+                  <div className="relative w-full overflow-x-auto">
+                    <table className="w-full caption-bottom text-xs sm:text-sm">
                       <thead className="[&_tr]:border-b">
                         <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                          <th className="h-10 sm:h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground">
                             Project
                           </th>
-                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Status</th>
-                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                          <th className="h-10 sm:h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground hidden sm:table-cell">Status</th>
+                          <th className="h-10 sm:h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground hidden md:table-cell">
                             Progress
                           </th>
-                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                          <th className="h-10 sm:h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground hidden md:table-cell">
                             Due Date
                           </th>
-                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Team</th>
-                          <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
+                          <th className="h-10 sm:h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground hidden sm:table-cell">Team</th>
+                          <th className="h-10 sm:h-12 px-2 sm:px-4 text-left align-middle font-medium text-muted-foreground">
                             Actions
                           </th>
                         </tr>
@@ -603,73 +598,75 @@ export default function Dashboard() {
                             key={project.id}
                             className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                           >
-                            <td className="p-4 align-middle">
-                              <div className="flex items-center gap-3">
+                            <td className="p-2 sm:p-4 align-middle">
+                              <div className="flex items-center gap-2 sm:gap-3">
                                 {!project.isOwner && (
-                                  <Avatar className="h-8 w-8">
+                                  <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
                                     <AvatarImage src={project.ownerInfo?.avatar} />
-                                    <AvatarFallback>{project.ownerInfo?.name?.[0]}</AvatarFallback>
+                                    <AvatarFallback className="text-xs">{project.ownerInfo?.name?.[0]}</AvatarFallback>
                                   </Avatar>
                                 )}
-                                <div>
-                                  <div className="font-medium">{project.name}</div>
+                                <div className="min-w-0 max-w-[180px] sm:max-w-none">
+                                  <div className="font-medium truncate">{project.name}</div>
                                   {!project.isOwner && (
-                                    <div className="text-sm text-muted-foreground">
+                                    <div className="text-xs sm:text-sm text-muted-foreground truncate">
                                       By {project.ownerInfo?.name} • You are {project.myRole}
                                     </div>
                                   )}
-                                  <div className="text-sm text-muted-foreground line-clamp-1">
+                                  <div className="text-xs sm:text-sm text-muted-foreground line-clamp-1 hidden sm:block">
                                     {project.description}
                                   </div>
                                 </div>
                               </div>
                             </td>
-                            <td className="p-4 align-middle">
+                            <td className="p-2 sm:p-4 align-middle hidden sm:table-cell">
                               <Badge
                                 variant="outline"
-                                className={getStatusColor(project.status || 'PENDING')}
+                                className={`${getStatusColor(project.status || 'PENDING')} text-xs whitespace-nowrap`}
                               >
                                 {project.status}
                               </Badge>
                             </td>
-                            <td className="p-4 align-middle">
+                            <td className="p-2 sm:p-4 align-middle hidden md:table-cell">
                               <div className="flex items-center gap-2">
-                                <Progress value={project.progress} className="h-2 w-[60px]" />
+                                <Progress value={project.progress} className="h-1.5 sm:h-2 w-[40px] sm:w-[60px]" />
                                 <span className="text-xs">{project.progress}%</span>
                               </div>
                             </td>
-                            <td className="p-4 align-middle">
-                              {project.dueDate && new Date(project.dueDate).toLocaleDateString()}
+                            <td className="p-2 sm:p-4 align-middle hidden md:table-cell">
+                              <span className="text-xs sm:text-sm">
+                                {project.dueDate && new Date(project.dueDate).toLocaleDateString()}
+                              </span>
                             </td>
-                            <td className="p-4 align-middle">
+                            <td className="p-2 sm:p-4 align-middle hidden sm:table-cell">
                               <div className="flex -space-x-2">
                                 {project.members?.slice(0, 3).map((member, i) => (
-                                  <Avatar key={i} className="h-7 w-7 border-2 border-background">
+                                  <Avatar key={i} className="h-6 w-6 sm:h-7 sm:w-7 border-2 border-background">
                                     <AvatarImage src={member.avatar} alt={member.name} />
-                                    <AvatarFallback>{member.name?.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback className="text-xs">{member.name?.charAt(0)}</AvatarFallback>
                                   </Avatar>
                                 ))}
                               </div>
                             </td>
-                            <td className="p-4 align-middle">
-                              <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon" asChild>
+                            <td className="p-2 sm:p-4 align-middle">
+                              <div className="flex items-center gap-1 sm:gap-2">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" asChild>
                                   <Link href={`/dashboard/projects/${project.id}`}>
-                                    <Eye className="h-4 w-4" />
+                                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                   </Link>
                                 </Button>
                                 {project.isOwner && (
                                   <>
-                                    <Button variant="ghost" size="icon" onClick={() => openEditProjectModal(project)}>
-                                      <Edit className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={() => openEditProjectModal(project)}>
+                                      <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     </Button>
                                     <Button
                                       variant="ghost"
                                       size="icon"
+                                      className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
                                       onClick={() => confirmDeleteProject(project.id)}
-                                      className="text-destructive hover:text-destructive"
                                     >
-                                      <Trash2 className="h-4 w-4" />
+                                      <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     </Button>
                                   </>
                                 )}
@@ -688,9 +685,9 @@ export default function Dashboard() {
       </div>
 
       {/* AI Assistant Drawer */}
-      <AIAssistant 
-        open={aiAssistantOpen} 
-        onOpenChange={setAiAssistantOpen} 
+      <AIAssistant
+        open={aiAssistantOpen}
+        onOpenChange={setAiAssistantOpen}
         project={selectedProject ? {
           ...selectedProject,
           members: selectedProject.members?.map(member => ({
@@ -698,9 +695,9 @@ export default function Dashboard() {
             name: member.name,
             role: 'MEMBER' // Adding default role since it's required
           }))
-        } : null} 
+        } : null}
       />
-    
+
       {/* Edit Project Modal */}
       <Dialog open={editProjectOpen} onOpenChange={setEditProjectOpen}>
         <DialogContent className="sm:max-w-[500px]">
@@ -772,11 +769,11 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
- 
+
     </div>
   )
 }
 
-// These are the missing imports that were used in the component
-import { MoreHorizontal, Eye,  } from "lucide-react"
+// Import all required icons
+import { MoreHorizontal, Eye, Filter } from "lucide-react"
 

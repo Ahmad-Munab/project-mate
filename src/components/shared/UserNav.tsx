@@ -123,11 +123,10 @@ export default function UserNav() {
       {/* Left side: User and Project */}
       <div className="flex items-center">
         <div className="flex items-center gap-2 md:ml-0 ml-14"> {/* Add left margin on mobile to avoid hamburger overlap */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+            <Button variant="ghost" size="icon" 
+            className="flex items-center gap-1 px-2 py-1 h-8 w-[50%] text-sm hover:bg-accent/50 transition-colors">
             <Avatar className="h-8 w-8 border border-border">
               <AvatarImage
                 src={userData.avatarUrl}
@@ -170,8 +169,6 @@ export default function UserNav() {
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
-          </div>
 
           {/* Only show project name when on a project page */}
           {currentProject && (
