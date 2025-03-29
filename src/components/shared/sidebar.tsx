@@ -11,14 +11,19 @@ import {
   Users, 
   Menu, 
   X, 
-  Home,
-  ChevronRight
+  Home
 } from "lucide-react"
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useParams, usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetTrigger,
+  SheetTitle,
+  SheetClose
+} from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
 
 export default function Sidebar() {
@@ -137,8 +142,8 @@ export default function Sidebar() {
                 className={cn(
                   "w-full justify-start transition-all duration-300",
                   item.isActive
-                    ? `bg-gradient-to-r from-${item.color}/10 via-${item.color}/5 to-transparent hover:from-${item.color}/20 hover:to-${item.color}/5`
-                    : `hover:bg-gradient-to-r hover:from-${item.color}/10 hover:to-transparent`
+                    ? "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5"
+                    : "hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent"
                 )}
                 asChild
               >
@@ -179,8 +184,8 @@ export default function Sidebar() {
               className={cn(
                 "w-full justify-start transition-all duration-300",
                 item.isActive
-                  ? `bg-gradient-to-r from-${item.color}/10 via-${item.color}/5 to-transparent hover:from-${item.color}/20 hover:to-${item.color}/5`
-                  : `hover:bg-gradient-to-r hover:from-${item.color}/10 hover:to-transparent`
+                  ? "bg-gradient-to-r from-primary/10 via-primary/5 to-transparent hover:from-primary/20 hover:to-primary/5"
+                  : "hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent"
               )}
               asChild
             >
@@ -201,12 +206,14 @@ export default function Sidebar() {
         <Button 
           variant="ghost" 
           size="icon" 
-          className="md:hidden fixed top-4 left-4 z-50 bg-background/80 backdrop-blur-sm border"
+          className="md:hidden fixed top-4 left-4 z-50 bg-background/80 backdrop-blur-sm border rounded-full h-10 w-10 shadow-md"
         >
           <Menu className="h-5 w-5" />
+          <span className="sr-only">Open menu</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="p-0 w-64 border-r">
+        <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
         <div className="p-4 border-b bg-gradient-to-r from-primary/10 to-transparent">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -217,19 +224,22 @@ export default function Sidebar() {
               >
                 <Sparkles className="h-6 w-6 text-primary animate-pulse" />
               </motion.div>
-              <Link href={'/'}>
+              <Link href={'/'} onClick={() => setIsMobileMenuOpen(false)}>
                 <h1 className="text-xl font-bold rainbow-text hover:pointer">
                   ProjectMate
                 </h1>
               </Link>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <SheetClose asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="rounded-full h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close menu</span>
+              </Button>
+            </SheetClose>
           </div>
         </div>
         <SidebarContent isMobile={true} />
@@ -237,7 +247,6 @@ export default function Sidebar() {
     </Sheet>
   );
 
-  // Render
   return (
     <>
       {/* Mobile Hamburger Menu */}
