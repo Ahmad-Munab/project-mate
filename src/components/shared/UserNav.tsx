@@ -34,7 +34,6 @@ type Project = {
 export default function UserNav() {
   const router = useRouter();
   const params = useParams();
-  // No need for pathname
   const projectId = params?.projectId as string;
 
   const [userData, setUserData] = useState<UserData>({
@@ -124,43 +123,18 @@ export default function UserNav() {
       {/* Left side: User and Project */}
       <div className="flex items-center">
         <div className="flex items-center gap-2">
-          <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-          <Button>
-          <Avatar className="h-8 w-8 border border-border">
-            <AvatarImage
-              src={userData.avatarUrl}
-              alt={displayName || "User avatar"}
-            />
-            <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-          </Avatar>
-          </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="start">
-            <DropdownMenuLabel>
-              <div className="flex items-center space-x-3">
-                <div className="flex flex-col">
-                  <p className="text-xs leading-none text-muted-foreground mt-1">
-                    {userData.email}
-                  </p>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => router.push("/settings")}>
-              <User className="h-4 w-4 mr-2" />
-              Profile Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-          <span className="font-medium text-sm max-w-[120px] truncate">
-            {displayName}
-          </span>
+          <div className="flex items-center gap-2">
+            <Avatar className="h-8 w-8 border border-border">
+              <AvatarImage
+                src={userData.avatarUrl}
+                alt={displayName || "User avatar"}
+              />
+              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+            </Avatar>
+            <span className="font-medium text-sm max-w-[120px] truncate">
+              {displayName}
+            </span>
+          </div>
 
           {/* Only show project name when on a project page */}
           {currentProject && (
@@ -255,7 +229,42 @@ export default function UserNav() {
 
       {/* Right side: User Menu */}
       <div className="flex items-center gap-2">
-
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+              <User className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end">
+            <DropdownMenuLabel>
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-10 w-10 border border-border">
+                  <AvatarImage
+                    src={userData.avatarUrl}
+                    alt={displayName || "User avatar"}
+                  />
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium leading-none">{displayName}</p>
+                  <p className="text-xs leading-none text-muted-foreground mt-1">
+                    {userData.email}
+                  </p>
+                </div>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => router.push("/settings")}>
+              <User className="h-4 w-4 mr-2" />
+              Profile Settings
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={handleSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
