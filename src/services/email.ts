@@ -63,21 +63,33 @@ export async function sendInviteEmail({
     console.log('✅ Email sent successfully:', result);
     return result;
   } catch (error) {
-    console.error('❌ Email send error:', {
-      message: error.message,
-      code: error.code,
-      name: error.name,
-      statusCode: error.statusCode,
-      stack: error.stack,
-    });
+    console.error('❌ Email send error:', error);
 
-    // More detailed error logging
-    if (error.response) {
-      console.error('❌ API Response error:', {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers,
-      });
+    // Safe error logging with type checking
+    if (error && typeof error === 'object') {
+      const errorObj: Record<string, unknown> = {};
+
+      if ('message' in error) errorObj.message = error.message;
+      if ('code' in error) errorObj.code = error.code;
+      if ('name' in error) errorObj.name = error.name;
+      if ('statusCode' in error) errorObj.statusCode = error.statusCode;
+      if ('stack' in error) errorObj.stack = error.stack;
+
+      console.error('Error details:', errorObj);
+    }
+
+    // More detailed error logging for API responses
+    if (error && typeof error === 'object' && 'response' in error && error.response) {
+      const response = error.response;
+      const responseDetails: Record<string, unknown> = {};
+
+      if (typeof response === 'object') {
+        if ('status' in response) responseDetails.status = response.status;
+        if ('data' in response) responseDetails.data = response.data;
+        if ('headers' in response) responseDetails.headers = response.headers;
+      }
+
+      console.error('❌ API Response error:', responseDetails);
     }
 
     if (!apiKey) {

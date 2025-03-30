@@ -722,8 +722,7 @@ export default function Dashboard() {
                                     <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
                                   </Link>
                                 </Button>
-                                {project.isOwner && (
-                                  <>
+                                {/* Only show edit/delete buttons */}
                                     <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full hover:bg-primary/10 transition-colors duration-200" onClick={() => openEditProjectModal(project)}>
                                       <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     </Button>
@@ -735,8 +734,8 @@ export default function Dashboard() {
                                     >
                                       <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     </Button>
-                                  </>
-                                )}
+
+
                               </div>
                             </td>
                           </tr>

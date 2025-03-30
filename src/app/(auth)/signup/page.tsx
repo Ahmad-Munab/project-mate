@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from "@/utils/supabase/client";
 
-export default function SignUpPage() {
+// Wrap the component that uses useSearchParams in a Suspense boundary
+function SignUpContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteToken = searchParams.get('invite');
@@ -36,5 +37,14 @@ export default function SignUpPage() {
         </p>
       )}
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpContent />
+    </Suspense>
   );
 }
