@@ -2,17 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-    Sparkles,
-    Calendar,
-    Code,
-    Settings,
-    Star,
-    Users,
-    Menu,
-    X,
-    // Home - not used
-} from "lucide-react";
+import { Settings, Star, Users, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useParams, usePathname } from "next/navigation";
@@ -110,10 +100,6 @@ export default function Sidebar() {
     // Check if we're on the members page
     const isMembersPage = pathname?.includes("/members");
 
-    // Check if we're on the main dashboard page
-    const isDashboardPage =
-        pathname === "/dashboard" || pathname === "/dashboard/projects";
-
     // Check if we're on the settings page
     const isSettingsPage = pathname?.includes("/settings");
 
@@ -141,20 +127,6 @@ export default function Sidebar() {
     // Navigation items
     const navItems = [
         {
-            name: "Projects",
-            href: "/dashboard",
-            icon: <Code className="h-4 w-4 text-primary" />,
-            isActive: isDashboardPage,
-            showAlways: true,
-        },
-        {
-            name: "Calendar",
-            href: "#",
-            icon: <Calendar className="h-4 w-4 text-green-500" />,
-            isActive: false,
-            showAlways: true,
-        },
-        {
             name: "Members",
             href: `/dashboard/projects/${projectId}/members`,
             icon: <Users className="h-4 w-4 text-green-500" />,
@@ -176,21 +148,12 @@ export default function Sidebar() {
     const SidebarContent = ({ isMobile = false }) => (
         <div className="flex flex-col h-full">
             {!isMobile && (
-                <div className="p-4 border-b bg-gradient-to-r from-primary/10 to-transparent">
-                    <div className="flex items-center space-x-2">
-                        <motion.div
-                            whileHover={{ scale: 1.1, rotate: 180 }}
-                            transition={{ duration: 0.3 }}
-                            className="p-2 rounded-xl bg-primary/20"
-                        >
-                            <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-                        </motion.div>
-                        <Link href={"/"}>
-                            <h1 className="text-xl font-bold rainbow-text hover:pointer">
-                                ProjectMate
-                            </h1>
-                        </Link>
-                    </div>
+                <div className="flex items-center space-x-2 p-4">
+                    <Link href={"/dashboard"}>
+                        <h1 className="text-xl font-bold hover:pointer">
+                            ProjectMate
+                        </h1>
+                    </Link>
                 </div>
             )}
 
@@ -301,36 +264,27 @@ export default function Sidebar() {
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64 border-r">
                 <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                <div className="p-4 border-b bg-gradient-to-r from-primary/10 to-transparent">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                            <motion.div
-                                whileHover={{ scale: 1.1, rotate: 180 }}
-                                transition={{ duration: 0.3 }}
-                                className="p-2 rounded-xl bg-primary/20"
-                            >
-                                <Sparkles className="h-6 w-6 text-primary animate-pulse" />
-                            </motion.div>
-                            <Link
-                                href={"/"}
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                <h1 className="text-xl font-bold rainbow-text hover:pointer">
-                                    ProjectMate
-                                </h1>
-                            </Link>
-                        </div>
-                        <SheetClose asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="rounded-full h-8 w-8"
-                            >
-                                <X className="h-4 w-4" />
-                                <span className="sr-only">Close menu</span>
-                            </Button>
-                        </SheetClose>
+                <div className="flex items-center justify-between p-4">
+                    <div className="flex items-center space-x-2">
+                        <Link
+                            href={"/dashboard"}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                            <h1 className="text-xl font-bold hover:pointer">
+                                ProjectMate
+                            </h1>
+                        </Link>
                     </div>
+                    <SheetClose asChild>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-full h-8 w-8"
+                        >
+                            <X className="h-4 w-4" />
+                            <span className="sr-only">Close menu</span>
+                        </Button>
+                    </SheetClose>
                 </div>
                 <div className="flex flex-col h-[calc(100vh-73px)]">
                     <SidebarContent isMobile={true} />

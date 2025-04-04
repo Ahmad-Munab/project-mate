@@ -3,272 +3,337 @@
 import { createClient } from "@/utils/supabase/client";
 import { useParams, useRouter } from "next/navigation";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
-import { ChevronDown, FolderKanban, User, Home, Plus, LogOut } from "lucide-react";
+import {
+    ChevronDown,
+    FolderKanban,
+    User,
+    Home,
+    Plus,
+    LogOut,
+} from "lucide-react";
 
-type UserData = {
-  email: string | undefined;
-  avatarUrl: string | undefined;
-  name: string | undefined;
-  id: string | undefined;
+// Types
+interface UserData {
+    email?: string;
+    avatarUrl?: string;
+    name?: string;
+    id?: string;
+}
+
+interface Project {
+    id: string;
+    name: string;
+    description: string | null;
+    isOwner: boolean;
+    myRole: string;
+}
+
+// Role Badge Component
+const RoleBadge = ({ role }: { role: string }) => {
+    const badges = {
+        OWNER: { color: "bg-blue-500 hover:bg-blue-600", label: "Owner" },
+        MANAGER: {
+            color: "bg-purple-500 hover:bg-purple-600",
+            label: "Manager",
+        },
+        MEMBER: { color: "bg-green-500 hover:bg-green-600", label: "Member" },
+    };
+
+    const badgeConfig = badges[role?.toUpperCase() as keyof typeof badges];
+    if (!badgeConfig) return null;
+
+    return (
+        <Badge className={`ml-2 ${badgeConfig.color} text-xs`}>
+            {badgeConfig.label}
+        </Badge>
+    );
 };
 
-type Project = {
-  id: string;
-  name: string;
-  description: string | null;
-  isOwner: boolean;
-  myRole: string;
+// Project List Item Component
+const ProjectListItem = ({
+    project,
+    isCurrentProject,
+    onSelect,
+}: {
+    project: Project;
+    isCurrentProject?: boolean;
+    onSelect?: () => void;
+}) => (
+    <DropdownMenuItem
+        key={project.id}
+        className={`flex items-center gap-2 rounded-md my-0.5 ${
+            isCurrentProject ? "bg-accent/50 font-medium" : ""
+        }`}
+        disabled={isCurrentProject}
+        onSelect={onSelect}
+    >
+        <div className="flex-1 flex items-center">
+            <FolderKanban
+                className={`h-4 w-4 mr-2 flex-shrink-0 ${
+                    !project.isOwner
+                        ? project.myRole === "MANAGER"
+                            ? "text-purple-500"
+                            : "text-green-500"
+                        : "text-primary"
+                }`}
+            />
+            <span className="break-words whitespace-normal">
+                {project.name}
+            </span>
+            <RoleBadge role={project.myRole} />
+        </div>
+    </DropdownMenuItem>
+);
+
+// Project Section Component
+const ProjectSection = ({
+    title,
+    projects,
+    currentProjectId,
+    onProjectSelect,
+}: {
+    title: string;
+    projects: Project[];
+    currentProjectId: string;
+    onProjectSelect: (projectId: string) => void;
+}) => {
+    if (projects.length === 0) return null;
+
+    return (
+        <div className="mb-2">
+            <div className="text-xs font-medium text-muted-foreground mb-1 px-2">
+                {title}
+            </div>
+            {projects.map((project) => (
+                <ProjectListItem
+                    key={project.id}
+                    project={project}
+                    isCurrentProject={project.id === currentProjectId}
+                    onSelect={() =>
+                        onProjectSelect(`/dashboard/projects/${project.id}`)
+                    }
+                />
+            ))}
+        </div>
+    );
 };
 
 export default function UserNav() {
-  const router = useRouter();
-  const params = useParams();
-  const projectId = params?.projectId as string;
+    const router = useRouter();
+    const params = useParams();
+    const projectId = params?.projectId as string;
 
-  const [userData, setUserData] = useState<UserData>({
-    email: undefined,
-    avatarUrl: undefined,
-    name: undefined,
-    id: undefined,
-  });
+    const [userData, setUserData] = useState<UserData>({});
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [currentProject, setCurrentProject] = useState<Project | null>(null);
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+    useEffect(() => {
+        const fetchUserData = async () => {
+            const supabase = createClient();
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    async function fetchUserData() {
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+            if (!user) return;
 
-      if (user) {
-        setUserData({
-          email: user.email,
-          avatarUrl: user.user_metadata.avatar_url,
-          name: user.user_metadata.full_name || user.email?.split('@')[0],
-          id: user.id,
-        });
+            setUserData({
+                email: user.email,
+                avatarUrl: user.user_metadata.avatar_url,
+                name: user.user_metadata.full_name || user.email?.split("@")[0],
+                id: user.id,
+            });
 
-        // Fetch user's projects
-        try {
-          const response = await fetch('/api/projects');
-          if (response.ok) {
-            const projectsData = await response.json();
-            setProjects(projectsData);
+            try {
+                const response = await fetch("/api/projects");
+                if (!response.ok) return;
 
-            // If we're on a project page, find the current project
-            if (projectId) {
-              const current = projectsData.find((p: Project) => p.id === projectId);
-              if (current) {
-                setCurrentProject(current);
-              }
+                const projectsData = await response.json();
+                setProjects(projectsData);
+
+                if (projectId) {
+                    const current = projectsData.find(
+                        (p: Project) => p.id === projectId
+                    );
+                    setCurrentProject(current || null);
+                }
+            } catch (error) {
+                console.error("Error fetching projects:", error);
             }
-          }
-        } catch (error) {
-          console.error('Error fetching projects:', error);
-        }
-      }
-    }
+        };
 
-    fetchUserData();
-  }, [projectId]);
+        fetchUserData();
+    }, [projectId]);
 
-  const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/signin");
-  };
+    const handleSignOut = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.push("/signin");
+    };
 
-  const initials = userData.name
-    ? userData.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-    : userData.email
-    ? userData.email[0].toUpperCase()
-    : "?";
+    const initials = userData.name
+        ? userData.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+        : userData.email?.[0]?.toUpperCase() || "?";
 
-  // Format display name
-  const displayName = userData.name || userData.email?.split('@')[0] || 'User';
+    const displayName =
+        userData.name || userData.email?.split("@")[0] || "User";
 
-  // Format role badge
-  const getRoleBadge = (role: string) => {
-    switch (role?.toUpperCase()) {
-      case 'OWNER':
-        return <Badge className="ml-2 bg-blue-500 hover:bg-blue-600 text-xs">Owner</Badge>;
-      case 'MANAGER':
-        return <Badge className="ml-2 bg-purple-500 hover:bg-purple-600 text-xs">Manager</Badge>;
-      case 'MEMBER':
-        return <Badge className="ml-2 bg-green-500 hover:bg-green-600 text-xs">Member</Badge>;
-      default:
-        return null;
-    }
-  };
+    return (
+        <div className="flex w-full items-center justify-between px-4">
+            <div className="flex items-center gap-2 ml-5">
+                {/* User Dropdown */}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            variant="ghost"
+                            className="flex items-center gap-2 px-2 h-9 hover:bg-accent/50 transition-colors"
+                        >
+                            <Avatar className="h-8 w-8 border border-border">
+                                <AvatarImage
+                                    src={userData.avatarUrl}
+                                    alt={displayName}
+                                />
+                                <AvatarFallback className="text-xs">
+                                    {initials}
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-sm max-w-[120px] truncate">
+                                {displayName}
+                            </span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="start">
+                        <DropdownMenuLabel className="flex items-center space-x-3">
+                            <Avatar className="h-10 w-10 border border-border">
+                                <AvatarImage
+                                    src={userData.avatarUrl}
+                                    alt={displayName}
+                                />
+                                <AvatarFallback>{initials}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                                <p className="text-sm font-medium leading-none">
+                                    {displayName}
+                                </p>
+                                <p className="text-xs leading-none text-muted-foreground mt-1">
+                                    {userData.email}
+                                </p>
+                            </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                            onSelect={() => router.push("/settings")}
+                        >
+                            <User className="h-4 w-4 mr-2" />
+                            Profile Settings
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={handleSignOut}>
+                            <LogOut className="h-4 w-4 mr-2" />
+                            Sign out
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
-  return (
-    <div className="flex items-center justify-between w-full">
-      {/* Left side: User and Project */}
-      <div className="flex items-center">
-        <div className="flex items-center gap-2 md:ml-0 ml-14"> {/* Add left margin on mobile to avoid hamburger overlap */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" 
-            className="flex items-center gap-1 px-2 py-1 h-8 w-[100%] text-sm hover:bg-accent/50 transition-colors">
-            <Avatar className="h-8 w-8 border border-border">
-              <AvatarImage
-                src={userData.avatarUrl}
-                alt={displayName || "User avatar"}
-              />
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-            </Avatar>
-            <span className="font-medium text-sm max-w-[120px] truncate">
-              {displayName}
-            </span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
-            <DropdownMenuLabel>
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10 border border-border">
-                  <AvatarImage
-                    src={userData.avatarUrl}
-                    alt={displayName || "User avatar"}
-                  />
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <p className="text-sm font-medium leading-none">{displayName}</p>
-                  <p className="text-xs leading-none text-muted-foreground mt-1">
-                    {userData.email}
-                  </p>
-                </div>
-              </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => router.push("/settings")}>
-              <User className="h-4 w-4 mr-2" />
-              Profile Settings
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={handleSignOut}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-          {/* Only show project name when on a project page */}
-          {currentProject && (
-            <div className="flex items-center">
-              <span className="text-muted-foreground mx-1">/</span>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="flex items-center gap-1 px-2 py-1 h-8 text-sm hover:bg-accent/50 transition-colors"
-                  >
+                {/* Project Selector */}
+                {currentProject && (
                     <div className="flex items-center">
-                      <span className="max-w-[120px] sm:max-w-[180px] truncate font-medium">
-                        {currentProject.name}
-                      </span>
-                      {getRoleBadge(currentProject.myRole)}
-                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-1" />
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[350px]" align="start">
-                  <div className="px-1 py-1">
-                    {/* Current Project */}
-                    <div className="mb-2">
-                      <DropdownMenuItem
-                        key={currentProject.id}
-                        className="flex items-center gap-2 rounded-md my-0.5 bg-accent/50 font-medium"
-                        disabled
-                      >
-                        <div className="flex-1 flex items-center">
-                          <FolderKanban className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
-                          <span className="break-words whitespace-normal">{currentProject.name}</span>
-                          {getRoleBadge(currentProject.myRole)}
-                        </div>
-                      </DropdownMenuItem>
-                    </div>
+                        <span className="text-muted-foreground mx-2">/</span>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    className="flex items-center gap-2 px-2 h-9 hover:bg-accent/50 transition-colors"
+                                >
+                                    <span className="max-w-[180px] truncate font-medium">
+                                        {currentProject.name}
+                                    </span>
+                                    <RoleBadge role={currentProject.myRole} />
+                                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-1" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                                className="w-[350px]"
+                                align="start"
+                            >
+                                <div className="p-1">
+                                    {/* Current Project */}
+                                    <ProjectListItem
+                                        project={currentProject}
+                                        isCurrentProject
+                                    />
 
-                    {/* My Projects */}
-                    {projects.filter(p => p.isOwner && p.id !== currentProject.id).length > 0 && (
-                      <div className="mb-2">
-                        <div className="text-xs font-medium text-muted-foreground mb-1 px-2">My Projects</div>
-                        {projects.filter(p => p.isOwner && p.id !== currentProject.id).map(project => (
-                          <DropdownMenuItem
-                            key={project.id}
-                            className="flex items-center gap-2 rounded-md my-0.5"
-                            onSelect={() => router.push(`/dashboard/projects/${project.id}`)}
-                          >
-                            <div className="flex-1 flex items-center">
-                              <FolderKanban className="h-4 w-4 mr-2 text-primary flex-shrink-0" />
-                              <span className="break-words whitespace-normal">{project.name}</span>
-                            </div>
-                          </DropdownMenuItem>
-                        ))}
-                      </div>
-                    )}
+                                    {/* My Projects */}
+                                    <ProjectSection
+                                        title="My Projects"
+                                        projects={projects.filter(
+                                            (p) =>
+                                                p.isOwner &&
+                                                p.id !== currentProject.id
+                                        )}
+                                        currentProjectId={currentProject.id}
+                                        onProjectSelect={(path) =>
+                                            router.push(path)
+                                        }
+                                    />
 
-                    {/* Shared With Me */}
-                    {projects.filter(p => !p.isOwner && p.id !== currentProject.id).length > 0 && (
-                      <div className="mb-2">
-                        <div className="text-xs font-medium text-muted-foreground mb-1 px-2">Shared With Me</div>
-                        {projects.filter(p => !p.isOwner && p.id !== currentProject.id).map(project => (
-                          <DropdownMenuItem
-                            key={project.id}
-                            className="flex items-center gap-2 rounded-md my-0.5"
-                            onSelect={() => router.push(`/dashboard/projects/${project.id}`)}
-                          >
-                            <div className="flex-1 flex items-center">
-                              <FolderKanban
-                                className={`h-4 w-4 mr-2 flex-shrink-0 ${
-                                  project.myRole === 'MANAGER' ? 'text-purple-500' : 'text-green-500'
-                                }`}
-                              />
-                              <span className="break-words whitespace-normal">{project.name}</span>
-                              {getRoleBadge(project.myRole)}
-                            </div>
-                          </DropdownMenuItem>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <DropdownMenuSeparator />
-                  <div className="px-1">
-                    <DropdownMenuItem onSelect={() => router.push('/dashboard')} className="rounded-md">
-                      <Home className="h-4 w-4 mr-2" />
-                      All Projects
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => router.push('/dashboard/projects/new')} className="rounded-md">
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Project
-                    </DropdownMenuItem>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                                    {/* Shared Projects */}
+                                    <ProjectSection
+                                        title="Shared With Me"
+                                        projects={projects.filter(
+                                            (p) =>
+                                                !p.isOwner &&
+                                                p.id !== currentProject.id
+                                        )}
+                                        currentProjectId={currentProject.id}
+                                        onProjectSelect={(path) =>
+                                            router.push(path)
+                                        }
+                                    />
+
+                                    <DropdownMenuSeparator />
+                                    <div className="px-1">
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                router.push("/dashboard")
+                                            }
+                                            className="rounded-md"
+                                        >
+                                            <Home className="h-4 w-4 mr-2" />
+                                            All Projects
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onSelect={() =>
+                                                router.push(
+                                                    "/dashboard/projects/new"
+                                                )
+                                            }
+                                            className="rounded-md"
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            New Project
+                                        </DropdownMenuItem>
+                                    </div>
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                )}
             </div>
-          )}
         </div>
-      </div>
-
-      {/* Right side: User Menu */}
- 
-    </div>
-  );
+    );
 }
