@@ -30,7 +30,6 @@ export const inviteStatusEnum = pgEnum("invite_status", [
 
 const authSchema = pgSchema("auth");
 
-// Add type definition for user metadata
 export type UserMetadata = {
     email: string;
     full_name?: string;
@@ -39,7 +38,7 @@ export type UserMetadata = {
 
 export const authUsers = authSchema.table("users", {
     id: uuid("id").primaryKey(),
-    metadata: text("raw_user_meta_data").$type<UserMetadata>(), // Type the metadata column
+    metadata: text("raw_user_meta_data").$type<UserMetadata>(), 
 });
 
 export const projects = pgTable("projects", {

@@ -8,11 +8,12 @@ import { MembersList } from "@/components/dashboard/members/MembersList";
 import { PendingInvitesList } from "@/components/dashboard/members/PendingInvitesList";
 import { Button } from "@/components/ui/button";
 import { InviteDialog } from "@/components/dashboard/members/InviteDialog";
-import { createClient } from "@/utils/supabase/client"; // Changed to client import
+import { createClient } from "@/utils/supabase/client";
+import { User } from "@supabase/supabase-js";
 
-// Types for our component
 interface Member {
     id: string;
+    userId: string;
     email: string;
     role: string;
     joinedAt: string;
@@ -34,24 +35,32 @@ export default function MembersPage() {
     const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [user, setUser] = useState<{ id: string } | null>(null);
+    const [authUser, setAuthUser] = useState<User | null>(null);
+    const supabase = createClient();
+
+    // Check authentication
+    useEffect(() => {
+        const checkAuth = async () => {
+            const {
+                data: { user },
+                error: userError,
+            } = await supabase.auth.getUser();
+
+            if (userError) {
+                setError(userError.message);
+                return;
+            }
+            setAuthUser(user);
+        };
+
+        checkAuth();
+    }, [supabase.auth]);
 
     // Fetch members and invites
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
-
-            // Initialize Supabase client
-            const supabase = createClient();
-
-            // Fetch current user
-            const {
-                data: { user: authUser },
-                error: userError,
-            } = await supabase.auth.getUser();
-            if (userError) throw userError;
-            if (authUser) setUser(authUser);
 
             // Fetch project members
             const membersResponse = await fetch(
@@ -63,15 +72,22 @@ export default function MembersPage() {
             const membersData = await membersResponse.json();
             setMembers(membersData);
 
-            // Fetch pending invites
-            const invitesResponse = await fetch(
-                `/api/projects/${projectId}/invites`
-            );
-            if (!invitesResponse.ok) {
-                throw new Error("Failed to fetch invites");
+            // Get current user's role
+            const currentUserRole = membersData.find(
+                (m: Member) => m.userId === authUser?.id
+            )?.role;
+
+            // Only fetch pending invites if user is owner or manager
+            if (currentUserRole === "OWNER" || currentUserRole === "MANAGER") {
+                const invitesResponse = await fetch(
+                    `/api/projects/${projectId}/invites`
+                );
+                if (!invitesResponse.ok) {
+                    throw new Error("Failed to fetch invites");
+                }
+                const invitesData = await invitesResponse.json();
+                setPendingInvites(invitesData);
             }
-            const invitesData = await invitesResponse.json();
-            setPendingInvites(invitesData);
         } catch (err) {
             const errorMessage =
                 err instanceof Error ? err.message : "An error occurred";
@@ -81,7 +97,7 @@ export default function MembersPage() {
         } finally {
             setLoading(false);
         }
-    }, [projectId]);
+    }, [projectId, authUser?.id]);
 
     useEffect(() => {
         fetchData();
@@ -213,10 +229,15 @@ export default function MembersPage() {
                         Manage your project team members and invitations
                     </p>
                 </div>
-                <InviteDialog
-                    projectId={projectId as string}
-                    onInviteCreated={handleInviteCreated}
-                />
+                {(members.find((m) => m.userId === authUser?.id)?.role ===
+                    "OWNER" ||
+                    members.find((m) => m.userId === authUser?.id)?.role ===
+                        "MANAGER") && (
+                    <InviteDialog
+                        projectId={projectId as string}
+                        onInviteCreated={handleInviteCreated}
+                    />
+                )}
             </div>
 
             <div className="space-y-8">
@@ -224,15 +245,22 @@ export default function MembersPage() {
                     members={members}
                     onRoleChange={handleRoleChange}
                     currentUserRole={
-                        members.find((m) => m.id === user?.id)?.role || "MEMBER"
+                        members.find((m) => m.userId === authUser?.id)?.role ||
+                        "MEMBER"
                     }
                 />
 
-                <PendingInvitesList
-                    invites={pendingInvites}
-                    onResend={handleResendInvite}
-                    onCancel={handleCancelInvite}
-                />
+                {pendingInvites.length > 0 &&
+                    (members.find((m) => m.userId === authUser?.id)?.role ===
+                        "OWNER" ||
+                        members.find((m) => m.userId === authUser?.id)?.role ===
+                            "MANAGER") && (
+                        <PendingInvitesList
+                            invites={pendingInvites}
+                            onResend={handleResendInvite}
+                            onCancel={handleCancelInvite}
+                        />
+                    )}
             </div>
         </div>
     );

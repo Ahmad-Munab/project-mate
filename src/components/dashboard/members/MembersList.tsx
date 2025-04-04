@@ -35,7 +35,7 @@ interface Member {
 interface MembersListProps {
     members: Member[];
     onRoleChange: (memberId: string, newRole: string) => Promise<void>;
-    currentUserRole: string; // Add this prop to know current user's role
+    currentUserRole: string;
 }
 
 export function MembersList({
@@ -46,29 +46,25 @@ export function MembersList({
     const getRoleBadge = (role: string) => {
         switch (role?.toUpperCase()) {
             case "OWNER":
-                return <Badge className="bg-purple-500">OWNER</Badge>;
+                return <Badge className="bg-blue-500">OWNER</Badge>;
             case "MANAGER":
-                return <Badge className="bg-blue-500">MANAGER</Badge>;
+                return <Badge className="bg-purple-500">MANAGER</Badge>;
             default:
                 return (
-                    <Badge className="bg-slate-200 text-slate-700">
+                    <Badge className="bg-green-500 text-slate-700">
                         MEMBER
                     </Badge>
                 );
         }
     };
 
-    // Function to determine if the current user can edit another member's role
     const canEditMemberRole = (memberRole: string) => {
-        // Owner can edit anyone except other owners
         if (currentUserRole === "OWNER") {
             return memberRole !== "OWNER";
         }
-        // Manager can only edit members
         if (currentUserRole === "MANAGER") {
             return memberRole === "MEMBER";
         }
-        // Members can't edit anyone
         return false;
     };
 
@@ -86,6 +82,9 @@ export function MembersList({
         );
     }
 
+    const showActionsColumn =
+        currentUserRole === "OWNER" || currentUserRole === "MANAGER";
+
     return (
         <div>
             <h1 className="text-lg md:text-xl font-semibold text-slate-900 mb-4">
@@ -97,9 +96,11 @@ export function MembersList({
                         <TableRow>
                             <TableHead>Member</TableHead>
                             <TableHead>Role</TableHead>
-                            <TableHead className="text-right">
-                                Actions
-                            </TableHead>
+                            {showActionsColumn && (
+                                <TableHead className="text-right">
+                                    Actions
+                                </TableHead>
+                            )}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -129,38 +130,63 @@ export function MembersList({
                                 <TableCell>
                                     {getRoleBadge(member.role)}
                                 </TableCell>
-                                <TableCell className="text-right">
-                                    {canEditMemberRole(member.role) && (
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-8 w-8 p-0 hover:bg-slate-100"
+                                {showActionsColumn && (
+                                    <TableCell className="text-right">
+                                        {canEditMemberRole(member.role) && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-8 w-8 p-0 hover:bg-slate-100"
+                                                    >
+                                                        <MoreVertical className="h-4 w-4 text-slate-500" />
+                                                        <span className="sr-only">
+                                                            Open menu
+                                                        </span>
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent
+                                                    align="end"
+                                                    className="w-[160px]"
                                                 >
-                                                    <MoreVertical className="h-4 w-4 text-slate-500" />
-                                                    <span className="sr-only">
-                                                        Open menu
-                                                    </span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent
-                                                align="end"
-                                                className="w-[160px]"
-                                            >
-                                                <DropdownMenuLabel>
-                                                    Manage Member
-                                                </DropdownMenuLabel>
-                                                <DropdownMenuSub>
-                                                    <DropdownMenuSubTrigger>
-                                                        <UserCog className="h-4 w-4 mr-2" />
-                                                        Change Role
-                                                    </DropdownMenuSubTrigger>
-                                                    <DropdownMenuPortal>
-                                                        <DropdownMenuSubContent>
-                                                            {currentUserRole ===
-                                                                "OWNER" && (
-                                                                <>
+                                                    <DropdownMenuLabel>
+                                                        Manage Member
+                                                    </DropdownMenuLabel>
+                                                    <DropdownMenuSub>
+                                                        <DropdownMenuSubTrigger>
+                                                            <UserCog className="h-4 w-4 mr-2" />
+                                                            Change Role
+                                                        </DropdownMenuSubTrigger>
+                                                        <DropdownMenuPortal>
+                                                            <DropdownMenuSubContent>
+                                                                {currentUserRole ===
+                                                                    "OWNER" && (
+                                                                    <>
+                                                                        <DropdownMenuItem
+                                                                            onClick={() =>
+                                                                                onRoleChange(
+                                                                                    member.id,
+                                                                                    "MEMBER"
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Member
+                                                                        </DropdownMenuItem>
+                                                                        <DropdownMenuItem
+                                                                            onClick={() =>
+                                                                                onRoleChange(
+                                                                                    member.id,
+                                                                                    "MANAGER"
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            Manager
+                                                                        </DropdownMenuItem>
+                                                                    </>
+                                                                )}
+                                                                {currentUserRole ===
+                                                                    "MANAGER" && (
                                                                     <DropdownMenuItem
                                                                         onClick={() =>
                                                                             onRoleChange(
@@ -171,38 +197,15 @@ export function MembersList({
                                                                     >
                                                                         Member
                                                                     </DropdownMenuItem>
-                                                                    <DropdownMenuItem
-                                                                        onClick={() =>
-                                                                            onRoleChange(
-                                                                                member.id,
-                                                                                "MANAGER"
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        Manager
-                                                                    </DropdownMenuItem>
-                                                                </>
-                                                            )}
-                                                            {currentUserRole ===
-                                                                "MANAGER" && (
-                                                                <DropdownMenuItem
-                                                                    onClick={() =>
-                                                                        onRoleChange(
-                                                                            member.id,
-                                                                            "MEMBER"
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    Member
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                        </DropdownMenuSubContent>
-                                                    </DropdownMenuPortal>
-                                                </DropdownMenuSub>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    )}
-                                </TableCell>
+                                                                )}
+                                                            </DropdownMenuSubContent>
+                                                        </DropdownMenuPortal>
+                                                    </DropdownMenuSub>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </TableCell>
+                                )}
                             </TableRow>
                         ))}
                     </TableBody>
