@@ -4,7 +4,6 @@ import { db } from "@/db";
 import { invites, projectMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import { assignUserPermissions } from "@/services/permissions";
 
 export async function POST(request: Request) {
     try {
@@ -44,7 +43,7 @@ export async function POST(request: Request) {
             );
         }
 
-        console.log("Found invite:", invite); // Add this log
+        console.log("Found invite:", invite);
 
         if (!invite.projectId) {
             console.log("Missing projectId in invite");
@@ -81,17 +80,12 @@ export async function POST(request: Request) {
 
         // Begin transaction
         await db.transaction(async (tx) => {
-            // 'tx' is the transaction object, which allows us to perform database operations
-            // within a single transaction. This ensures that all operations either succeed
-            // together or fail together, maintaining data consistency.
-
             // Add user to project members with the invited role
             const memberData = {
                 id: randomUUID(),
                 userId: user.id,
                 projectId: invite.projectId,
                 role: invite.role,
-
                 createdAt: new Date(),
                 updatedAt: new Date(),
             };
@@ -121,7 +115,6 @@ export async function POST(request: Request) {
                     .update(projectMembers)
                     .set({
                         role: invite.role,
-
                         updatedAt: new Date(),
                     })
                     .where(
@@ -131,15 +124,6 @@ export async function POST(request: Request) {
                         )
                     );
             }
-
-            // Assign correct permissions based on role
-            console.log(
-                `Assigning permissions for user ${user.id} with role ${invite.role}`
-            );
-            await assignUserPermissions(user.id, invite.role);
-            console.log(
-                `Permissions assigned successfully for role ${invite.role}`
-            );
 
             // Update invite status
             await tx

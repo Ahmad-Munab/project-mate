@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
-import { projectMembers, authUsers } from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
-import { userRoleEnum } from "@/db/schema";
+import { projectMembers, authUsers, userRoleEnum } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
     try {
-        // Extract projectId from URL
         const url = new URL(request.url);
         const pathParts = url.pathname.split("/");
-        const projectId = pathParts[pathParts.length - 2]; // projectId is the second-to-last part
+        const projectId = pathParts[pathParts.length - 2];
         console.log(`API: Fetching members for project ${projectId}`);
+
         const supabase = await createClient();
         const {
             data: { user },
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Join projectMembers with authUsers to get email
+        // Get members with auth user information
         const members = await db
             .select({
                 id: projectMembers.id,
@@ -35,38 +34,28 @@ export async function GET(request: NextRequest) {
                 role: projectMembers.role,
                 createdAt: projectMembers.createdAt,
                 updatedAt: projectMembers.updatedAt,
-                email: sql<string>`COALESCE(${user.email}, '')`,
+                metadata: authUsers.metadata,
             })
             .from(projectMembers)
             .leftJoin(authUsers, eq(projectMembers.userId, authUsers.id))
             .where(eq(projectMembers.projectId, projectId));
 
+        const membersWithDefaults = members.map((member) => ({
+            ...member,
+            email: member.metadata?.email || "",
+            name:
+                member.metadata?.full_name ||
+                member.metadata?.email?.split("@")[0] ||
+                "Unknown User",
+            avatar: member.metadata?.avatar_url || "",
+            metadata: undefined,
+        }));
+
         console.log(
-            `API: Found ${members.length} members for project ${projectId}`
+            `API: Found ${membersWithDefaults.length} members for project ${projectId}`
         );
 
-        // Get Supabase user profiles for additional info
-        const userIds = members.map((member) => member.userId);
-        const { data: profiles } = await supabase
-            .from("profiles")
-            .select("id, full_name, avatar_url, last_sign_in_at")
-            .in("id", userIds);
-
-        // Map profiles to members
-        const membersWithProfiles = members.map((member) => {
-            const profile = profiles?.find((p) => p.id === member.userId);
-
-            return {
-                ...member,
-                name:
-                    profile?.full_name ||
-                    member.email?.split("@")[0] ||
-                    "Unknown User",
-                avatar: profile?.avatar_url || "",
-            };
-        });
-
-        return NextResponse.json(membersWithProfiles);
+        return NextResponse.json(membersWithDefaults);
     } catch (error) {
         console.error("Error fetching project members:", error);
         return NextResponse.json(

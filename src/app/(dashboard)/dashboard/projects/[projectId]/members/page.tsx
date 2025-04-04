@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { PendingInvitesList } from "@/components/dashboard/members/PendingInvitesList";
-import { MembersList } from "@/components/dashboard/members/MembersList";
 import { AlertCircle, RefreshCw } from "lucide-react";
+import { MembersList } from "@/components/dashboard/members/MembersList";
+import { PendingInvitesList } from "@/components/dashboard/members/PendingInvitesList";
 import { Button } from "@/components/ui/button";
 import { InviteDialog } from "@/components/dashboard/members/InviteDialog";
+import { createClient } from "@/utils/supabase/client"; // Changed to client import
 
 // Types for our component
 interface Member {
@@ -33,12 +34,24 @@ export default function MembersPage() {
     const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [user, setUser] = useState<{ id: string } | null>(null);
 
     // Fetch members and invites
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
+
+            // Initialize Supabase client
+            const supabase = createClient();
+
+            // Fetch current user
+            const {
+                data: { user: authUser },
+                error: userError,
+            } = await supabase.auth.getUser();
+            if (userError) throw userError;
+            if (authUser) setUser(authUser);
 
             // Fetch project members
             const membersResponse = await fetch(
@@ -210,6 +223,9 @@ export default function MembersPage() {
                 <MembersList
                     members={members}
                     onRoleChange={handleRoleChange}
+                    currentUserRole={
+                        members.find((m) => m.id === user?.id)?.role || "MEMBER"
+                    }
                 />
 
                 <PendingInvitesList
