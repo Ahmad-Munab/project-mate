@@ -23,12 +23,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update the lastActive timestamp and set status to ACTIVE
     await db
       .update(projectMembers)
       .set({
-        lastActive: new Date(),
-        status: 'ACTIVE',
         updatedAt: new Date()
       })
       .where(

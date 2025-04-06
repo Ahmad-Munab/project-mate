@@ -171,43 +171,6 @@ export default function ProjectBoard({
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Simple presence tracking
-  useEffect(() => {
-    if (!projectId) return;
-
-    // Update last active time in the database
-    const updateLastActive = async () => {
-      try {
-        await fetch(`/api/projects/${projectId}/members/update-activity`, {
-          method: 'POST',
-        });
-      } catch (error) {
-        console.error('Error updating activity:', error);
-      }
-    };
-
-    // Update presence immediately
-    updateLastActive();
-
-    // Set up interval to update presence every minute
-    const interval = setInterval(updateLastActive, 60000);
-
-    // Set up activity listeners
-    const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart'];
-    const handleActivity = () => updateLastActive();
-
-    activityEvents.forEach(event => {
-      window.addEventListener(event, handleActivity);
-    });
-
-    // Clean up
-    return () => {
-      clearInterval(interval);
-      activityEvents.forEach(event => {
-        window.removeEventListener(event, handleActivity);
-      });
-    };
-  }, [projectId]);
 
   // Add function to handle invite link creation
   const createInviteLink = async () => {
