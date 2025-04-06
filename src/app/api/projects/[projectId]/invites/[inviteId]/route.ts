@@ -6,10 +6,10 @@ import { eq, and } from "drizzle-orm";
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { projectId: string; inviteId: string } }
+    { params }: { params: Promise<{ projectId: string; inviteId: string }> }
 ) {
     try {
-        const { projectId, inviteId } = params;
+        const { projectId, inviteId } = await params;
         console.log(`🗑️ Deleting invite ${inviteId} from project ${projectId}`);
 
         const supabase = await createClient();

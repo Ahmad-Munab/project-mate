@@ -7,10 +7,10 @@ import { userRoleEnum } from "@/db/schema";
 
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { projectId: string; memberId: string } }
+    { params }: { params: Promise<{ projectId: string; memberId: string }> }
 ) {
     try {
-        const { projectId, memberId } = params;
+        const { projectId, memberId } = await params;
         console.log(`🔄 Updating member ${memberId} in project ${projectId}`);
 
         // Authenticate user
@@ -153,10 +153,10 @@ export async function PATCH(
 // Remove member from project
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { projectId: string; memberId: string } }
+    { params }: { params: Promise<{ projectId: string; memberId: string }> }
 ) {
     try {
-        const { projectId, memberId } = params;
+        const { projectId, memberId } = await params;
         console.log(`🗑️ Removing member ${memberId} from project ${projectId}`);
 
         const supabase = await createClient();
