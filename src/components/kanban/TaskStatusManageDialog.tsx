@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { normalizeStatusKey } from "@/utils/task-status-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -55,42 +56,19 @@ export default function TaskStatusManageDialog({
     { name: 'Indigo', value: 'bg-indigo-50 dark:bg-indigo-900/20' },
   ];
 
-  // Fetch task statuses when the dialog opens
-  useEffect(() => {
-    if (open && projectId) {
-      fetchTaskStatuses();
-    }
-  }, [open, projectId]);
-
-  // Generate a key from the status name
-  const generateKey = (name: string) => {
-    return name.toUpperCase().replace(/[^A-Z0-9]/g, '_');
-  };
-
-  // Handle name change and auto-generate key
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value;
-    setNewStatusName(name);
-    setNewStatusKey(generateKey(name));
-  };
-
   // Fetch task statuses from the API
-  const fetchTaskStatuses = async () => {
+  const fetchTaskStatuses = useCallback(async () => {
     setIsLoading(true);
     try {
-      console.log('Fetching task statuses for dialog...');
       const response = await fetch(`/api/projects/${projectId}/task-statuses`);
       if (!response.ok) {
-        console.error('Failed to fetch task statuses:', await response.text());
         throw new Error('Failed to fetch task statuses');
       }
       const data = await response.json();
-      console.log('Fetched statuses for dialog:', data.length);
       setStatuses(data);
 
       // If no statuses exist, try to initialize default ones
       if (data.length === 0) {
-        console.log('No statuses found, initializing default ones...');
         try {
           const initResponse = await fetch(`/api/projects/${projectId}/task-statuses/initialize`, {
             method: 'POST',
@@ -98,22 +76,39 @@ export default function TaskStatusManageDialog({
 
           if (initResponse.ok) {
             const newStatuses = await initResponse.json();
-            console.log('Initialized statuses:', newStatuses.length);
             setStatuses(newStatuses);
           } else {
-            console.error('Failed to initialize statuses:', await initResponse.text());
             toast.error('Failed to initialize default statuses');
           }
         } catch (initError) {
           console.error('Error initializing statuses:', initError);
         }
       }
-    } catch (error) {
-      console.error('Error fetching task statuses:', error);
+    } catch (err) {
+      console.error('Error fetching task statuses:', err);
       toast.error('Failed to fetch task statuses');
     } finally {
       setIsLoading(false);
     }
+  }, [projectId]);
+
+  // Fetch task statuses when the dialog opens
+  useEffect(() => {
+    if (open && projectId) {
+      fetchTaskStatuses();
+    }
+  }, [open, projectId, fetchTaskStatuses]);
+
+  // Generate a key from the status name
+  const generateKey = (name: string) => {
+    return normalizeStatusKey(name);
+  };
+
+  // Handle name change and auto-generate key
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    setNewStatusName(name);
+    setNewStatusKey(generateKey(name));
   };
 
   // Create a new task status

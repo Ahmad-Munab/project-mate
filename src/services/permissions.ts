@@ -36,6 +36,7 @@ export async function getUserPermissions(
     // Map roles to permissions
     const rolePermissions: Record<string, Permissions> = {
         MEMBER: {
+            role: "MEMBER",
             canView: true,
             canEdit: false,
             canDelete: false,
@@ -45,6 +46,7 @@ export async function getUserPermissions(
             canDeleteProject: false,
         },
         MANAGER: {
+            role: "MANAGER",
             canView: true,
             canEdit: true,
             canDelete: true,
@@ -54,6 +56,7 @@ export async function getUserPermissions(
             canDeleteProject: false,
         },
         OWNER: {
+            role: "OWNER",
             canView: true,
             canEdit: true,
             canDelete: true,

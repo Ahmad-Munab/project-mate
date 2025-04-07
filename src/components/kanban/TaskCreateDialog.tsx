@@ -12,8 +12,7 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { tasks } from "@/db/schema";
-import type { InferSelectModel } from "drizzle-orm";
+// Task types are imported from ProjectBoard
 import { Task, TaskStatus } from "./ProjectBoard";
 
 type TaskCreateDialogProps = {
@@ -66,8 +65,8 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
       setDescription('');
       setPriority('MEDIUM');
       setDueDate(undefined);
-    } catch (error) {
-      console.error('Error creating task:', error);
+    } catch (err) {
+      console.error('Error creating task:', err);
     } finally {
       setIsLoading(false);
     }

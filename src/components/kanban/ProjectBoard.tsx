@@ -175,34 +175,30 @@ async function fetchProjectTaskStatuses(projectId: string) {
   }
 }
 
+/**
+ * Updates a task's status
+ * @param taskId Task ID
+ * @param newStatus New status
+ * @returns Updated task
+ */
 async function updateTaskStatus(taskId: string, newStatus: string) {
-  try {
-    console.log('Updating task status:', taskId, 'to', newStatus);
-    const response = await fetch("/api/tasks/update", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        taskId,
-        status: newStatus,
-        status_key: newStatus, // Also send the status_key
-      }),
-    });
+  const response = await fetch("/api/tasks/update", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      taskId,
+      status: newStatus,
+      status_key: newStatus,
+    }),
+  });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Failed to update task status:', errorText);
-      throw new Error("Failed to update task status");
-    }
-
-    const result = await response.json();
-    console.log('Task status updated successfully:', result);
-    return result;
-  } catch (error) {
-    console.error("Error updating task status:", error);
-    throw error;
+  if (!response.ok) {
+    throw new Error("Failed to update task status");
   }
+
+  return await response.json();
 }
 
 const sortTasks = (
@@ -406,9 +402,13 @@ export default function ProjectBoard({
     }
   };
 
+  /**
+   * Handles the end of a drag operation
+   */
   const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
+    // Return if no destination or if dropped in the same place
     if (
       !destination ||
       (destination.droppableId === source.droppableId &&
@@ -437,18 +437,16 @@ export default function ProjectBoard({
             ? {
                 ...task,
                 status: newStatus as Task["status"],
-                status_key: newStatus // Also update the status_key
+                status_key: newStatus
               }
             : task
         )
       );
 
       // Make the API call to update the status
-      console.log('Calling updateTaskStatus with:', taskId, newStatus);
       await updateTaskStatus(taskId, newStatus);
-      console.log('Task status updated successfully');
-    } catch (error) {
-      console.error("Failed to update task status:", error);
+    } catch (err) {
+      console.error('Error updating task status:', err);
       toast.error("Failed to update task status");
 
       // Revert to the original state if the API call fails

@@ -1,66 +1,27 @@
 import { NextResponse } from 'next/server';
-import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projectTaskStatuses } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { validateAuth, DEFAULT_STATUSES } from "@/utils/task-status";
 
-// Default task statuses to initialize for a new project
-const DEFAULT_STATUSES = [
-  {
-    name: "Backlog",
-    key: "BACKLOG",
-    color: "bg-gray-50 dark:bg-gray-900",
-    order: 0,
-    is_default: true,
-  },
-  {
-    name: "To Do",
-    key: "TODO",
-    color: "bg-neutral-50 dark:bg-neutral-900",
-    order: 1,
-    is_default: false,
-  },
-  {
-    name: "In Progress",
-    key: "IN_PROGRESS",
-    color: "bg-blue-50 dark:bg-blue-900/20",
-    order: 2,
-    is_default: false,
-  },
-  {
-    name: "Done",
-    key: "DONE",
-    color: "bg-green-50 dark:bg-green-900/20",
-    order: 3,
-    is_default: false,
-  },
-];
-
-// POST: Initialize default task statuses for a project
+/**
+ * POST: Initialize default task statuses for a project
+ */
 export async function POST(
-  request: Request,
-  { params }: { params: { projectId: string } }
+  _request: Request,
+  context: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    console.log('Initializing task statuses for project:', params.projectId);
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Validate authentication
+    const auth = await validateAuth();
+    if (auth.error) return auth.error;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const projectId = params.projectId;
+    const { projectId } = await context.params;
 
     // Check if the project already has task statuses
-    console.log('Checking for existing task statuses...');
     const existingStatuses = await db.query.projectTaskStatuses.findMany({
       where: eq(projectTaskStatuses.project_id, projectId),
     });
-    console.log('Existing statuses:', existingStatuses.length);
 
     if (existingStatuses.length > 0) {
       return NextResponse.json(
@@ -69,14 +30,12 @@ export async function POST(
       );
     }
 
-    // Initialize default task statuses
-    console.log('Creating default task statuses...');
-    const createdStatuses = [];
+    // Initialize default task statuses in a transaction for atomicity
+    const newStatuses = await db.transaction(async (tx) => {
+      const statuses = [];
 
-    try {
       for (const status of DEFAULT_STATUSES) {
-        console.log('Creating status:', status.name);
-        const [newStatus] = await db.insert(projectTaskStatuses)
+        const [newStatus] = await tx.insert(projectTaskStatuses)
           .values({
             project_id: projectId,
             name: status.name,
@@ -87,21 +46,11 @@ export async function POST(
           })
           .returning();
 
-        createdStatuses.push(newStatus);
+        statuses.push(newStatus);
       }
-      console.log('Default statuses created successfully');
-    } catch (insertError) {
-      console.error('Error inserting task statuses:', insertError);
-      throw insertError;
-    }
 
-    // Fetch the newly created statuses
-    console.log('Fetching newly created statuses...');
-    const newStatuses = await db.query.projectTaskStatuses.findMany({
-      where: eq(projectTaskStatuses.project_id, projectId),
-      orderBy: projectTaskStatuses.order,
+      return statuses;
     });
-    console.log('New statuses count:', newStatuses.length);
 
     return NextResponse.json(newStatuses);
   } catch (error) {

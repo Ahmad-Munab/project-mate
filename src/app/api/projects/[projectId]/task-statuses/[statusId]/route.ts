@@ -1,71 +1,51 @@
 import { NextResponse } from 'next/server';
-import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projectTaskStatuses, tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { validateAuth, getTaskStatus, moveTasksToStatus } from "@/utils/task-status";
 
-// PATCH: Update a task status
+/**
+ * PATCH: Update a task status
+ */
 export async function PATCH(
   request: Request,
-  { params }: { params: { projectId: string; statusId: string } }
+  context: { params: Promise<{ projectId: string; statusId: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Validate authentication
+    const auth = await validateAuth();
+    if (auth.error) return auth.error;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const { projectId, statusId } = params;
+    const { projectId, statusId } = await context.params;
+    
+    // Get and validate task status
+    const statusResult = await getTaskStatus(projectId, statusId);
+    if (statusResult.error) return statusResult.error;
+    
+    const existingStatus = statusResult.status;
+    
+    // Parse request body
     const body = await request.json();
     const { name, color, order } = body;
 
-    // First, check if the status exists and belongs to the project
-    const existingStatus = await db.query.projectTaskStatuses.findFirst({
-      where: and(
-        eq(projectTaskStatuses.id, statusId),
-        eq(projectTaskStatuses.project_id, projectId)
-      ),
-    });
-
-    if (!existingStatus) {
-      return NextResponse.json(
-        { error: 'Task status not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if this is a default status (BACKLOG) which should be protected
-    if (existingStatus.is_default && existingStatus.key === 'BACKLOG') {
-      // For BACKLOG, only allow updating the color and order, not the name
-      const updateData: Partial<typeof projectTaskStatuses.$inferInsert> = {
-        updated_at: new Date(),
-      };
-
-      if (color) updateData.color = color;
-      if (order !== undefined) updateData.order = order;
-
-      const [updatedStatus] = await db.update(projectTaskStatuses)
-        .set(updateData)
-        .where(eq(projectTaskStatuses.id, statusId))
-        .returning();
-
-      return NextResponse.json(updatedStatus);
-    }
-
-    // For non-BACKLOG statuses, allow updating name, color, and order
+    // Prepare update data
     const updateData: Partial<typeof projectTaskStatuses.$inferInsert> = {
       updated_at: new Date(),
     };
+    
+    // Check if this is a default status (BACKLOG) which should be protected
+    if (existingStatus.is_default && existingStatus.key === 'BACKLOG') {
+      // For BACKLOG, only allow updating the color and order, not the name
+      if (color) updateData.color = color;
+      if (order !== undefined) updateData.order = order;
+    } else {
+      // For non-BACKLOG statuses, allow updating name, color, and order
+      if (name) updateData.name = name.trim();
+      if (color) updateData.color = color;
+      if (order !== undefined) updateData.order = order;
+    }
 
-    if (name) updateData.name = name;
-    if (color) updateData.color = color;
-    if (order !== undefined) updateData.order = order;
-
+    // Update the task status
     const [updatedStatus] = await db.update(projectTaskStatuses)
       .set(updateData)
       .where(eq(projectTaskStatuses.id, statusId))
@@ -81,40 +61,27 @@ export async function PATCH(
   }
 }
 
-// DELETE: Delete a task status
+/**
+ * DELETE: Delete a task status
+ */
 export async function DELETE(
-  request: Request,
-  { params }: { params: { projectId: string; statusId: string } }
+  _request: Request,
+  context: { params: Promise<{ projectId: string; statusId: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Validate authentication
+    const auth = await validateAuth();
+    if (auth.error) return auth.error;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    const { projectId, statusId } = await context.params;
 
-    const { projectId, statusId } = params;
+    // Get and validate task status
+    const statusResult = await getTaskStatus(projectId, statusId);
+    if (statusResult.error) return statusResult.error;
+    
+    const existingStatus = statusResult.status;
 
-    // First, check if the status exists and belongs to the project
-    const existingStatus = await db.query.projectTaskStatuses.findFirst({
-      where: and(
-        eq(projectTaskStatuses.id, statusId),
-        eq(projectTaskStatuses.project_id, projectId)
-      ),
-    });
-
-    if (!existingStatus) {
-      return NextResponse.json(
-        { error: 'Task status not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check if this is a default status (BACKLOG) which should be protected
+    // Check if this is a default status which should be protected
     if (existingStatus.is_default) {
       return NextResponse.json(
         { error: 'Cannot delete default task status' },
@@ -122,46 +89,38 @@ export async function DELETE(
       );
     }
 
-    // Check if there are any tasks using this status
-    const tasksWithStatus = await db.query.tasks.findMany({
-      where: and(
-        eq(tasks.project_id, projectId),
-        eq(tasks.status_key, existingStatus.key)
-      ),
-    });
-
-    // If there are tasks with this status, move them to BACKLOG
-    if (tasksWithStatus.length > 0) {
-      // Find the BACKLOG status
-      const backlogStatus = await db.query.projectTaskStatuses.findFirst({
+    // Use a transaction to ensure atomicity
+    await db.transaction(async (tx) => {
+      // Check if there are any tasks using this status
+      const tasksWithStatus = await tx.query.tasks.findMany({
         where: and(
-          eq(projectTaskStatuses.project_id, projectId),
-          eq(projectTaskStatuses.key, 'BACKLOG')
+          eq(tasks.project_id, projectId),
+          eq(tasks.status_key, existingStatus.key)
         ),
       });
 
-      if (!backlogStatus) {
-        return NextResponse.json(
-          { error: 'BACKLOG status not found' },
-          { status: 500 }
-        );
+      // If there are tasks with this status, move them to BACKLOG
+      if (tasksWithStatus.length > 0) {
+        // Find the BACKLOG status
+        const backlogStatus = await tx.query.projectTaskStatuses.findFirst({
+          where: and(
+            eq(projectTaskStatuses.project_id, projectId),
+            eq(projectTaskStatuses.key, 'BACKLOG')
+          ),
+        });
+
+        if (!backlogStatus) {
+          throw new Error('BACKLOG status not found');
+        }
+
+        // Move tasks to BACKLOG
+        await moveTasksToStatus(tx, projectId, existingStatus.key, 'BACKLOG');
       }
 
-      // Update all tasks with this status to BACKLOG
-      await db.update(tasks)
-        .set({
-          status: 'BACKLOG', // Update the enum status
-          status_key: 'BACKLOG' // Update the custom status key
-        })
-        .where(and(
-          eq(tasks.project_id, projectId),
-          eq(tasks.status_key, existingStatus.key)
-        ));
-    }
-
-    // Delete the task status
-    await db.delete(projectTaskStatuses)
-      .where(eq(projectTaskStatuses.id, statusId));
+      // Delete the task status
+      await tx.delete(projectTaskStatuses)
+        .where(eq(projectTaskStatuses.id, statusId));
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -1,35 +1,28 @@
 import { NextResponse } from 'next/server';
-import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projectTaskStatuses } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { validateAuth, normalizeStatusKey } from "@/utils/task-status";
 
-// GET: Fetch all task statuses for a project
+/**
+ * GET: Fetch all task statuses for a project
+ */
 export async function GET(
-  request: Request,
-  { params }: { params: { projectId: string } }
+  _request: Request,
+  context: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    console.log('GET task statuses for project:', params.projectId);
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Validate authentication
+    const auth = await validateAuth();
+    if (auth.error) return auth.error;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const projectId = params.projectId;
+    const { projectId } = await context.params;
 
     // Fetch all task statuses for the project, ordered by their order field
-    console.log('Fetching task statuses from database...');
     const statuses = await db.query.projectTaskStatuses.findMany({
       where: eq(projectTaskStatuses.project_id, projectId),
       orderBy: projectTaskStatuses.order,
     });
-    console.log('Found statuses:', statuses.length);
 
     return NextResponse.json(statuses);
   } catch (error) {
@@ -41,23 +34,21 @@ export async function GET(
   }
 }
 
-// POST: Create a new task status for a project
+/**
+ * POST: Create a new task status for a project
+ */
 export async function POST(
   request: Request,
-  { params }: { params: { projectId: string } }
+  context: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Validate authentication
+    const auth = await validateAuth();
+    if (auth.error) return auth.error;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
+    const { projectId } = await context.params;
 
-    const projectId = params.projectId;
+    // Parse and validate request body
     const body = await request.json();
     const { name, key, color, order } = body;
 
@@ -68,11 +59,14 @@ export async function POST(
       );
     }
 
+    // Normalize the key (uppercase, no spaces)
+    const normalizedKey = normalizeStatusKey(key);
+
     // Check if a status with the same key already exists for this project
     const existingStatus = await db.query.projectTaskStatuses.findFirst({
       where: and(
         eq(projectTaskStatuses.project_id, projectId),
-        eq(projectTaskStatuses.key, key)
+        eq(projectTaskStatuses.key, normalizedKey)
       ),
     });
 
@@ -87,10 +81,10 @@ export async function POST(
     const [newStatus] = await db.insert(projectTaskStatuses)
       .values({
         project_id: projectId,
-        name,
-        key,
+        name: name.trim(),
+        key: normalizedKey,
         color: color || 'bg-gray-50 dark:bg-gray-900',
-        order: order || 0,
+        order: typeof order === 'number' ? order : 0,
         is_default: false, // User-created statuses are never default
       })
       .returning();

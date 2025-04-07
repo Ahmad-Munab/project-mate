@@ -1,24 +1,20 @@
 import { NextResponse } from 'next/server';
-import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { validateAuth, isValidStatusEnum } from "@/utils/task-status";
 
+/**
+ * PATCH: Update a task's status
+ */
 export async function PATCH(request: Request) {
   try {
-    console.log('PATCH /api/tasks/update - Request received');
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Validate authentication
+    const auth = await validateAuth();
+    if (auth.error) return auth.error;
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
+    // Parse and validate request body
     const body = await request.json();
-    console.log('Request body:', body);
     const { taskId, status } = body;
 
     if (!taskId || !status) {
@@ -28,41 +24,32 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Update the task status and status_key
-    console.log('Updating task:', taskId, 'to status:', status);
-    try {
-      // Check if the status is a valid enum value
-      const isValidEnum = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE'].includes(status);
+    // Check if the status is a valid enum value
+    const validEnum = isValidStatusEnum(status);
 
-      if (isValidEnum) {
-        // If it's a valid enum value, update both status and status_key
-        await db.update(tasks)
-          .set({
-            status, // Update the enum status
-            status_key: status // Also update the custom status key
-          })
-          .where(eq(tasks.id, taskId));
-      } else {
-        // If it's not a valid enum value, only update status_key and set status to BACKLOG
-        await db.update(tasks)
-          .set({
-            status: 'BACKLOG', // Set to a valid enum value
-            status_key: status // Set the custom status key
-          })
-          .where(eq(tasks.id, taskId));
-      }
+    // Update the task
+    const [updatedTask] = await db.update(tasks)
+      .set({
+        // If valid enum, use it; otherwise default to BACKLOG
+        status: validEnum ? status : 'BACKLOG',
+        // Always update the status_key to the requested value
+        status_key: status
+      })
+      .where(eq(tasks.id, taskId))
+      .returning();
 
-      console.log('Task updated successfully');
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-      throw dbError;
+    if (!updatedTask) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(updatedTask);
   } catch (error) {
-    console.error('Error updating task:', error);
+    console.error('Error updating task status:', error);
     return NextResponse.json(
-      { error: 'Failed to update task', message: error instanceof Error ? error.message : String(error) },
+      { error: 'Failed to update task' },
       { status: 500 }
     );
   }
