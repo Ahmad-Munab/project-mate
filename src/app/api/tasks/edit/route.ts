@@ -6,9 +6,10 @@ import { eq } from "drizzle-orm";
 
 export async function PATCH(request: Request) {
   try {
+    console.log('PATCH /api/tasks/edit - Request received');
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -17,7 +18,8 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { taskId, title, description, priority } = body;
+    console.log('Request body:', body);
+    const { taskId, title, description, priority, status, status_key } = body;
 
     if (!taskId) {
       return NextResponse.json(
@@ -30,6 +32,21 @@ export async function PATCH(request: Request) {
     if (title) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (priority) updateData.priority = priority;
+    if (status) {
+      // Check if the status is a valid enum value
+      const isValidEnum = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE'].includes(status);
+
+      if (isValidEnum) {
+        // If it's a valid enum value, update both status and status_key
+        updateData.status = status;
+      } else {
+        // If it's not a valid enum value, set status to BACKLOG
+        updateData.status = 'BACKLOG';
+      }
+
+      // If status_key is explicitly provided, use it, otherwise use status
+      updateData.status_key = status_key || status;
+    }
 
     const [updatedTask] = await db.update(tasks)
       .set(updateData)
@@ -40,7 +57,7 @@ export async function PATCH(request: Request) {
   } catch (error) {
     console.error('Error updating task:', error);
     return NextResponse.json(
-      { error: 'Failed to update task' },
+      { error: 'Failed to update task', message: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

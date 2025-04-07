@@ -15,12 +15,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Task } from "./ProjectBoard";
+import { Task, TaskStatus } from "./ProjectBoard";
 
 interface TaskCardProps {
   task: Task;
   onTaskUpdate: (updatedTask: Task) => void;
   onTaskDelete: (taskId: string) => void;
+  taskStatuses?: TaskStatus[];
 }
 
 const priorityConfig = {
@@ -50,6 +51,7 @@ export default function TaskCard({
   task,
   onTaskUpdate,
   onTaskDelete,
+  taskStatuses,
 }: TaskCardProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -147,6 +149,7 @@ export default function TaskCard({
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         onTaskUpdate={onTaskUpdate}
+        taskStatuses={taskStatuses}
       />
 
       <AlertDialog

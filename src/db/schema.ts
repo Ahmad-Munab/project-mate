@@ -6,6 +6,8 @@ import {
     pgEnum,
     pgSchema,
     uniqueIndex,
+    boolean,
+    integer,
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", ["OWNER", "MANAGER", "MEMBER"]);
@@ -38,7 +40,7 @@ export type UserMetadata = {
 
 export const authUsers = authSchema.table("users", {
     id: uuid("id").primaryKey(),
-    metadata: text("raw_user_meta_data").$type<UserMetadata>(), 
+    metadata: text("raw_user_meta_data").$type<UserMetadata>(),
 });
 
 export const projects = pgTable("projects", {
@@ -75,11 +77,36 @@ export const projectMembers = pgTable(
     })
 );
 
+// Project task statuses table to store custom statuses for each project
+export const projectTaskStatuses = pgTable(
+    "project_task_statuses",
+    {
+        id: uuid("id").primaryKey().defaultRandom(),
+        project_id: uuid("project_id")
+            .references(() => projects.id)
+            .notNull(),
+        name: text("name").notNull(),
+        key: text("key").notNull(), // A unique identifier for the status (e.g., "BACKLOG", "TODO")
+        color: text("color").notNull().default("bg-gray-50 dark:bg-gray-900"), // CSS class for the column color
+        is_default: boolean("is_default").notNull().default(false), // Whether this is a default status that can't be deleted
+        order: integer("order").notNull(), // The order in which to display the status
+        created_at: timestamp("created_at").defaultNow(),
+        updated_at: timestamp("updated_at").defaultNow(),
+    },
+    (table) => ({
+        projectTaskStatusUniqueKey: uniqueIndex("project_task_status_unique_key").on(
+            table.project_id,
+            table.key
+        ),
+    })
+);
+
 export const tasks = pgTable("tasks", {
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title").notNull(),
     description: text("description"),
-    status: taskStatusEnum("status").notNull().default("BACKLOG"),
+    status: taskStatusEnum("status").notNull().default("BACKLOG"), // Keep using the enum for backward compatibility
+    status_key: text("status_key"), // New field to store the custom status key
     priority: priorityLevelEnum("priority").notNull().default("MEDIUM"),
     project_id: uuid("project_id")
         .references(() => projects.id)
