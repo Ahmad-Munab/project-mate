@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Permissions } from '@/types/permissions';
 
-export function usePermissions() {
+export function usePermissions(projectId?: string) {
   const [permissions, setPermissions] = useState<Permissions | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
@@ -10,7 +10,11 @@ export function usePermissions() {
     async function fetchPermissions() {
       try {
         console.log('Fetching user permissions...');
-        const response = await fetch('/api/user/permissions');
+        const url = projectId
+          ? `/api/user/permissions?projectId=${projectId}`
+          : '/api/user/permissions';
+
+        const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
           console.log('Received permissions data:', data);
@@ -27,7 +31,7 @@ export function usePermissions() {
     }
 
     fetchPermissions();
-  }, []);
+  }, [projectId]);
 
   const can = (permission: keyof Permissions): boolean => {
     console.log(`Checking permission '${permission}':`, permissions?.[permission]);

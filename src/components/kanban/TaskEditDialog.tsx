@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,13 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Task } from "./ProjectBoard";
+import { Task, TaskStatus } from "./ProjectBoard";
 
 type TaskEditDialogProps = {
   task: Task;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskUpdate: (updatedTask: Task) => void;
+  taskStatuses?: TaskStatus[];
 };
 
 export default function TaskEditDialog({
@@ -41,14 +42,40 @@ export default function TaskEditDialog({
   open,
   onOpenChange,
   onTaskUpdate,
+  taskStatuses = [],
 }: TaskEditDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description || "");
   const [priority, setPriority] = useState(task.priority);
+  const [status, setStatus] = useState<string>(task.status_key || task.status);
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task.due_date || undefined
   );
+
+  // Fetch task statuses if not provided
+  const [localTaskStatuses, setLocalTaskStatuses] = useState<TaskStatus[]>([]);
+
+  useEffect(() => {
+    if (taskStatuses && taskStatuses.length > 0) {
+      setLocalTaskStatuses(taskStatuses);
+    } else if (open && task.project_id) {
+      // Fetch task statuses if not provided
+      fetchTaskStatuses(task.project_id);
+    }
+  }, [open, task.project_id, taskStatuses]);
+
+  const fetchTaskStatuses = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/task-statuses`);
+      if (response.ok) {
+        const data = await response.json();
+        setLocalTaskStatuses(data);
+      }
+    } catch (error) {
+      console.error('Error fetching task statuses:', error);
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -66,6 +93,8 @@ export default function TaskEditDialog({
           description: description || null,
           priority,
           dueDate,
+          status,
+          status_key: status,
         }),
       });
 
@@ -138,31 +167,51 @@ export default function TaskEditDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Due Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal",
-                        !dueDate && "text-muted-foreground"
-                      )}
-                      disabled={isLoading}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dueDate ? format(dueDate, "PPP") : "Pick a date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dueDate}
-                      onSelect={setDueDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={status}
+                  onValueChange={(value: string) => setStatus(value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {localTaskStatuses.map((statusOption) => (
+                      <SelectItem key={statusOption.key} value={statusOption.key}>
+                        {statusOption.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Due Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !dueDate && "text-muted-foreground"
+                    )}
+                    disabled={isLoading}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={dueDate}
+                    onSelect={setDueDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 

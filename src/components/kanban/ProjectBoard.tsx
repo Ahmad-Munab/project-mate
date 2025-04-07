@@ -7,7 +7,7 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import { Plus, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, ArrowUpDown, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,24 +28,87 @@ import TaskCard from "./TaskCard";
 import { tasks } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import TaskCreateDialog from "./TaskCreateDialog";
+import TaskStatusManageDialog from "./TaskStatusManageDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 
 export type Task = InferSelectModel<typeof tasks>;
 
-// Constants
-const columnColors = {
+// Type for task status
+export type TaskStatus = {
+  id: string;
+  project_id: string;
+  name: string;
+  key: string;
+  color: string;
+  is_default: boolean;
+  order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+// Default column colors (fallback)
+const defaultColumnColors = {
   BACKLOG: "bg-gray-50 dark:bg-gray-900",
   TODO: "bg-neutral-50 dark:bg-neutral-900",
   IN_PROGRESS: "bg-blue-50 dark:bg-blue-900/20",
   DONE: "bg-green-50 dark:bg-green-900/20",
 };
 
-const columnHeaders = {
+// Default column headers (fallback)
+const defaultColumnHeaders = {
   BACKLOG: "Backlog",
   TODO: "To Do",
   IN_PROGRESS: "In Progress",
   DONE: "Done",
 };
+
+// Default task statuses (fallback)
+const getDefaultTaskStatuses = (projectId: string) => [
+  {
+    id: 'default-backlog',
+    project_id: projectId,
+    name: 'Backlog',
+    key: 'BACKLOG',
+    color: 'bg-gray-50 dark:bg-gray-900',
+    is_default: true,
+    order: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'default-todo',
+    project_id: projectId,
+    name: 'To Do',
+    key: 'TODO',
+    color: 'bg-neutral-50 dark:bg-neutral-900',
+    is_default: false,
+    order: 1,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'default-in-progress',
+    project_id: projectId,
+    name: 'In Progress',
+    key: 'IN_PROGRESS',
+    color: 'bg-blue-50 dark:bg-blue-900/20',
+    is_default: false,
+    order: 2,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'default-done',
+    project_id: projectId,
+    name: 'Done',
+    key: 'DONE',
+    color: 'bg-green-50 dark:bg-green-900/20',
+    is_default: false,
+    order: 3,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+];
 
 const priorityOrder = {
   URGENT: 0,
@@ -68,26 +131,74 @@ async function fetchProjectTasks(projectId: string) {
   }
 }
 
-async function updateTaskStatus(taskId: string, newStatus: string) {
+async function fetchProjectTaskStatuses(projectId: string) {
   try {
-    const response = await fetch("/api/tasks/update", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        taskId,
-        status: newStatus,
-      }),
-    });
+    console.log('Fetching task statuses for project:', projectId);
+    // Fetch existing statuses
+    const response = await fetch(`/api/projects/${projectId}/task-statuses`);
 
     if (!response.ok) {
-      throw new Error("Failed to update task status");
+      console.error('Failed to fetch task statuses:', await response.text());
+      throw new Error("Failed to fetch task statuses");
     }
+
+    const statuses = await response.json();
+    console.log('Fetched statuses:', statuses.length);
+
+    // If no statuses exist, we'll handle this in the useEffect
+    if (statuses.length === 0) {
+      console.log('No statuses found, will use default ones');
+      // Try to initialize default statuses
+      try {
+        const initResponse = await fetch(`/api/projects/${projectId}/task-statuses/initialize`, {
+          method: 'POST',
+        });
+
+        if (initResponse.ok) {
+          const newStatuses = await initResponse.json();
+          console.log('Initialized statuses:', newStatuses.length);
+          return newStatuses;
+        } else {
+          console.error('Failed to initialize statuses, using defaults');
+          return getDefaultTaskStatuses(projectId);
+        }
+      } catch (initError) {
+        console.error('Error initializing statuses:', initError);
+        return getDefaultTaskStatuses(projectId);
+      }
+    }
+
+    return statuses;
   } catch (error) {
-    console.error("Error updating task status:", error);
-    throw error;
+    console.error("Error fetching task statuses:", error);
+    return getDefaultTaskStatuses(projectId); // Return default statuses as fallback
   }
+}
+
+/**
+ * Updates a task's status
+ * @param taskId Task ID
+ * @param newStatus New status
+ * @returns Updated task
+ */
+async function updateTaskStatus(taskId: string, newStatus: string) {
+  const response = await fetch("/api/tasks/update", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      taskId,
+      status: newStatus,
+      status_key: newStatus,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update task status");
+  }
+
+  return await response.json();
 }
 
 const sortTasks = (
@@ -132,27 +243,29 @@ export default function ProjectBoard({
   initialTasks: Task[];
   isOwner: boolean;
 }) {
-  const { can, isManager, permissions } = usePermissions();
+  const { can, permissions, role } = usePermissions(projectId);
 
   // Determine if user is a manager based on role or permissions
-  const userIsManager = isManager() || permissions?.canManageProject === true;
+  const userIsManager = role === "MANAGER" || permissions?.canManageProject === true;
 
   // Modify permission checks to allow owners and managers
-  const canCreateTasks = isOwner || userIsManager || can("canEdit");
-  const canInviteMembers = isOwner || userIsManager || can("canInvite");
-  const canDragTasks = isOwner || userIsManager || can("canEdit");
+  const canCreateTasks = isOwner || userIsManager || can("createTasks") || can("canEdit");
+  const canInviteMembers = isOwner || userIsManager || can("inviteMembers") || can("canInvite");
+  const canDragTasks = isOwner || userIsManager || can("editTasks") || can("canEdit");
 
   const [projectTasks, setProjectTasks] = useState<Task[]>(initialTasks);
+  const [taskStatuses, setTaskStatuses] = useState<TaskStatus[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState<string>("createdAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isStatusManageDialogOpen, setIsStatusManageDialogOpen] = useState(false);
   const [inviteRole, setInviteRole] = useState<"MEMBER" | "MANAGER">("MEMBER");
   const boardRef = useRef<HTMLDivElement>(null);
 
   // Mobile responsive state
-  const [activeColumn, setActiveColumn] = useState<keyof typeof columnHeaders>("TODO");
+  const [activeColumn, setActiveColumn] = useState<string>("TODO");
   const [isMobile, setIsMobile] = useState(false);
 
   // Check screen size on mount and when window resizes
@@ -214,8 +327,37 @@ export default function ProjectBoard({
   useEffect(() => {
     if (projectId) {
       setIsLoading(true);
+
+      // First fetch tasks
       fetchProjectTasks(projectId)
-        .then((tasks) => setProjectTasks(tasks))
+        .then(tasks => {
+          setProjectTasks(tasks);
+
+          // Then fetch task statuses
+          return fetchProjectTaskStatuses(projectId)
+            .then(statuses => {
+              console.log('Successfully fetched task statuses:', statuses);
+              setTaskStatuses(statuses);
+
+              // Set active column for mobile view to the first status
+              if (statuses.length > 0) {
+                setActiveColumn(statuses[0].key);
+              }
+            })
+            .catch(error => {
+              console.error("Error fetching task statuses:", error);
+              toast.error("Failed to load task statuses");
+
+              // Set default statuses as fallback
+              const defaultStatuses = getDefaultTaskStatuses(projectId);
+              setTaskStatuses(defaultStatuses);
+              setActiveColumn('BACKLOG');
+            });
+        })
+        .catch(error => {
+          console.error("Error loading project tasks:", error);
+          toast.error("Failed to load project tasks");
+        })
         .finally(() => setIsLoading(false));
     }
   }, [projectId]);
@@ -260,9 +402,13 @@ export default function ProjectBoard({
     }
   };
 
+  /**
+   * Handles the end of a drag operation
+   */
   const onDragEnd = async (result: DropResult) => {
     const { destination, source, draggableId } = result;
 
+    // Return if no destination or if dropped in the same place
     if (
       !destination ||
       (destination.droppableId === source.droppableId &&
@@ -272,7 +418,7 @@ export default function ProjectBoard({
     }
 
     // Check permissions before allowing drag
-    if (!isOwner && !userIsManager && !can("canEdit")) {
+    if (!isOwner && !userIsManager && !can("canEdit") && !can("editTasks")) {
       toast.error("You don't have permission to move tasks");
       return;
     }
@@ -280,32 +426,63 @@ export default function ProjectBoard({
     const newStatus = destination.droppableId;
     const taskId = draggableId;
 
+    // Store the original tasks state in case we need to revert
+    const originalTasks = [...projectTasks];
+
     try {
+      // Optimistically update the UI
       setProjectTasks((prevTasks) =>
         prevTasks.map((task) =>
           task.id === taskId
-            ? { ...task, status: newStatus as Task["status"] }
+            ? {
+                ...task,
+                status: newStatus as Task["status"],
+                status_key: newStatus
+              }
             : task
         )
       );
 
+      // Make the API call to update the status
       await updateTaskStatus(taskId, newStatus);
-    } catch (error) {
-      console.error("Failed to update task status:", error);
+    } catch (err) {
+      console.error('Error updating task status:', err);
       toast.error("Failed to update task status");
-      setProjectTasks(initialTasks);
+
+      // Revert to the original state if the API call fails
+      setProjectTasks(originalTasks);
     }
   };
 
   // Navigate to next/previous column on mobile
   const navigateColumn = (direction: 'next' | 'prev') => {
-    const columns = Object.keys(columnHeaders) as Array<keyof typeof columnHeaders>;
+    const columns = taskStatuses.map(status => status.key);
     const currentIndex = columns.indexOf(activeColumn);
 
     if (direction === 'next' && currentIndex < columns.length - 1) {
       setActiveColumn(columns[currentIndex + 1]);
     } else if (direction === 'prev' && currentIndex > 0) {
       setActiveColumn(columns[currentIndex - 1]);
+    }
+  };
+
+  // Handle task status changes
+  const handleTaskStatusesChange = async () => {
+    if (projectId) {
+      try {
+        const statuses = await fetchProjectTaskStatuses(projectId);
+        setTaskStatuses(statuses);
+      } catch (error) {
+        console.error("Error refreshing task statuses:", error);
+        toast.error("Failed to refresh task statuses");
+
+        // Keep using the current statuses
+        // If there are no statuses, use default ones
+        if (taskStatuses.length === 0) {
+          const defaultStatuses = getDefaultTaskStatuses(projectId);
+          setTaskStatuses(defaultStatuses);
+        }
+      }
     }
   };
 
@@ -325,7 +502,20 @@ export default function ProjectBoard({
     );
   }
 
-  const columns = Object.keys(columnHeaders) as Array<keyof typeof columnHeaders>;
+  // Get column keys from task statuses
+  const columns = taskStatuses.map(status => status.key);
+
+  // Create a mapping of status keys to display names
+  const columnHeaders = taskStatuses.reduce((acc, status) => {
+    acc[status.key] = status.name;
+    return acc;
+  }, {} as Record<string, string>);
+
+  // Create a mapping of status keys to colors
+  const columnColors = taskStatuses.reduce((acc, status) => {
+    acc[status.key] = status.color;
+    return acc;
+  }, {} as Record<string, string>);
 
   return (
     <div className="h-full flex flex-col" ref={boardRef}>
@@ -354,6 +544,16 @@ export default function ProjectBoard({
               className="text-xs md:text-sm h-8 md:h-10"
             >
               Invite Members
+            </Button>
+          )}
+          {(isOwner || userIsManager) && (
+            <Button
+              variant="outline"
+              onClick={() => setIsStatusManageDialogOpen(true)}
+              className="text-xs md:text-sm h-8 md:h-10"
+            >
+              <Settings className="mr-1 md:mr-2 h-3 w-3 md:h-4 md:w-4" />
+              Manage Columns
             </Button>
           )}
 
@@ -406,7 +606,7 @@ export default function ProjectBoard({
       </div>
 
       {/* Mobile Column Navigation */}
-      {isMobile && (
+      {isMobile && taskStatuses.length > 0 && (
         <div className="flex items-center justify-between px-4 py-2 bg-muted/30">
           <Button
             variant="ghost"
@@ -419,9 +619,12 @@ export default function ProjectBoard({
           </Button>
 
           <h3 className="font-medium text-sm">
-            {columnHeaders[activeColumn]}
+            {columnHeaders[activeColumn] || defaultColumnHeaders[activeColumn as keyof typeof defaultColumnHeaders] || activeColumn}
             <span className="ml-2 text-xs bg-background rounded-full px-2 py-1">
-              {projectTasks.filter((task) => task.status === activeColumn).length}
+              {projectTasks.filter((task) =>
+                task.status_key === activeColumn ||
+                (task.status === activeColumn && !task.status_key)
+              ).length}
             </span>
           </h3>
 
@@ -458,12 +661,23 @@ export default function ProjectBoard({
         </DialogContent>
       </Dialog>
 
+      {/* Task Status Management Dialog */}
+      {projectId && (
+        <TaskStatusManageDialog
+          projectId={projectId}
+          open={isStatusManageDialogOpen}
+          onOpenChange={setIsStatusManageDialogOpen}
+          onStatusesChange={handleTaskStatusesChange}
+        />
+      )}
+
       {projectId && (
         <TaskCreateDialog
           projectId={projectId}
           open={isCreateDialogOpen}
           onOpenChange={setIsCreateDialogOpen}
           onTaskCreate={handleTaskCreate}
+          taskStatuses={taskStatuses}
         />
       )}
 
@@ -481,10 +695,13 @@ export default function ProjectBoard({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[activeColumn]} overflow-y-auto min-h-[200px]`}
+                      className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[activeColumn] || defaultColumnColors[activeColumn as keyof typeof defaultColumnColors] || 'bg-gray-50 dark:bg-gray-900'} overflow-y-auto min-h-[200px]`}
                     >
                       {projectTasks
-                        .filter((task) => task.status === activeColumn)
+                        .filter((task) =>
+                          task.status_key === activeColumn ||
+                          (task.status === activeColumn && !task.status_key)
+                        )
                         .map((task, index) => (
                           <Draggable
                             key={task.id}
@@ -501,6 +718,7 @@ export default function ProjectBoard({
                                   task={task}
                                   onTaskUpdate={handleTaskUpdate}
                                   onTaskDelete={handleTaskDelete}
+                                  taskStatuses={taskStatuses}
                                 />
                               </div>
                             )}
@@ -513,20 +731,22 @@ export default function ProjectBoard({
               </div>
             ) : (
               // Desktop view - show all columns
-              columns.map((status) => (
+              taskStatuses.map((status) => (
                 <div
-                  key={status}
+                  key={status.key}
                   className="flex-1 min-w-[280px] md:min-w-[320px] md:max-w-[400px] flex flex-col h-full"
                 >
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center">
                       <h3 className="font-semibold text-sm">
-                        {columnHeaders[status]}
+                        {status.name}
                       </h3>
                       <span className="ml-2 text-xs bg-background rounded-full px-2 py-1">
                         {
-                          projectTasks.filter((task) => task.status === status)
-                            .length
+                          projectTasks.filter((task) =>
+                            task.status_key === status.key ||
+                            (task.status === status.key && !task.status_key)
+                          ).length
                         }
                       </span>
                     </div>
@@ -544,15 +764,18 @@ export default function ProjectBoard({
                     )}
                   </div>
 
-                  <Droppable droppableId={status}>
+                  <Droppable droppableId={status.key}>
                     {(provided) => (
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`flex-1 rounded-lg p-3 space-y-3 ${columnColors[status]} overflow-y-auto min-h-[200px] max-h-[calc(100vh-220px)]`}
+                        className={`flex-1 rounded-lg p-3 space-y-3 ${status.color} overflow-y-auto min-h-[200px] max-h-[calc(100vh-220px)]`}
                       >
                         {projectTasks
-                          .filter((task) => task.status === status)
+                          .filter((task) =>
+                            task.status_key === status.key ||
+                            (task.status === status.key && !task.status_key)
+                          )
                           .map((task, index) => (
                             <Draggable
                               key={task.id}
@@ -569,6 +792,7 @@ export default function ProjectBoard({
                                     task={task}
                                     onTaskUpdate={handleTaskUpdate}
                                     onTaskDelete={handleTaskDelete}
+                                    taskStatuses={taskStatuses}
                                   />
                                 </div>
                               )}

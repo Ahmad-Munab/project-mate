@@ -12,23 +12,23 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { tasks } from "@/db/schema";
-import type { InferSelectModel } from "drizzle-orm";
-
-type Task = InferSelectModel<typeof tasks>;
+// Task types are imported from ProjectBoard
+import { Task, TaskStatus } from "./ProjectBoard";
 
 type TaskCreateDialogProps = {
   projectId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onTaskCreate: (newTask: Task) => void;
+  taskStatuses: TaskStatus[];
 };
 
-export default function TaskCreateDialog({ projectId, open, onOpenChange, onTaskCreate }: TaskCreateDialogProps) {
+export default function TaskCreateDialog({ projectId, open, onOpenChange, onTaskCreate, taskStatuses }: TaskCreateDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<Task['priority']>('MEDIUM');
+  const [status, setStatus] = useState<string>('BACKLOG'); // Default to BACKLOG
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -47,7 +47,8 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
           description: description || null,
           priority,
           dueDate: dueDate ? dueDate.toISOString() : null, // Convert Date to ISO string
-          status: 'BACKLOG', // New tasks start in backlog
+          status: status, // Use the selected status
+          status_key: status, // Also set the status_key for compatibility with custom statuses
         }),
       });
 
@@ -58,14 +59,14 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
       const newTask = await response.json();
       onTaskCreate(newTask);
       onOpenChange(false);
-      
+
       // Reset form
       setTitle('');
       setDescription('');
       setPriority('MEDIUM');
       setDueDate(undefined);
-    } catch (error) {
-      console.error('Error creating task:', error);
+    } catch (err) {
+      console.error('Error creating task:', err);
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +91,7 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -103,23 +104,45 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select
-                value={priority}
-                onValueChange={(value: Task['priority']) => setPriority(value)}
-                disabled={isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="LOW">Low</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="priority">Priority</Label>
+                <Select
+                  value={priority}
+                  onValueChange={(value: Task['priority']) => setPriority(value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="LOW">Low</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HIGH">High</SelectItem>
+                    <SelectItem value="URGENT">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={status}
+                  onValueChange={(value: string) => setStatus(value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {taskStatuses.map((statusOption) => (
+                      <SelectItem key={statusOption.key} value={statusOption.key}>
+                        {statusOption.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
