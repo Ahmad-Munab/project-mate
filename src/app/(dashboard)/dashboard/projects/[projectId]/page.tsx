@@ -6,6 +6,7 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projects, projectMembers } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import ProjectPageWrapper from "@/components/dashboard/project-page-wrapper";
 
 export default async function ProjectPage({
   params,
@@ -64,13 +65,15 @@ export default async function ProjectPage({
   console.log(`Project Page: User is owner: ${isOwner}`);
 
   return (
-    <Suspense fallback={<ProjectSkeleton />}>
-      <ProjectBoard
-        projectId={projectId}
-        initialTasks={initialTasks}
-        isOwner={isOwner}
-      />
-    </Suspense>
+    <ProjectPageWrapper project={project}>
+      <Suspense fallback={<ProjectSkeleton />}>
+        <ProjectBoard
+          projectId={projectId}
+          initialTasks={initialTasks}
+          isOwner={isOwner}
+        />
+      </Suspense>
+    </ProjectPageWrapper>
   );
 }
 

@@ -1,33 +1,27 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, X, Send, Zap, Loader2 } from "lucide-react"
+import { Sparkles, X, Send, Zap, Loader2, PlusCircle, Bot, User, ChevronDown, ChevronUp, Lightbulb, Brain, Code, Database, Wand2, ListTodo, Calendar, ArrowRight } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { toast } from "sonner"
+import { useAIStore } from "@/store/aiStore"
+import { createTaskViaAI, performAIAction } from "@/actions/ai/actions"
 
 type Project = {
   id: string;
   name: string;
-  description?: string;
-  status?: string;
-  progress?: number;
-  members?: Array<{
-    id: string;
-    name: string;
-    role: string;
-  }>;
-  tasks?: Array<{
-    id: string;
-    title: string;
-    status: string;
-  }>;
-  dueDate?: string;
+  description?: string | null;
+  ownerId: string;
+  created_at?: Date | string | null;
+  updated_at?: Date | string | null;
+  readme?: string | null;
 };
 
 interface AIAssistantProps {
@@ -38,133 +32,195 @@ interface AIAssistantProps {
 
 export default function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
   const [input, setInput] = useState("")
-  const [messages, setMessages] = useState<Array<{
-    role: "user" | "assistant";
-    content: string;
-    timestamp: Date;
-  }>>([])
-  const [isTyping, setIsTyping] = useState(false)
-  const [suggestions] = useState([
-    "Analyze my project timeline",
-    "Suggest task breakdown for authentication feature",
-    "Identify potential bottlenecks",
-    "Generate test cases for API endpoints",
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const { messages: storedMessages, isTyping, setIsTyping, addMessage } = useAIStore()
+  const projectMessages = project?.id ? (storedMessages[project.id] || []) : []
+
+  // Dynamic suggestions based on project context
+  const [suggestions, setSuggestions] = useState([
+    "Create 3 tasks for implementing user authentication",
+    "Move all in-progress tasks to done",
+    "Create a new column for code review",
+    "What tasks are currently in the backlog?",
+    "Set due dates for all high priority tasks",
+    "Suggest a project structure for this app",
   ])
 
+  // Update suggestions based on project context
   useEffect(() => {
-    if (open && messages.length === 0) {
-      // Initial message
-      setIsTyping(true)
-      setTimeout(() => {
-        setMessages([
-          {
-            role: "assistant",
-            content: `Hello! I'm your AI project assistant. I'm analyzing your project "${project?.name || "current project"}"...`,
-            timestamp: new Date(),
-          },
-        ])
-        setIsTyping(false)
-      }, 1000)
+    if (project?.id && open) {
+      // Get project-specific suggestions
+      performAIAction(project.id, "Generate 6 short, specific suggestions for prompts that would be helpful for this project. Each suggestion should be a single sentence and focus on technical aspects. Return ONLY the list of suggestions separated by '|' characters with no additional text.")
+        .then(result => {
+          if (result.success && result.message) {
+            // Parse the suggestions
+            const newSuggestions = result.message
+              .split('|')
+              .map(s => s.trim())
+              .filter(s => s.length > 0)
 
-      // Follow-up message
-      setTimeout(() => {
-        setIsTyping(true)
-        setTimeout(() => {
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "assistant",
-              content: `I've analyzed your project and noticed a few things:
-              
-1. Based on your team's velocity, I recommend splitting the authentication feature into 3 smaller tasks:
-   - Implement OAuth providers
-   - Create user session management
-   - Add role-based permissions
-
-2. I noticed potential conflicts in the API integration branch. Would you like me to suggest a resolution strategy?
-
-3. I can generate test cases for the new API endpoints based on your documentation. Would you like to review them?`,
-              timestamp: new Date(),
-            },
-          ])
-          setIsTyping(false)
-        }, 2000)
-      }, 2000)
+            // Update suggestions if we got valid ones
+            if (newSuggestions.length >= 3) {
+              setSuggestions(newSuggestions.slice(0, 6))
+            }
+          }
+        })
+        .catch(error => {
+          console.error("Error getting suggestions:", error)
+        })
     }
-  }, [open, project, messages.length]) // Added messages.length to dependencies
+  }, [project?.id, open])
 
-  const handleSendMessage = (e?: React.FormEvent) => {
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollArea = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
+      if (scrollArea) {
+        // Use setTimeout to ensure the DOM has updated
+        setTimeout(() => {
+          scrollArea.scrollTop = scrollArea.scrollHeight
+        }, 0)
+      }
+    }
+  }, [projectMessages, isTyping])
+
+  // Initialize with welcome message if no messages exist
+  useEffect(() => {
+    if (open && project?.id && projectMessages.length === 0) {
+      // Initial welcome message
+      setIsTyping(true)
+
+      // Simulate typing delay
+      setTimeout(async () => {
+        try {
+          // Call server action to get a personalized welcome message
+          const result = await performAIAction(project.id, "Introduce yourself as Mate, the AI project assistant, and provide a brief overview of what you can do to help with this specific project. Be concise but informative.")
+
+          if (result.error) {
+            // Fallback message if there's an error
+            addMessage(project.id, {
+              role: "assistant",
+              content: `Hello! I'm Mate, your AI project assistant. I'm here to help with your project "${project?.name || "current project"}".
+
+I can help you with:
+- Creating technical tasks
+- Suggesting implementation approaches
+- Providing code guidance
+- Planning project architecture
+- Answering development questions
+
+How can I assist you today?`,
+              timestamp: new Date(),
+            })
+          } else {
+            // Use the AI-generated welcome message
+            addMessage(project.id, {
+              role: "assistant",
+              content: result.message,
+              timestamp: new Date(),
+            })
+          }
+        } catch (error) {
+          // Fallback message if there's an error
+          addMessage(project.id, {
+            role: "assistant",
+            content: `Hello! I'm Mate, your AI project assistant. I'm here to help with your project "${project?.name || "current project"}".
+
+I can help you with:
+- Creating technical tasks
+- Suggesting implementation approaches
+- Providing code guidance
+- Planning project architecture
+- Answering development questions
+
+How can I assist you today?`,
+            timestamp: new Date(),
+          })
+          console.error("Error getting welcome message:", error)
+        } finally {
+          setIsTyping(false)
+        }
+      }, 1000)
+    }
+  }, [open, project, projectMessages.length, addMessage, setIsTyping])
+
+  const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
-    if (!input.trim()) return
+    if (!input.trim() || !project?.id) return
+
+    // Store the current input before clearing it
+    const currentInput = input
 
     // Add user message
     const userMessage = {
       role: "user" as const,
-      content: input,
+      content: currentInput,
       timestamp: new Date(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    // Add to local state
+    addMessage(project.id, userMessage)
+
+    // Clear input immediately to improve UX
     setInput("")
 
-    // Simulate AI response
+    // Show typing indicator
     setIsTyping(true)
-    setTimeout(() => {
-      let response
 
-      if (input.toLowerCase().includes("test") || input.toLowerCase().includes("cases")) {
-        response = {
-          role: "assistant",
-          content: `I've generated test cases for your API endpoints:
+    // Check if this is a task creation request
+    const isTaskCreationRequest = (
+      currentInput.toLowerCase().includes("create task") ||
+      currentInput.toLowerCase().includes("add task") ||
+      currentInput.toLowerCase().includes("new task") ||
+      currentInput.toLowerCase().includes("create a task") ||
+      currentInput.toLowerCase().includes("make a task") ||
+      (currentInput.toLowerCase().includes("create") && currentInput.toLowerCase().includes("tasks"))
+    )
 
-1. **User Authentication Tests**
-   - Test valid login credentials
-   - Test invalid password
-   - Test account lockout after multiple failed attempts
-   - Test password reset flow
-
-2. **Product API Tests**
-   - Test product creation with valid data
-   - Test product update permissions
-   - Test product listing with pagination
-   - Test product search functionality
-
-Would you like me to expand on any of these test cases?`,
-          timestamp: new Date(),
-        }
-      } else if (input.toLowerCase().includes("conflict") || input.toLowerCase().includes("branch")) {
-        response = {
-          role: "assistant",
-          content: `I've analyzed the conflicts in the API integration branch. Here's my suggested resolution strategy:
-
-1. The conflicts are primarily in the \`/src/api/endpoints.js\` file where both branches modified the authentication middleware.
-
-2. I recommend keeping the changes from the feature branch for the middleware structure, but incorporating the security improvements from the main branch.
-
-3. For the database schema changes, you should merge both sets of changes as they affect different tables.
-
-Would you like me to generate the merged code for you to review?`,
-          timestamp: new Date(),
-        }
+    try {
+      if (isTaskCreationRequest) {
+        // Handle task creation directly
+        await handleCreateMultipleTasks(currentInput)
       } else {
-        response = {
-          role: "assistant",
-          content: `I'll help you with that! Based on your project context, here are some recommendations:
+        // Regular chat message
+        // Send message to API
+        const response = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: currentInput,
+            projectId: project.id,
+          }),
+        })
 
-1. Your current sprint is 65% complete with 8 days remaining.
-
-2. The critical path includes completing the authentication system before the payment integration can begin.
-
-3. I've identified that David's tasks have dependencies from 3 other team members, which might create a bottleneck.
-
-Would you like me to suggest a task reallocation to optimize the workflow?`,
-          timestamp: new Date(),
+        if (!response.ok) {
+          throw new Error("Failed to get AI response")
         }
-      }
 
-      setMessages((prev) => [...prev, { ...response, role: response.role as "assistant" }])
+        const data = await response.json()
+
+        // Add AI response to state
+        addMessage(project.id, {
+          role: "assistant",
+          content: data.message,
+          timestamp: new Date(data.timestamp),
+        })
+      }
+    } catch (error) {
+      console.error("Error getting AI response:", error)
+      toast.error("Failed to get AI response. Please try again.")
+
+      // Add error message
+      addMessage(project.id, {
+        role: "assistant",
+        content: "I'm sorry, I encountered an error processing your request. Please try again.",
+        timestamp: new Date(),
+      })
+    } finally {
       setIsTyping(false)
-    }, 2000)
+    }
   }
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -172,25 +228,197 @@ Would you like me to suggest a task reallocation to optimize the workflow?`,
     handleSendMessage()
   }
 
+  const handleCreateTask = async () => {
+    if (!project?.id || !input.trim()) return
+
+    try {
+      // Show loading state
+      toast.loading("Creating task...")
+
+      // Call server action to create task
+      const result = await createTaskViaAI(project.id, input)
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      // Success message
+      toast.success("Task created successfully!")
+
+      // Add AI response to state
+      addMessage(project.id, {
+        role: "assistant",
+        content: result.message,
+        timestamp: new Date(),
+      })
+
+      // Clear input
+      setInput("")
+    } catch (error) {
+      console.error("Error creating task:", error)
+      toast.error("Failed to create task. Please try again.")
+    }
+  }
+
+  const handleCreateMultipleTasks = async (taskDescription: string) => {
+    if (!project?.id) return
+
+    try {
+      // Check if the request is for multiple tasks
+      const isMultipleTasks = (
+        taskDescription.toLowerCase().includes("tasks") ||
+        taskDescription.toLowerCase().includes("multiple") ||
+        taskDescription.match(/\d+\s+tasks/) // e.g., "3 tasks"
+      )
+
+      if (isMultipleTasks) {
+        // Extract number of tasks if specified
+        const numTasksMatch = taskDescription.match(/(\d+)\s+tasks?/)
+        const numTasks = numTasksMatch ? parseInt(numTasksMatch[1]) : 3 // Default to 3 if not specified
+
+        // Show loading state
+        toast.loading(`Creating ${numTasks} tasks...`)
+
+        // Add AI thinking message
+        addMessage(project.id, {
+          role: "assistant",
+          content: `I'm creating ${numTasks} tasks based on your request. Please wait...`,
+          timestamp: new Date(),
+        })
+
+        // Create tasks one by one
+        let tasksCreated = []
+        let errorOccurred = false
+
+        for (let i = 0; i < numTasks; i++) {
+          try {
+            // Create task with index for context
+            const result = await createTaskViaAI(project.id,
+              `This is task ${i+1} of ${numTasks} for: ${taskDescription}. Make this task specific and detailed.`
+            )
+
+            if (result.error) {
+              errorOccurred = true
+              continue
+            }
+
+            tasksCreated.push(result.task)
+          } catch (error) {
+            console.error(`Error creating task ${i+1}:`, error)
+            errorOccurred = true
+          }
+        }
+
+        // Show results
+        if (tasksCreated.length > 0) {
+          // Success message
+          toast.success(`Created ${tasksCreated.length} tasks successfully!`)
+
+          // Add AI response with task details
+          const taskListMessage = `I've created ${tasksCreated.length} tasks for you:\n\n` +
+            tasksCreated.map((task, index) =>
+              `**Task ${index+1}: ${task.title}**\n` +
+              `* Status: ${task.status}\n` +
+              `* Priority: ${task.priority}\n` +
+              `* Description: ${task.description}\n`
+            ).join('\n')
+
+          addMessage(project.id, {
+            role: "assistant",
+            content: taskListMessage,
+            timestamp: new Date(),
+          })
+        }
+
+        if (errorOccurred) {
+          toast.error("Some tasks could not be created. Please try again.")
+        }
+      } else {
+        // Single task creation
+        const result = await createTaskViaAI(project.id, taskDescription)
+
+        if (result.error) {
+          toast.error(result.error)
+          return
+        }
+
+        // Success message
+        toast.success("Task created successfully!")
+
+        // Add AI response to state
+        addMessage(project.id, {
+          role: "assistant",
+          content: result.message,
+          timestamp: new Date(),
+        })
+      }
+    } catch (error) {
+      console.error("Error creating tasks:", error)
+      toast.error("Failed to create tasks. Please try again.")
+
+      // Add error message
+      addMessage(project.id, {
+        role: "assistant",
+        content: "I'm sorry, I encountered an error creating the tasks. Please try again.",
+        timestamp: new Date(),
+      })
+    }
+  }
+
+  const handlePerformAction = async () => {
+    if (!project?.id || !input.trim()) return
+
+    try {
+      // Show loading state
+      toast.loading("Performing action...")
+
+      // Call server action to perform AI action
+      const result = await performAIAction(project.id, input)
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      // Success message
+      toast.success("Action completed successfully!")
+
+      // Clear input
+      setInput("")
+    } catch (error) {
+      console.error("Error performing action:", error)
+      toast.error("Failed to perform action. Please try again.")
+    }
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-md p-0 flex flex-col h-full">
-        <SheetHeader className="p-4 border-b">
+      <SheetContent className="sm:max-w-md p-0 flex flex-col h-full border-l border-border/50 backdrop-blur-sm overflow-hidden">
+        <SheetHeader className="sticky top-0 p-4 border-b bg-gradient-to-r from-primary/10 to-primary/5 backdrop-blur-sm z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <Sparkles className="h-5 w-5 text-primary mr-2" />
-              <SheetTitle>AI Project Assistant</SheetTitle>
+              <div className="relative mr-3">
+                <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-primary to-purple-600 opacity-75 blur-sm animate-pulse"></div>
+                <div className="relative bg-background rounded-full p-1.5">
+                  <Bot className="h-5 w-5 text-primary" />
+                </div>
+              </div>
+              <div>
+                <SheetTitle className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600">Mate</SheetTitle>
+                <p className="text-xs text-muted-foreground">Your AI Project Assistant</p>
+              </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={() => onOpenChange(false)}>
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10" onClick={() => onOpenChange(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>
         </SheetHeader>
 
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
+        <ScrollArea className="flex-1 px-4 py-6 bg-gradient-to-b from-background to-muted/30 overflow-y-auto" ref={scrollAreaRef}>
+          <div className="space-y-6">
             <AnimatePresence>
-              {messages.map((message, index) => (
+              {projectMessages.map((message, index) => (
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 10 }}
@@ -201,35 +429,32 @@ Would you like me to suggest a task reallocation to optimize the workflow?`,
                   <div
                     className={`flex ${message.role === "user" ? "flex-row-reverse" : "flex-row"} max-w-[80%] gap-2`}
                   >
-                    <Avatar className={`h-8 w-8 ${message.role === "user" ? "ml-2" : "mr-2"}`}>
+                    <div className={`${message.role === "user" ? "ml-2" : "mr-2"}`}>
                       {message.role === "assistant" ? (
-                        <>
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                          <AvatarFallback className="bg-primary text-primary-foreground">AI</AvatarFallback>
-                        </>
+                        <div className="relative">
+                          <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-primary to-purple-600 opacity-75 blur-sm"></div>
+                          <div className="relative bg-background rounded-full p-1.5">
+                            <Bot className="h-5 w-5 text-primary" />
+                          </div>
+                        </div>
                       ) : (
-                        <>
-                          <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                          <AvatarFallback>U</AvatarFallback>
-                        </>
+                        <div className="bg-background rounded-full p-1.5 border border-border">
+                          <User className="h-5 w-5 text-foreground" />
+                        </div>
                       )}
-                    </Avatar>
+                    </div>
                     <div>
-                      <Card
-                        className={`${
-                          message.role === "assistant"
-                            ? "bg-muted border-muted"
-                            : "bg-primary text-primary-foreground border-primary"
-                        }`}
+                      <div
+                        className={`rounded-2xl px-4 py-3 ${message.role === "assistant"
+                          ? "bg-gradient-to-br from-muted/80 to-muted border border-border shadow-sm"
+                          : "bg-gradient-to-br from-primary to-primary/90 text-primary-foreground shadow-md"}`}
                       >
-                        <CardContent className="p-3">
-                          <div className="whitespace-pre-line text-sm">{message.content}</div>
-                        </CardContent>
-                      </Card>
+                        <div className="whitespace-pre-line text-sm leading-relaxed">{message.content}</div>
+                      </div>
                       <div
                         className={`text-xs text-muted-foreground mt-1 ${message.role === "user" ? "text-right" : ""}`}
                       >
-                        {message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(message.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </div>
                   </div>
@@ -243,19 +468,19 @@ Would you like me to suggest a task reallocation to optimize the workflow?`,
                   className="flex justify-start"
                 >
                   <div className="flex flex-row max-w-[80%] gap-2">
-                    <Avatar className="h-8 w-8 mr-2">
-                      <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                      <AvatarFallback className="bg-primary text-primary-foreground">AI</AvatarFallback>
-                    </Avatar>
-                    <Card className="bg-muted border-muted">
-                      <CardContent className="p-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="h-2 w-2 rounded-full bg-primary animate-bounce" />
-                          <div className="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:0.2s]" />
-                          <div className="h-2 w-2 rounded-full bg-primary animate-bounce [animation-delay:0.4s]" />
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <div className="mr-2 relative">
+                      <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-primary to-purple-600 opacity-75 blur-sm animate-pulse"></div>
+                      <div className="relative bg-background rounded-full p-1.5">
+                        <Bot className="h-5 w-5 text-primary" />
+                      </div>
+                    </div>
+                    <div className="rounded-2xl px-4 py-3 bg-gradient-to-br from-muted/80 to-muted border border-border shadow-sm">
+                      <div className="flex items-center space-x-2">
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-purple-600 animate-bounce" />
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-purple-600 animate-bounce [animation-delay:0.2s]" />
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-purple-600 animate-bounce [animation-delay:0.4s]" />
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -263,38 +488,79 @@ Would you like me to suggest a task reallocation to optimize the workflow?`,
           </div>
         </ScrollArea>
 
-        {messages.length > 0 && !isTyping && (
-          <div className="p-4 border-t">
+        {projectMessages.length > 0 && !isTyping && (
+          <div className="p-4 border-t bg-gradient-to-b from-muted/30 to-background">
             <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2">Suggested prompts:</h3>
-              <div className="flex flex-wrap gap-2">
-                {suggestions.map((suggestion, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    className="text-xs"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    <Zap className="h-3 w-3 mr-1 text-primary" />
-                    {suggestion}
-                  </Button>
-                ))}
+              <div className="flex items-center mb-3">
+                <Lightbulb className="h-4 w-4 mr-2 text-primary" />
+                <h3 className="text-sm font-medium">Suggested prompts</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {suggestions.map((suggestion, index) => {
+                  const icons = [ListTodo, ArrowRight, Database, Calendar, Wand2, Brain];
+                  const Icon = icons[index % icons.length];
+                  return (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      className="text-xs justify-start h-auto py-2 px-3 hover:bg-primary/5 hover:text-primary transition-colors"
+                      onClick={() => handleSuggestionClick(suggestion)}
+                    >
+                      <Icon className="h-3 w-3 mr-2 text-primary flex-shrink-0" />
+                      <span className="truncate">{suggestion}</span>
+                    </Button>
+                  );
+                })}
               </div>
             </div>
           </div>
         )}
 
-        <SheetFooter className="p-4 border-t">
+        <SheetFooter className="sticky bottom-0 p-4 border-t bg-gradient-to-b from-background to-muted/10 z-10">
           <form onSubmit={handleSendMessage} className="flex w-full items-center space-x-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask your AI assistant..."
-              className="flex-1"
-            />
-            <Button type="submit" size="icon" disabled={!input.trim() || isTyping}>
-              {isTyping ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            <div className="flex-1 flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask Mate anything..."
+                  className="flex-1 pr-10 bg-background/80 backdrop-blur-sm border-muted-foreground/20 focus-visible:ring-primary/50 rounded-full pl-4"
+                  autoComplete="off"
+                />
+                {project?.id && input.trim() && (
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full hover:bg-primary/10"
+                      onClick={handleCreateTask}
+                      title="Create task from this message"
+                    >
+                      <PlusCircle className="h-4 w-4 text-primary" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 rounded-full hover:bg-primary/10"
+                      onClick={handlePerformAction}
+                      title="Let AI perform this action"
+                    >
+                      <Wand2 className="h-4 w-4 text-primary" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!input.trim() || isTyping || !project?.id}
+              className="rounded-full h-10 w-10 bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 transition-opacity shadow-md flex-shrink-0"
+            >
+              {isTyping ? <Loader2 className="h-4 w-4 animate-spin text-white" /> : <Send className="h-4 w-4 text-white" />}
             </Button>
           </form>
         </SheetFooter>
@@ -302,4 +568,3 @@ Would you like me to suggest a task reallocation to optimize the workflow?`,
     </Sheet>
   )
 }
-
