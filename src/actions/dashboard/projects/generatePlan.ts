@@ -14,6 +14,23 @@ const columnSchema = z.object({
   color: z.string().optional(),
 });
 
+// Define the ProjectPlan type first
+export type ProjectPlan = {
+  name: string;
+  description: string;
+  columns: {
+    name: string;
+    key: string;
+    color?: string;
+  }[];
+  tasks: {
+    title: string;
+    description: string;
+    status: string;
+    priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  }[];
+};
+
 export const generateProjectPlan = async (
   idea: string
 ): Promise<ProjectPlan> => {
@@ -96,18 +113,3 @@ export const generateProjectPlan = async (
   }
 };
 
-export type ProjectPlan = {
-  name: string;
-  description: string;
-  columns: {
-    name: string;
-    key: string;
-    color?: string;
-  }[];
-  tasks: {
-    title: string;
-    description: string;
-    status: string;
-    priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  }[];
-};

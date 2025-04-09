@@ -66,10 +66,10 @@ export async function generateProjectPlan(idea: string): Promise<ProjectPlan> {
         })
       ).describe("The tasks for the project"),
     });
-    
+
     // Create the output parser
     const outputParser = StructuredOutputParser.fromZodSchema(projectPlanSchema);
-    
+
     // Create the prompt template
     const promptTemplate = PromptTemplate.fromTemplate(`
 You are a SUPERINTELLIGENT technical project planner for software development projects. Create a detailed technical project plan for this idea: "{idea}"
@@ -85,10 +85,10 @@ Rules:
 
 {format_instructions}
     `);
-    
+
     // Create the model
     const model = createModel();
-    
+
     // Create the chain
     const chain = RunnableSequence.from([
       {
@@ -106,15 +106,15 @@ Rules:
       model,
       outputParser,
     ]);
-    
+
     // Run the chain
     const result = await chain.invoke({
       idea,
     });
-    
+
     // Ensure task distribution
     const enhancedPlan = ensureTaskDistribution(result);
-    
+
     return enhancedPlan;
   } catch (error) {
     console.error("Failed to generate project plan:", error);
@@ -266,4 +266,25 @@ function calculateRelevance(
 
   // Calculate relevance score (0-1)
   return matchedKeywords.length / keywords.length;
+}
+
+/**
+ * Generate a project structure
+ * @param projectName - The name of the project
+ * @param projectDescription - The description of the project
+ * @param projectType - The type of the project
+ * @returns A project plan
+ */
+export async function generateProjectStructure(
+  projectName: string,
+  projectDescription: string,
+  projectType: string
+): Promise<ProjectPlan> {
+  try {
+    // Generate the project plan using the LangChain implementation
+    return await generateProjectPlan(projectDescription || projectName);
+  } catch (error) {
+    console.error("Failed to generate project structure:", error);
+    throw error;
+  }
 }
