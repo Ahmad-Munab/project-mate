@@ -49,16 +49,24 @@ export type TaskStatus = {
 // Default column colors (fallback)
 const defaultColumnColors = {
   BACKLOG: "bg-gray-50 dark:bg-gray-900",
-  TODO: "bg-neutral-50 dark:bg-neutral-900",
-  IN_PROGRESS: "bg-blue-50 dark:bg-blue-900/20",
-  DONE: "bg-green-50 dark:bg-green-900/20",
+  ARCHITECTURE: "bg-purple-50 dark:bg-purple-900/20",
+  FRONTEND: "bg-blue-50 dark:bg-blue-900/20",
+  BACKEND: "bg-green-50 dark:bg-green-900/20",
+  DATABASE: "bg-yellow-50 dark:bg-yellow-900/20",
+  API: "bg-indigo-50 dark:bg-indigo-900/20",
+  TESTING: "bg-red-50 dark:bg-red-900/20",
+  DONE: "bg-emerald-50 dark:bg-emerald-900/20",
 };
 
 // Default column headers (fallback)
 const defaultColumnHeaders = {
   BACKLOG: "Backlog",
-  TODO: "To Do",
-  IN_PROGRESS: "In Progress",
+  ARCHITECTURE: "Architecture",
+  FRONTEND: "Frontend",
+  BACKEND: "Backend",
+  DATABASE: "Database",
+  API: "API",
+  TESTING: "Testing",
   DONE: "Done",
 };
 
@@ -76,24 +84,68 @@ const getDefaultTaskStatuses = (projectId: string) => [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'default-todo',
+    id: 'default-architecture',
     project_id: projectId,
-    name: 'To Do',
-    key: 'TODO',
-    color: 'bg-neutral-50 dark:bg-neutral-900',
+    name: 'Architecture',
+    key: 'ARCHITECTURE',
+    color: 'bg-purple-50 dark:bg-purple-900/20',
     is_default: false,
     order: 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'default-in-progress',
+    id: 'default-frontend',
     project_id: projectId,
-    name: 'In Progress',
-    key: 'IN_PROGRESS',
+    name: 'Frontend',
+    key: 'FRONTEND',
     color: 'bg-blue-50 dark:bg-blue-900/20',
     is_default: false,
     order: 2,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'default-backend',
+    project_id: projectId,
+    name: 'Backend',
+    key: 'BACKEND',
+    color: 'bg-green-50 dark:bg-green-900/20',
+    is_default: false,
+    order: 3,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'default-database',
+    project_id: projectId,
+    name: 'Database',
+    key: 'DATABASE',
+    color: 'bg-yellow-50 dark:bg-yellow-900/20',
+    is_default: false,
+    order: 4,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'default-api',
+    project_id: projectId,
+    name: 'API',
+    key: 'API',
+    color: 'bg-indigo-50 dark:bg-indigo-900/20',
+    is_default: false,
+    order: 5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: 'default-testing',
+    project_id: projectId,
+    name: 'Testing',
+    key: 'TESTING',
+    color: 'bg-red-50 dark:bg-red-900/20',
+    is_default: false,
+    order: 6,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -102,9 +154,9 @@ const getDefaultTaskStatuses = (projectId: string) => [
     project_id: projectId,
     name: 'Done',
     key: 'DONE',
-    color: 'bg-green-50 dark:bg-green-900/20',
+    color: 'bg-emerald-50 dark:bg-emerald-900/20',
     is_default: false,
-    order: 3,
+    order: 7,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -134,43 +186,79 @@ async function fetchProjectTasks(projectId: string) {
 async function fetchProjectTaskStatuses(projectId: string) {
   try {
     console.log('Fetching task statuses for project:', projectId);
-    // Fetch existing statuses
-    const response = await fetch(`/api/projects/${projectId}/task-statuses`);
 
-    if (!response.ok) {
-      console.error('Failed to fetch task statuses:', await response.text());
-      throw new Error("Failed to fetch task statuses");
-    }
+    // First check if we already have statuses
+    let statuses = [];
 
-    const statuses = await response.json();
-    console.log('Fetched statuses:', statuses.length);
+    try {
+      // Fetch existing statuses
+      const response = await fetch(`/api/projects/${projectId}/task-statuses`);
 
-    // If no statuses exist, we'll handle this in the useEffect
-    if (statuses.length === 0) {
-      console.log('No statuses found, will use default ones');
-      // Try to initialize default statuses
-      try {
-        const initResponse = await fetch(`/api/projects/${projectId}/task-statuses/initialize`, {
-          method: 'POST',
-        });
-
-        if (initResponse.ok) {
-          const newStatuses = await initResponse.json();
-          console.log('Initialized statuses:', newStatuses.length);
-          return newStatuses;
-        } else {
-          console.error('Failed to initialize statuses, using defaults');
-          return getDefaultTaskStatuses(projectId);
-        }
-      } catch (initError) {
-        console.error('Error initializing statuses:', initError);
-        return getDefaultTaskStatuses(projectId);
+      if (response.ok) {
+        statuses = await response.json();
+        console.log('Fetched statuses:', statuses.length);
+      } else {
+        console.warn('Failed to fetch task statuses, will try to initialize');
       }
+    } catch (fetchError) {
+      console.warn('Error fetching task statuses, will try to initialize:', fetchError);
     }
 
-    return statuses;
+    // If we have statuses, return them
+    if (statuses.length > 0) {
+      return statuses;
+    }
+
+    // If no statuses exist, try to initialize them
+    console.log('No statuses found, will initialize default ones');
+
+    try {
+      // Try up to 3 times to initialize statuses
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`Initializing statuses (attempt ${attempt}/3)...`);
+          const initResponse = await fetch(`/api/projects/${projectId}/task-statuses/initialize`, {
+            method: 'POST',
+          });
+
+          if (initResponse.ok) {
+            const newStatuses = await initResponse.json();
+            console.log('Successfully initialized statuses:', newStatuses.length);
+
+            // If we got statuses back, return them
+            if (newStatuses.length > 0) {
+              return newStatuses;
+            }
+
+            // If we didn't get any statuses, try again or use defaults
+            console.warn('Initialization returned 0 statuses, will retry or use defaults');
+          } else {
+            console.warn(`Initialization failed (attempt ${attempt}/3):`, await initResponse.text());
+          }
+
+          // Wait a bit before retrying
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+          }
+        } catch (attemptError) {
+          console.warn(`Initialization attempt ${attempt}/3 failed:`, attemptError);
+
+          // Wait a bit before retrying
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
+          }
+        }
+      }
+
+      // If we get here, all initialization attempts failed
+      console.error('All initialization attempts failed, using default statuses');
+      return getDefaultTaskStatuses(projectId);
+    } catch (initError) {
+      console.error('Error during status initialization process:', initError);
+      return getDefaultTaskStatuses(projectId);
+    }
   } catch (error) {
-    console.error("Error fetching task statuses:", error);
+    console.error("Unexpected error in fetchProjectTaskStatuses:", error);
     return getDefaultTaskStatuses(projectId); // Return default statuses as fallback
   }
 }

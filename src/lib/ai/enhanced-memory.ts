@@ -2,8 +2,8 @@ import { BufferMemory } from "langchain/memory";
 import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 import { AIMessage as LangChainAIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { getRecentMessages, storeMessage, type AIMessage } from "./memory";
-import { getProjectContext, storeDocumentInStore } from "./vector-store";
 import { getProjectInfo } from "./tools";
+import { storeDocument, getProjectContext } from "./rag/langchain-retrieval";
 
 // Convert our AIMessage type to LangChain message types
 function convertToLangChainMessages(messages: AIMessage[]) {
@@ -57,7 +57,7 @@ export async function storeEnhancedMessage(
 
     // Store in the document store (only for assistant and user messages)
     if (message.role !== "system") {
-      await storeDocumentInStore(
+      await storeDocument(
         projectId,
         message.content,
         {

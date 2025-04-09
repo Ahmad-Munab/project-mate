@@ -12,7 +12,31 @@ import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { useAIStore } from "@/store/aiStore"
-import { createTaskViaAI, performAIAction } from "@/actions/ai/actions"
+import { createTaskViaAI, performAIAction, createColumnViaAI } from "@/actions/ai/actions"
+
+// Helper function to get a human-readable description of an action
+function getActionDescription(actionType: string): string {
+  switch (actionType) {
+    case "CREATE_TASK":
+      return "create a new task";
+    case "CREATE_COLUMN":
+      return "create a new column";
+    case "MOVE_TASK":
+      return "move a task to a different column";
+    case "UPDATE_TASK":
+      return "update a task";
+    case "DELETE_TASK":
+      return "delete a task";
+    case "DELETE_COLUMN":
+      return "delete a column";
+    case "SHOW_TASKS":
+      return "show tasks";
+    case "SHOW_COLUMNS":
+      return "show columns";
+    default:
+      return "perform an action";
+  }
+}
 
 type Project = {
   id: string;
@@ -32,6 +56,7 @@ interface AIAssistantProps {
 
 export default function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
   const [input, setInput] = useState("")
+  const [pendingAction, setPendingAction] = useState<any>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const { messages: storedMessages, isTyping, setIsTyping, addMessage } = useAIStore()
   const projectMessages = project?.id ? (storedMessages[project.id] || []) : []
@@ -164,27 +189,280 @@ How can I assist you today?`,
     // Clear input immediately to improve UX
     setInput("")
 
+    // Check for direct request to add solutions to tasks
+    if (currentInput.toLowerCase().includes("edit tasks to provide solution") ||
+        currentInput.toLowerCase().includes("add solution") ||
+        currentInput.toLowerCase().includes("update tasks with solution")) {
+      await handleAddSolutionsToTasks()
+      return
+    }
+
     // Show typing indicator
     setIsTyping(true)
 
-    // Check if this is a task creation request
-    const isTaskCreationRequest = (
-      currentInput.toLowerCase().includes("create task") ||
-      currentInput.toLowerCase().includes("add task") ||
-      currentInput.toLowerCase().includes("new task") ||
-      currentInput.toLowerCase().includes("create a task") ||
-      currentInput.toLowerCase().includes("make a task") ||
-      (currentInput.toLowerCase().includes("create") && currentInput.toLowerCase().includes("tasks"))
-    )
+    // Check if we have a pending action that needs confirmation
+    if (pendingAction) {
+      // Check if the user confirmed or denied the action
+      const isConfirmed = (
+        currentInput.toLowerCase().includes("yes") ||
+        currentInput.toLowerCase().includes("confirm") ||
+        currentInput.toLowerCase().includes("proceed") ||
+        currentInput.toLowerCase().includes("ok") ||
+        currentInput.toLowerCase().includes("sure") ||
+        currentInput.toLowerCase() === "y"
+      )
+
+      const isDenied = (
+        currentInput.toLowerCase().includes("no") ||
+        currentInput.toLowerCase().includes("cancel") ||
+        currentInput.toLowerCase().includes("don't") ||
+        currentInput.toLowerCase().includes("dont") ||
+        currentInput.toLowerCase().includes("stop") ||
+        currentInput.toLowerCase() === "n"
+      )
+
+      if (isConfirmed || isDenied) {
+        if (isConfirmed) {
+          // User confirmed the action, execute it
+          try {
+            // Handle different action types
+            switch (pendingAction.type) {
+              case "CREATE_TASK":
+                // Handle task creation
+                await handleCreateMultipleTasks(pendingAction.parameters.description || "")
+                break
+
+              case "CREATE_COLUMN":
+              case "MOVE_TASK":
+              case "UPDATE_TASK":
+                // Handle other actions
+                await handlePerformAction(JSON.stringify(pendingAction.parameters))
+                break
+
+              case "DELETE_TASK":
+                // Handle task deletion
+                if (pendingAction.parameters.taskDescription?.toLowerCase().includes("useless")) {
+                  // Show loading state
+                  toast.loading("Deleting useless tasks...")
+
+                  // Delete useless tasks
+                  const result = await performAIAction(project.id, "Delete useless tasks")
+
+                  // Dismiss loading state
+                  toast.dismiss()
+
+                  if (result.error) {
+                    toast.error(result.error)
+                    return
+                  }
+
+                  // Success message
+                  toast.success("Useless tasks deleted successfully!")
+
+                  // Add AI response to state with the detailed result
+                  addMessage(project.id, {
+                    role: "assistant",
+                    content: result.message || "I've deleted the useless tasks from your project.",
+                    timestamp: new Date(),
+                  })
+                } else if (pendingAction.parameters.taskDescription && (
+                  pendingAction.parameters.taskDescription.includes("related") ||
+                  pendingAction.parameters.taskDescription.includes("stuff") ||
+                  pendingAction.parameters.taskDescription.includes("things") ||
+                  pendingAction.parameters.taskDescription.includes("all") ||
+                  pendingAction.parameters.taskDescription.includes("everything")
+                )) {
+                  // Show loading state
+                  toast.loading("Deleting domain-specific tasks...")
+
+                  // Delete domain-specific tasks
+                  const result = await performAIAction(project.id, `Delete task: ${pendingAction.parameters.taskDescription}`)
+
+                  // Dismiss loading state
+                  toast.dismiss()
+
+                  if (result.error) {
+                    toast.error(result.error)
+                    return
+                  }
+
+                  // Success message
+                  toast.success("Tasks deleted successfully!")
+
+                  // Add AI response to state with the detailed result
+                  addMessage(project.id, {
+                    role: "assistant",
+                    content: result.message || `I've deleted the tasks related to "${pendingAction.parameters.taskDescription}".`,
+                    timestamp: new Date(),
+                  })
+                } else {
+                  // Delete specific task
+                  await handleDeleteTask(pendingAction.parameters.taskId || pendingAction.parameters.taskDescription || "")
+                }
+                break
+
+              case "DELETE_COLUMN":
+                // Handle column deletion
+                await handleDeleteColumn(pendingAction.parameters.columnId || pendingAction.parameters.columnName || "")
+                break
+
+              default:
+                // For other actions, add a response
+                addMessage(project.id, {
+                  role: "assistant",
+                  content: "I'm not sure how to perform that action yet. I'll add this capability soon.",
+                  timestamp: new Date(),
+                })
+                break
+            }
+          } catch (error) {
+            console.error("Error executing confirmed action:", error)
+            toast.error("Failed to execute the action. Please try again.")
+
+            // Add error message
+            addMessage(project.id, {
+              role: "assistant",
+              content: "I'm sorry, I encountered an error performing this action. Please try again.",
+              timestamp: new Date(),
+            })
+          }
+        } else {
+          // User denied the action
+          addMessage(project.id, {
+            role: "assistant",
+            content: "I've cancelled the action as requested.",
+            timestamp: new Date(),
+          })
+        }
+
+        // Clear the pending action
+        setPendingAction(null)
+        setIsTyping(false)
+        return
+      }
+    }
 
     try {
-      if (isTaskCreationRequest) {
-        // Handle task creation directly
-        await handleCreateMultipleTasks(currentInput)
-      } else {
-        // Regular chat message
-        // Send message to API
-        const response = await fetch("/api/ai/chat", {
+      // Send message to API first to detect actions
+      const response = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: currentInput,
+          projectId: project.id,
+          detectOnly: true, // Just detect actions, don't generate a full response
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to get AI response")
+      }
+
+      const data = await response.json()
+
+      // Check if an action was detected
+      if (data.detectedAction) {
+        const action = data.detectedAction
+
+        // If the action needs confirmation, show a confirmation dialog
+        if (action.needsConfirmation) {
+          // For delete actions, provide more specific confirmation messages
+          let confirmationMessage = action.confirmationMessage || `Are you sure you want to ${getActionDescription(action.type)}?`;
+
+          // For delete task actions, be more specific
+          if (action.type === "DELETE_TASK") {
+            // If we're deleting useless tasks
+            if (currentInput.toLowerCase().includes("useless")) {
+              // First, preview the useless tasks
+              const previewResult = await performAIAction(project.id, `Preview delete task: useless`);
+              if (previewResult.error) {
+                confirmationMessage = "I'll analyze your project and delete tasks that appear to be useless or unnecessary (like test tasks, placeholders, or duplicates). Are you sure you want me to proceed with this cleanup?";
+              } else {
+                confirmationMessage = previewResult.message || "I'll analyze your project and delete tasks that appear to be useless or unnecessary. Are you sure you want to proceed?";
+              }
+            } else {
+              // If we're deleting a specific task
+              const taskDesc = action.parameters.taskDescription || "the specified task";
+              confirmationMessage = `I'll delete the task matching "${taskDesc}". Are you sure you want to proceed?`;
+            }
+          }
+
+          // For delete column actions, be more specific
+          if (action.type === "DELETE_COLUMN") {
+            const columnDesc = action.parameters.columnName || "the specified column";
+            confirmationMessage = `I'll delete the column matching "${columnDesc}". Any tasks in this column will be moved to the default column. Are you sure you want to proceed?`;
+          }
+
+          // For update task actions that add solutions
+          if (action.type === "UPDATE_TASK" &&
+              (currentInput.toLowerCase().includes("solution") ||
+               currentInput.toLowerCase().includes("edit tasks to provide"))) {
+            confirmationMessage = "I'll analyze your tasks and add detailed technical solutions to each one. This will help you understand how to implement each task. Would you like me to proceed?";
+          }
+
+          // Add AI response asking for confirmation
+          addMessage(project.id, {
+            role: "assistant",
+            content: confirmationMessage,
+            timestamp: new Date(),
+          })
+
+          // Store the pending action for later confirmation
+          setPendingAction(action)
+
+          // We'll wait for user confirmation before proceeding
+          return
+        }
+
+        // Handle different action types
+        switch (action.type) {
+          case "CREATE_TASK":
+            // Handle task creation
+            await handleCreateMultipleTasks(action.parameters.description || currentInput)
+            return
+
+          case "CREATE_COLUMN":
+            // Handle column creation specifically
+            await handleCreateColumn(action.parameters.name || "Project Structure", action.parameters.color || "blue")
+            return
+
+          case "DELETE_TASK":
+            // Handle task deletion
+            await handleDeleteTask(action.parameters.taskId || action.parameters.taskDescription)
+            return
+
+          case "DELETE_COLUMN":
+            // Handle column deletion
+            await handleDeleteColumn(action.parameters.columnId || action.parameters.columnName)
+            return
+
+          case "MOVE_TASK":
+            // Handle task movement
+            await handlePerformAction(currentInput)
+            return
+
+          case "UPDATE_TASK":
+            // Check if this is a request to add solutions
+            if (currentInput.toLowerCase().includes("solution") ||
+                currentInput.toLowerCase().includes("edit tasks to provide")) {
+              await handleAddSolutionsToTasks()
+            } else {
+              // Handle other update actions
+              await handlePerformAction(currentInput)
+            }
+            return
+
+          default:
+            // For other actions, continue with normal processing
+            break
+        }
+      }
+
+      // If no action was detected or we're continuing with normal processing
+      // Regular chat message
+        const chatResponse = await fetch("/api/ai/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -195,19 +473,18 @@ How can I assist you today?`,
           }),
         })
 
-        if (!response.ok) {
+        if (!chatResponse.ok) {
           throw new Error("Failed to get AI response")
         }
 
-        const data = await response.json()
+        const chatData = await chatResponse.json()
 
         // Add AI response to state
         addMessage(project.id, {
           role: "assistant",
-          content: data.message,
-          timestamp: new Date(data.timestamp),
+          content: chatData.message,
+          timestamp: new Date(chatData.timestamp),
         })
-      }
     } catch (error) {
       console.error("Error getting AI response:", error)
       toast.error("Failed to get AI response. Please try again.")
@@ -290,8 +567,31 @@ How can I assist you today?`,
         // Create tasks one by one
         let tasksCreated = []
         let errorOccurred = false
+        let newColumns = new Set()
 
-        for (let i = 0; i < numTasks; i++) {
+        // First, create a task with the full context to potentially create a new column
+        try {
+          const firstResult = await createTaskViaAI(project.id,
+            `This is the first task for: ${taskDescription}. Create an appropriate column if needed and make this task specific and detailed.`
+          )
+
+          if (firstResult.error) {
+            errorOccurred = true
+          } else {
+            tasksCreated.push(firstResult.task)
+
+            // Track any new column that was created
+            if (firstResult.newColumn) {
+              newColumns.add(firstResult.newColumn)
+            }
+          }
+        } catch (error) {
+          console.error(`Error creating first task:`, error)
+          errorOccurred = true
+        }
+
+        // Create the remaining tasks
+        for (let i = 1; i < numTasks; i++) {
           try {
             // Create task with index for context
             const result = await createTaskViaAI(project.id,
@@ -304,6 +604,11 @@ How can I assist you today?`,
             }
 
             tasksCreated.push(result.task)
+
+            // Track any new column that was created
+            if (result.newColumn) {
+              newColumns.add(result.newColumn)
+            }
           } catch (error) {
             console.error(`Error creating task ${i+1}:`, error)
             errorOccurred = true
@@ -315,8 +620,14 @@ How can I assist you today?`,
           // Success message
           toast.success(`Created ${tasksCreated.length} tasks successfully!`)
 
+          // Add information about new columns if any were created
+          let columnMessage = ""
+          if (newColumns.size > 0) {
+            columnMessage = `I've created ${newColumns.size === 1 ? "a new column" : `${newColumns.size} new columns`}: ${Array.from(newColumns).join(", ")}\n\n`
+          }
+
           // Add AI response with task details
-          const taskListMessage = `I've created ${tasksCreated.length} tasks for you:\n\n` +
+          const taskListMessage = `${columnMessage}I've created ${tasksCreated.length} tasks for you:\n\n` +
             tasksCreated.map((task, index) =>
               `**Task ${index+1}: ${task.title}**\n` +
               `* Status: ${task.status}\n` +
@@ -366,15 +677,227 @@ How can I assist you today?`,
     }
   }
 
-  const handlePerformAction = async () => {
-    if (!project?.id || !input.trim()) return
+  const handleCreateColumn = async (columnName: string, columnColor: string = "blue") => {
+    if (!project?.id) return
+
+    try {
+      // Show loading state
+      toast.loading("Creating column...")
+
+      // Call server action to create column
+      const result = await createColumnViaAI(project.id, `Create a column named "${columnName}" with color ${columnColor}`)
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      // Success message
+      toast.success("Column created successfully!")
+
+      // Add AI response to state
+      addMessage(project.id, {
+        role: "assistant",
+        content: result.message,
+        timestamp: new Date(),
+      })
+
+      // Clear input
+      setInput("")
+    } catch (error) {
+      console.error("Error creating column:", error)
+      toast.error("Failed to create column. Please try again.")
+
+      // Add error message
+      addMessage(project.id, {
+        role: "assistant",
+        content: "I'm sorry, I encountered an error creating the column. Please try again.",
+        timestamp: new Date(),
+      })
+    }
+  }
+
+  const handleDeleteTask = async (taskIdentifier: string) => {
+    if (!project?.id) return
+
+    try {
+      // Show loading state
+      toast.loading("Analyzing tasks...")
+
+      // Check if this is a domain-specific request
+      const isDomainSpecific = (
+        taskIdentifier.includes("related") ||
+        taskIdentifier.includes("stuff") ||
+        taskIdentifier.includes("things") ||
+        taskIdentifier.includes("all") ||
+        taskIdentifier.includes("everything")
+      )
+
+      // First, preview the task(s) to be deleted
+      const previewResult = await performAIAction(project.id, `Preview delete task: ${taskIdentifier}`)
+
+      if (previewResult.error) {
+        toast.error(previewResult.error)
+        return
+      }
+
+      // If we're deleting useless tasks or domain-specific tasks, show a preview first
+      if (taskIdentifier.toLowerCase().includes("useless") || isDomainSpecific) {
+        // Add AI response with preview
+        addMessage(project.id, {
+          role: "assistant",
+          content: previewResult.message || "I've identified some tasks that match your criteria. Would you like me to delete them?",
+          timestamp: new Date(),
+        })
+
+        // Store the pending action for confirmation
+        setPendingAction({
+          type: "DELETE_TASK",
+          parameters: { taskDescription: taskIdentifier },
+          needsConfirmation: true,
+          confidence: 1.0
+        })
+
+        // Clear loading state
+        toast.dismiss()
+        return
+      }
+
+      // For specific task deletion, proceed with deletion
+      toast.loading("Deleting task...")
+
+      // Call server action to delete task
+      const result = await performAIAction(project.id, `Delete task: ${taskIdentifier}`)
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      // Success message
+      toast.success("Task deleted successfully!")
+
+      // Add AI response to state
+      addMessage(project.id, {
+        role: "assistant",
+        content: result.message || "I've deleted that task for you.",
+        timestamp: new Date(),
+      })
+
+      // Clear input
+      setInput("")
+    } catch (error) {
+      console.error("Error deleting task:", error)
+      toast.error("Failed to delete task. Please try again.")
+
+      // Add error message
+      addMessage(project.id, {
+        role: "assistant",
+        content: "I'm sorry, I encountered an error deleting the task. Please try again.",
+        timestamp: new Date(),
+      })
+    }
+  }
+
+  const handleDeleteColumn = async (columnIdentifier: string) => {
+    if (!project?.id) return
+
+    try {
+      // Show loading state
+      toast.loading("Deleting column...")
+
+      // Call server action to delete column
+      const result = await performAIAction(project.id, `Delete column: ${columnIdentifier}`)
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      // Success message
+      toast.success("Column deleted successfully!")
+
+      // Add AI response to state
+      addMessage(project.id, {
+        role: "assistant",
+        content: result.message || "I've deleted that column for you.",
+        timestamp: new Date(),
+      })
+
+      // Clear input
+      setInput("")
+    } catch (error) {
+      console.error("Error deleting column:", error)
+      toast.error("Failed to delete column. Please try again.")
+
+      // Add error message
+      addMessage(project.id, {
+        role: "assistant",
+        content: "I'm sorry, I encountered an error deleting the column. Please try again.",
+        timestamp: new Date(),
+      })
+    }
+  }
+
+  const handleAddSolutionsToTasks = async () => {
+    if (!project?.id) return
+
+    try {
+      // Show loading state
+      toast.loading("Analyzing tasks and generating solutions...")
+
+      // Add AI thinking message
+      addMessage(project.id, {
+        role: "assistant",
+        content: "I'm analyzing your tasks and generating detailed technical solutions for each one. This might take a moment...",
+        timestamp: new Date(),
+      })
+
+      // Call server action to add solutions to tasks
+      const result = await performAIAction(project.id, "Update tasks with solutions")
+
+      // Dismiss loading state
+      toast.dismiss()
+
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+
+      // Success message
+      toast.success("Tasks updated with solutions!")
+
+      // Add AI response to state
+      addMessage(project.id, {
+        role: "assistant",
+        content: result.message || "I've added detailed solutions to your tasks.",
+        timestamp: new Date(),
+      })
+
+      // Clear input
+      setInput("")
+    } catch (error) {
+      console.error("Error adding solutions to tasks:", error)
+      toast.error("Failed to add solutions to tasks. Please try again.")
+
+      // Add error message
+      addMessage(project.id, {
+        role: "assistant",
+        content: "I'm sorry, I encountered an error adding solutions to your tasks. Please try again.",
+        timestamp: new Date(),
+      })
+    }
+  }
+
+  const handlePerformAction = async (actionDescription?: string) => {
+    if (!project?.id || (!input.trim() && !actionDescription)) return
 
     try {
       // Show loading state
       toast.loading("Performing action...")
 
       // Call server action to perform AI action
-      const result = await performAIAction(project.id, input)
+      const result = await performAIAction(project.id, actionDescription || input)
 
       if (result.error) {
         toast.error(result.error)
@@ -384,11 +907,25 @@ How can I assist you today?`,
       // Success message
       toast.success("Action completed successfully!")
 
+      // Add AI response to state
+      addMessage(project.id, {
+        role: "assistant",
+        content: result.message,
+        timestamp: new Date(),
+      })
+
       // Clear input
       setInput("")
     } catch (error) {
       console.error("Error performing action:", error)
       toast.error("Failed to perform action. Please try again.")
+
+      // Add error message
+      addMessage(project.id, {
+        role: "assistant",
+        content: "I'm sorry, I encountered an error performing this action. Please try again.",
+        timestamp: new Date(),
+      })
     }
   }
 

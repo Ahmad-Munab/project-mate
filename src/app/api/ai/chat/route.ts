@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { storeEnhancedMessage, type AIMessage } from "@/lib/ai/enhanced-memory";
-import { runProjectAgent } from "@/lib/ai/agent";
-
-
+import { type AIMessage } from "@/lib/ai/memory/types";
+import { processUserMessage, detectAction } from "@/lib/ai";
 
 export async function POST(request: Request) {
   try {
@@ -19,7 +17,7 @@ export async function POST(request: Request) {
     }
 
     // Get request body
-    const { message, projectId } = await request.json();
+    const { message, projectId, detectOnly } = await request.json();
 
     if (!message || !projectId) {
       return NextResponse.json(
@@ -28,8 +26,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // If detectOnly is true, just detect actions without running the full agent
+    if (detectOnly) {
+      const detectedAction = await detectAction(projectId, message);
+
+      return NextResponse.json({
+        detectedAction: detectedAction,
+        timestamp: new Date(),
+      });
+    }
+
     // Run the agent with the user message
-    const aiResponse = await runProjectAgent(projectId, message);
+    const aiResponse = await processUserMessage(projectId, message);
 
     // Return response
     return NextResponse.json({

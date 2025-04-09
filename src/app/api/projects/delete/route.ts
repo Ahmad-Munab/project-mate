@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
-import { projects, projectMembers, tasks } from "@/db/schema";
+import { projects, projectMembers, tasks, aiSuggestions, projectTaskStatuses } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function DELETE(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    
+
     if (authError || !user) {
       return NextResponse.json(
         { error: "Authentication required" },
@@ -27,18 +27,28 @@ export async function DELETE(request: Request) {
     }
 
     // Delete in the correct order to respect foreign key constraints
-    
-    // 1. First delete all tasks associated with the project
+
+    // 1. First delete all AI suggestions associated with the project
+    await db
+      .delete(aiSuggestions)
+      .where(eq(aiSuggestions.projectId, projectId));
+
+    // 2. Delete all task statuses associated with the project
+    await db
+      .delete(projectTaskStatuses)
+      .where(eq(projectTaskStatuses.project_id, projectId));
+
+    // 3. Delete all tasks associated with the project
     await db
       .delete(tasks)
       .where(eq(tasks.project_id, projectId));
 
-    // 2. Delete project members
+    // 4. Delete project members
     await db
       .delete(projectMembers)
       .where(eq(projectMembers.projectId, projectId));
 
-    // 3. Finally delete the project
+    // 5. Finally delete the project
     await db
       .delete(projects)
       .where(eq(projects.id, projectId));

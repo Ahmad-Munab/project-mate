@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from "@/db";
 import { projectTaskStatuses } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { validateAuth, DEFAULT_STATUSES } from "@/utils/task-status";
 
 /**
@@ -30,12 +30,26 @@ export async function POST(
       );
     }
 
-    // Initialize default task statuses in a transaction for atomicity
-    const newStatuses = await db.transaction(async (tx) => {
-      const statuses = [];
+    // Initialize default task statuses without a transaction for better error handling
+    const statuses = [];
 
-      for (const status of DEFAULT_STATUSES) {
-        const [newStatus] = await tx.insert(projectTaskStatuses)
+    // First check which statuses already exist
+    const existingStatusMap = {};
+    for (const existingStatus of existingStatuses) {
+      existingStatusMap[existingStatus.key] = existingStatus;
+    }
+
+    // Process each default status individually
+    for (const status of DEFAULT_STATUSES) {
+      try {
+        // Skip if status already exists
+        if (existingStatusMap[status.key]) {
+          statuses.push(existingStatusMap[status.key]);
+          continue;
+        }
+
+        // Create the status if it doesn't exist
+        const [newStatus] = await db.insert(projectTaskStatuses)
           .values({
             project_id: projectId,
             name: status.name,
@@ -46,11 +60,25 @@ export async function POST(
           })
           .returning();
 
-        statuses.push(newStatus);
+        if (newStatus) {
+          statuses.push(newStatus);
+        }
+      } catch (statusError) {
+        console.error(`Error creating status ${status.key}:`, statusError);
+        // Continue with other statuses even if one fails
       }
+    }
 
-      return statuses;
-    });
+    // If we didn't create any statuses, fetch what exists now
+    if (statuses.length === 0) {
+      const currentStatuses = await db.query.projectTaskStatuses.findMany({
+        where: eq(projectTaskStatuses.project_id, projectId),
+      });
+
+      return NextResponse.json(currentStatuses);
+    }
+
+    const newStatuses = statuses;
 
     return NextResponse.json(newStatuses);
   } catch (error) {

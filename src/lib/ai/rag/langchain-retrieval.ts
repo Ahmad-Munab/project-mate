@@ -1,13 +1,13 @@
 /**
- * LangChain Vector Store Implementation
- * This file implements a proper LangChain vector store using Supabase
+ * LangChain RAG implementation
+ * This file implements a proper LangChain RAG system
  */
 
-import { createClient } from "@/utils/supabase/server";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { Document } from "@langchain/core/documents";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { createClient } from "@/utils/supabase/server";
+import { Document } from "@langchain/core/documents";
 
 /**
  * Create a vector store for a project
@@ -17,13 +17,13 @@ import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 export async function createVectorStore(projectId: string) {
   try {
     const supabase = await createClient();
-
+    
     // Create embeddings model
     const embeddings = new OpenAIEmbeddings({
       openAIApiKey: process.env.OPENAI_API_KEY!,
       modelName: "text-embedding-3-small",
     });
-
+    
     // Create vector store
     const vectorStore = new SupabaseVectorStore(embeddings, {
       client: supabase,
@@ -33,7 +33,7 @@ export async function createVectorStore(projectId: string) {
         project_id: projectId,
       },
     });
-
+    
     return vectorStore;
   } catch (error) {
     console.error("Failed to create vector store:", error);
@@ -49,7 +49,7 @@ export async function createVectorStore(projectId: string) {
  * @param taskId - Optional task ID
  * @returns The stored document
  */
-export async function storeDocumentInStore(
+export async function storeDocument(
   projectId: string,
   content: string,
   metadata: Record<string, any> = {},
@@ -58,15 +58,15 @@ export async function storeDocumentInStore(
   try {
     // Create vector store
     const vectorStore = await createVectorStore(projectId);
-
+    
     // Split text into chunks
     const textSplitter = new RecursiveCharacterTextSplitter({
       chunkSize: 1000,
       chunkOverlap: 200,
     });
-
+    
     const chunks = await textSplitter.splitText(content);
-
+    
     // Create documents
     const documents = chunks.map(
       chunk => new Document({
@@ -79,25 +79,25 @@ export async function storeDocumentInStore(
         },
       })
     );
-
+    
     // Add documents to vector store
     await vectorStore.addDocuments(documents);
-
+    
     return documents;
   } catch (error) {
     console.error("Failed to store document:", error);
-    return [];
+    throw error;
   }
 }
 
 /**
- * Search for relevant documents in the vector store
+ * Retrieve relevant documents from the vector store
  * @param projectId - The ID of the project
  * @param query - The query to search for
  * @param limit - The maximum number of documents to return
  * @returns The retrieved documents
  */
-export async function searchRelevantDocuments(
+export async function retrieveDocuments(
   projectId: string,
   query: string,
   limit: number = 5
@@ -105,15 +105,15 @@ export async function searchRelevantDocuments(
   try {
     // Create vector store
     const vectorStore = await createVectorStore(projectId);
-
+    
     // Search for documents
     const results = await vectorStore.similaritySearch(query, limit, {
       project_id: projectId,
     });
-
+    
     return results;
   } catch (error) {
-    console.error("Failed to search relevant documents:", error);
+    console.error("Failed to retrieve documents:", error);
     return [];
   }
 }
@@ -124,24 +124,22 @@ export async function searchRelevantDocuments(
  * @param query - The query to search for
  * @returns The project context
  */
-export async function getProjectContext(projectId: string, query: string) {
+export async function getProjectContext(
+  projectId: string,
+  query: string
+) {
   try {
     // Retrieve documents
-    const documents = await searchRelevantDocuments(projectId, query, 10);
-
-    if (documents.length === 0) {
-      return "";
-    }
-
+    const documents = await retrieveDocuments(projectId, query, 10);
+    
     // Format documents
     const formattedDocuments = documents.map((doc, i) => {
       const source = doc.metadata.source || "unknown";
       const role = doc.metadata.role || "unknown";
-      const date = new Date(doc.metadata.created_at || Date.now()).toLocaleString();
-
-      return `[${i + 1}] ${source} (${role}, ${date}): ${doc.pageContent}`;
+      
+      return `[${i + 1}] ${source} (${role}): ${doc.pageContent}`;
     }).join("\n\n");
-
+    
     return formattedDocuments;
   } catch (error) {
     console.error("Failed to get project context:", error);

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { validateAuth, isValidStatusEnum } from "@/utils/task-status";
+import { validateAuth, isValidStatusEnum, VALID_STATUS_ENUMS, ValidStatusEnum } from "@/utils/task-status";
 
 /**
  * PATCH: Update a task's status
@@ -24,15 +24,23 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Check if the status is a valid enum value
-    const validEnum = isValidStatusEnum(status);
+    // Check if the status is a valid format
+    const validStatus = isValidStatusEnum(status);
+
+    if (!validStatus) {
+      return NextResponse.json(
+        { error: 'Invalid status format. Status must be uppercase with underscores.' },
+        { status: 400 }
+      );
+    }
 
     // Update the task
     const [updatedTask] = await db.update(tasks)
       .set({
-        // If valid enum, use it; otherwise default to BACKLOG
-        status: validEnum ? status : 'BACKLOG',
-        // Always update the status_key to the requested value
+        // For the enum field, use a known valid value if possible, otherwise BACKLOG
+        // This is just for backward compatibility
+        status: VALID_STATUS_ENUMS.includes(status as ValidStatusEnum) ? status : 'BACKLOG',
+        // Always update the status_key to the requested value - this is what we actually use
         status_key: status
       })
       .where(eq(tasks.id, taskId))
