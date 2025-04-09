@@ -5,7 +5,7 @@ import {
   generateProjectSummary,
   analyzeProjectProgress,
   generateProjectRoadmap,
-} from "../tools";
+} from "./ai-functions";
 
 /**
  * Creates a tool for generating task suggestions
@@ -36,7 +36,7 @@ export const generateTaskSuggestionsTool = (projectId: string) =>
         console.error("Error in generate_task_suggestions tool:", error);
         return JSON.stringify({
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     },
@@ -64,7 +64,7 @@ export const generateProjectSummaryTool = (projectId: string) =>
         console.error("Error in generate_project_summary tool:", error);
         return JSON.stringify({
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     },
@@ -92,7 +92,7 @@ export const analyzeProjectProgressTool = (projectId: string) =>
         console.error("Error in analyze_project_progress tool:", error);
         return JSON.stringify({
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     },
@@ -126,7 +126,7 @@ export const generateProjectRoadmapTool = (projectId: string) =>
         console.error("Error in generate_project_roadmap tool:", error);
         return JSON.stringify({
           success: false,
-          error: error.message,
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     },

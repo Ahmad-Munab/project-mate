@@ -3,12 +3,12 @@
  * Uses LangChain tools to create a new project with technical tasks and columns
  */
 
-import { Groq } from "groq-sdk";
 import { ChatGroq } from "@langchain/groq";
-import { DynamicStructuredTool } from "@langchain/core/tools";
-import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
-import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { StructuredOutputParser } from "langchain/output_parsers";
+import { RunnableSequence } from "@langchain/core/runnables";
 import { z } from "zod";
+import { generateProjectPlan as generatePlan } from "./langchain-tools/project-creator-functions";
 
 // Define the project plan schema
 export type ProjectPlan = {
@@ -113,9 +113,9 @@ export async function generateProjectPlan(idea: string): Promise<ProjectPlan> {
 
     // Create the agent prompt
     const prompt = ChatPromptTemplate.fromMessages([
-      ["system", `You are a SUPERINTELLIGENT technical project planner for software development projects. 
+      ["system", `You are a SUPERINTELLIGENT technical project planner for software development projects.
       Your task is to create a detailed technical project plan based on the user's idea.
-      
+
       GUIDELINES:
       1. Create 3-4 columns (task statuses) including at least "BACKLOG" (which is required), "TODO", "IN_PROGRESS", and "DONE"
       2. Include 8-12 highly technical and specific tasks that would help a developer implement this project
@@ -124,7 +124,7 @@ export async function generateProjectPlan(idea: string): Promise<ProjectPlan> {
       5. Each task should have a detailed technical description that provides implementation guidance
       6. Distribute tasks across different columns/statuses (not all in BACKLOG)
       7. Each task priority must be one of: "LOW", "MEDIUM", "HIGH", "URGENT"
-      
+
       You MUST use the create_project_plan tool to create the project plan.`],
       ["human", "Create a project plan for this idea: {idea}"],
       new MessagesPlaceholder("agent_scratchpad"),

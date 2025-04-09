@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { type AIMessage } from "@/lib/ai/memory/types";
-import { processUserMessage, detectAction } from "@/lib/ai";
+import { type AIMessage } from "@/lib/ai";
+import { processUserMessage, processConversation, detectAction, detectAndExecuteAction } from "@/lib/ai";
+import { getRecentMessages } from "@/lib/ai";
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     // Get request body
-    const { message, projectId, detectOnly } = await request.json();
+    const { message, projectId, detectOnly, integrated, conversational } = await request.json();
 
     if (!message || !projectId) {
       return NextResponse.json(
@@ -36,7 +37,33 @@ export async function POST(request: Request) {
       });
     }
 
-    // Run the agent with the user message
+    // If integrated is true, use the integrated approach
+    if (integrated) {
+      const integratedResponse = await detectAndExecuteAction(projectId, message);
+
+      return NextResponse.json({
+        message: integratedResponse,
+        timestamp: new Date(),
+        integrated: true
+      });
+    }
+
+    // If conversational is true, use the conversational approach
+    if (conversational) {
+      // Get recent messages for context
+      const recentMessages = await getRecentMessages(projectId, 10);
+
+      // Process the conversation
+      const conversationalResponse = await processConversation(projectId, message, recentMessages);
+
+      return NextResponse.json({
+        message: conversationalResponse,
+        timestamp: new Date(),
+        conversational: true
+      });
+    }
+
+    // Run the multi-agent orchestrator with the user message
     const aiResponse = await processUserMessage(projectId, message);
 
     // Return response

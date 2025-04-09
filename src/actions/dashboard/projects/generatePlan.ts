@@ -90,9 +90,6 @@ export const generateProjectPlan = async (
     };
 
     return projectPlan;
-    } catch (parseError) {
-      throw new Error(`Failed to parse AI response: ${parseError}`);
-    }
   } catch (error) {
     console.error("AI generation error:", error);
     throw error;
