@@ -34,7 +34,7 @@ export async function POST(
     const statuses = [];
 
     // First check which statuses already exist
-    const existingStatusMap = {};
+    const existingStatusMap: Record<string, any> = {};
     for (const existingStatus of existingStatuses) {
       existingStatusMap[existingStatus.key] = existingStatus;
     }

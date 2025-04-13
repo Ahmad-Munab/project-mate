@@ -7,8 +7,9 @@
 // Export the multi-agent orchestrator
 export {
   processUserMessage,
-  processConversation
-} from './langchain/proper-multi-agent';
+  processConversation,
+  AgentType
+} from './multi-agent';
 
 // Export the project creator
 export {

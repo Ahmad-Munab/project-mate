@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generateProjectPlan } from "@/lib/ai";
+import { generateProjectPlan as aiGenerateProjectPlan } from "@/lib/ai";
 
 const taskSchema = z.object({
   title: z.string(),
@@ -42,7 +42,7 @@ export const generateProjectPlan = async (
     }
 
     // Use the LangChain-based project structure generator
-    const result = await generateProjectPlan(idea);
+    const result = await aiGenerateProjectPlan(idea);
 
     // Validate basic structure
     if (!result.columns || !result.tasks) {
@@ -59,7 +59,7 @@ export const generateProjectPlan = async (
     }
 
     // Ensure BACKLOG column exists
-    const hasBacklog = result.columns.some(col => col.key === "BACKLOG");
+    const hasBacklog = result.columns.some((col: { key: string }) => col.key === "BACKLOG");
     if (!hasBacklog) {
       result.columns.push({
         name: "Backlog",
@@ -82,7 +82,7 @@ export const generateProjectPlan = async (
     }
 
     // Get all valid column keys
-    const validColumnKeys = result.columns.map(col => col.key);
+    const validColumnKeys = result.columns.map((col: { key: string }) => col.key);
 
     for (const task of result.tasks) {
       const validationResult = taskSchema.safeParse(task);

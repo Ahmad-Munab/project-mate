@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-// Import only what we need
-import { processUserMessage, processConversation } from "@/lib/ai/langchain/proper-multi-agent";
+// Import from the new multi-agent system
+import { processUserMessage, processConversation } from "@/lib/ai/multi-agent";
 
 export async function POST(request: Request) {
   try {
@@ -69,12 +69,12 @@ export async function POST(request: Request) {
     if (conversational) {
       // Get recent messages for context
       const { db } = await import("@/db");
-      const { aiMessages } = await import("@/db/schema");
+      const { messages } = await import("@/db/schema");
       const { desc, eq } = await import("drizzle-orm");
 
-      const recentMessages = await db.query.aiMessages.findMany({
-        where: eq(aiMessages.projectId, projectId),
-        orderBy: [desc(aiMessages.timestamp)],
+      const recentMessages = await db.query.messages.findMany({
+        where: eq(messages.project_id, projectId),
+        orderBy: [desc(messages.created_at)],
         limit: 10,
       });
 
