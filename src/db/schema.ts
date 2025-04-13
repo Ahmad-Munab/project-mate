@@ -157,3 +157,16 @@ export const invites = pgTable("invites", {
         .references(() => authUsers.id)
         .notNull(),
 });
+
+// AI messages table for storing conversation history
+export const messages = pgTable("messages", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    project_id: uuid("project_id")
+        .references(() => projects.id)
+        .notNull(),
+    task_id: uuid("task_id").references(() => tasks.id),
+    role: text("role").notNull(), // 'user', 'assistant', or 'system'
+    content: text("content").notNull(),
+    created_by: uuid("created_by").references(() => authUsers.id),
+    created_at: timestamp("created_at").defaultNow().notNull(),
+});

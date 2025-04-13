@@ -12,8 +12,8 @@ import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
-import { messages as dbMessages } from "@/db/schema";
-import { eq, desc, and, like, or } from "drizzle-orm";
+import { aiSuggestions } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { ChatGroq } from "@langchain/groq";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
@@ -39,6 +39,7 @@ enum MemorySegmentType {
   USER_PREFERENCES = "user_preferences",
   TECHNICAL_KNOWLEDGE = "technical_knowledge",
   DECISION_HISTORY = "decision_history",
+  CODE_CONTEXT = "code_context",
 }
 
 /**
@@ -51,11 +52,11 @@ export class EnhancedVectorMemory {
   private embeddings: OpenAIEmbeddings;
   private messageHistory: ChatMessageHistory;
   private supabase: any;
-  
+
   constructor(projectId: string) {
     this.projectId = projectId;
     this.messageHistory = new ChatMessageHistory();
-    
+
     // Create embeddings model
     this.embeddings = new OpenAIEmbeddings({
       openAIApiKey: process.env.OPENAI_API_KEY!,
@@ -64,7 +65,7 @@ export class EnhancedVectorMemory {
       stripNewLines: false, // Preserve formatting
     });
   }
-  
+
   /**
    * Initialize the memory system
    */
@@ -72,10 +73,10 @@ export class EnhancedVectorMemory {
     try {
       // Initialize Supabase client
       this.supabase = await createClient();
-      
+
       // Initialize vector store
       this.vectorStore = await this.createVectorStore();
-      
+
       // Load recent messages into memory
       await this.loadRecentMessages();
     } catch (error) {
@@ -83,7 +84,7 @@ export class EnhancedVectorMemory {
       throw error;
     }
   }
-  
+
   /**
    * Create a vector store for the project
    * @returns A SupabaseVectorStore instance
@@ -99,14 +100,14 @@ export class EnhancedVectorMemory {
           project_id: this.projectId,
         },
       });
-      
+
       return vectorStore;
     } catch (error) {
       console.error("Failed to create vector store:", error);
       throw error;
     }
   }
-  
+
   /**
    * Load recent messages into memory
    */
@@ -114,7 +115,7 @@ export class EnhancedVectorMemory {
     try {
       // Get recent messages from the database
       const recentMessages = await getRecentMessages(this.projectId, 20);
-      
+
       // Add messages to the message history
       for (const message of recentMessages) {
         if (message.role === "user") {
@@ -129,7 +130,7 @@ export class EnhancedVectorMemory {
       console.error("Failed to load recent messages:", error);
     }
   }
-  
+
   /**
    * Store a message in memory
    * @param message - The message to store
@@ -150,10 +151,10 @@ export class EnhancedVectorMemory {
       } else if (message.role === "system") {
         await this.messageHistory.addMessage(new SystemMessage(message.content));
       }
-      
+
       // Store in database
       await storeMessage(this.projectId, message, taskId);
-      
+
       // Store in vector store with segment type
       if (message.role !== "system") {
         await this.storeInVectorStore(
@@ -171,7 +172,7 @@ export class EnhancedVectorMemory {
       console.error("Failed to store message in memory:", error);
     }
   }
-  
+
   /**
    * Store information in the vector store
    * @param content - The content to store
@@ -187,15 +188,15 @@ export class EnhancedVectorMemory {
       if (!this.vectorStore) {
         this.vectorStore = await this.createVectorStore();
       }
-      
+
       // Split text into chunks
       const textSplitter = new RecursiveCharacterTextSplitter({
         chunkSize: 1000,
         chunkOverlap: 200,
       });
-      
+
       const chunks = await textSplitter.splitText(content);
-      
+
       // Create documents
       const documents = chunks.map(
         chunk => new Document({
@@ -208,17 +209,17 @@ export class EnhancedVectorMemory {
           },
         })
       );
-      
+
       // Add documents to vector store
       await this.vectorStore.addDocuments(documents);
-      
+
       return documents;
     } catch (error) {
       console.error("Failed to store in vector store:", error);
       return [];
     }
   }
-  
+
   /**
    * Search for relevant information in memory
    * @param query - The query to search for
@@ -235,29 +236,29 @@ export class EnhancedVectorMemory {
       if (!this.vectorStore) {
         this.vectorStore = await this.createVectorStore();
       }
-      
+
       // Create filter for segment types
-      const segmentTypeFilter = segmentTypes.length > 0 
-        ? { segment_type: { $in: segmentTypes } } 
+      const segmentTypeFilter = segmentTypes.length > 0
+        ? { segment_type: { $in: segmentTypes } }
         : {};
-      
+
       // Search for documents
       const results = await this.vectorStore.similaritySearch(
-        query, 
+        query,
         limit,
         {
           project_id: this.projectId,
           ...segmentTypeFilter,
         }
       );
-      
+
       return results;
     } catch (error) {
       console.error("Failed to search memory:", error);
       return [];
     }
   }
-  
+
   /**
    * Get context for a query
    * @param query - The query to get context for
@@ -270,19 +271,20 @@ export class EnhancedVectorMemory {
       MemorySegmentType.CONVERSATION,
       MemorySegmentType.PROJECT_INFO,
       MemorySegmentType.TASK_INFO
-    ]
+    ],
+    limit: number = 25 // Increased from 15 to 25 for more context
   ): Promise<string> {
     try {
       // Search for relevant documents
-      const documents = await this.searchMemory(query, segmentTypes, 15);
-      
+      const documents = await this.searchMemory(query, segmentTypes, limit);
+
       if (documents.length === 0) {
         return "";
       }
-      
+
       // Group documents by segment type
       const groupedDocuments: Record<string, Document[]> = {};
-      
+
       for (const doc of documents) {
         const segmentType = doc.metadata.segment_type as string || MemorySegmentType.CONVERSATION;
         if (!groupedDocuments[segmentType]) {
@@ -290,29 +292,62 @@ export class EnhancedVectorMemory {
         }
         groupedDocuments[segmentType].push(doc);
       }
-      
+
       // Format each group
       const formattedGroups: string[] = [];
-      
+
+      // Process PROJECT_INFO first to ensure it appears at the top
+      const segmentOrder = [
+        MemorySegmentType.PROJECT_INFO,
+        MemorySegmentType.TASK_INFO,
+        MemorySegmentType.CONVERSATION,
+        MemorySegmentType.DECISION_HISTORY,
+        MemorySegmentType.CODE_CONTEXT,
+      ];
+
+      // Sort the groups by the defined order
+      for (const segmentType of segmentOrder) {
+        if (groupedDocuments[segmentType]) {
+          const docs = groupedDocuments[segmentType];
+          const contextType = docs[0]?.metadata?.context_type as string || "";
+
+          const formattedDocs = docs.map((doc, i) => {
+            const source = doc.metadata.source as string || "unknown";
+            const role = doc.metadata.role as string || "unknown";
+            const date = new Date(doc.metadata.created_at as string || Date.now()).toLocaleString();
+
+            return `[${i + 1}] ${source} (${role}, ${date}): ${doc.pageContent}`;
+          }).join("\n\n");
+
+          formattedGroups.push(`--- ${segmentType.toUpperCase()}${contextType ? ` (${contextType})` : ""} ---\n${formattedDocs}`);
+
+          // Remove the processed group
+          delete groupedDocuments[segmentType];
+        }
+      }
+
+      // Process any remaining groups
       for (const [segmentType, docs] of Object.entries(groupedDocuments)) {
+        const contextType = docs[0]?.metadata?.context_type as string || "";
+
         const formattedDocs = docs.map((doc, i) => {
           const source = doc.metadata.source as string || "unknown";
           const role = doc.metadata.role as string || "unknown";
           const date = new Date(doc.metadata.created_at as string || Date.now()).toLocaleString();
-          
+
           return `[${i + 1}] ${source} (${role}, ${date}): ${doc.pageContent}`;
         }).join("\n\n");
-        
-        formattedGroups.push(`--- ${segmentType.toUpperCase()} ---\n${formattedDocs}`);
+
+        formattedGroups.push(`--- ${segmentType.toUpperCase()}${contextType ? ` (${contextType})` : ""} ---\n${formattedDocs}`);
       }
-      
+
       return formattedGroups.join("\n\n");
     } catch (error) {
       console.error("Failed to get context:", error);
       return "";
     }
   }
-  
+
   /**
    * Summarize memory for a specific topic
    * @param topic - The topic to summarize
@@ -326,21 +361,21 @@ export class EnhancedVectorMemory {
     try {
       // Get relevant documents
       const documents = await this.searchMemory(topic, segmentTypes, 20);
-      
+
       if (documents.length === 0) {
         return "No relevant information found.";
       }
-      
+
       // Combine document content
       const combinedContent = documents.map(doc => doc.pageContent).join("\n\n");
-      
+
       // Create a model for summarization
       const model = new ChatGroq({
         apiKey: process.env.GROQ_API_KEY!,
         model: "llama3-70b-8192",
         temperature: 0.3, // Lower temperature for more factual summaries
       });
-      
+
       // Create a prompt template
       const promptTemplate = PromptTemplate.fromTemplate(`
 You are a memory summarization system. Your task is to create a concise, accurate summary of the following information about the topic: "${topic}".
@@ -350,24 +385,24 @@ ${combinedContent}
 
 Create a summary that captures the key points, decisions, and context. Be factual and precise.
       `);
-      
+
       // Create a chain
       const chain = RunnableSequence.from([
         promptTemplate,
         model,
         new StringOutputParser(),
       ]);
-      
+
       // Run the chain
       const summary = await chain.invoke({});
-      
+
       return summary;
     } catch (error) {
       console.error("Failed to summarize memory:", error);
       return "Failed to generate summary.";
     }
   }
-  
+
   /**
    * Store project information in memory
    * @param info - The project information
@@ -376,7 +411,7 @@ Create a summary that captures the key points, decisions, and context. Be factua
     try {
       // Convert to string
       const infoString = JSON.stringify(info, null, 2);
-      
+
       // Store in vector store
       await this.storeInVectorStore(
         infoString,
@@ -389,7 +424,7 @@ Create a summary that captures the key points, decisions, and context. Be factua
       console.error("Failed to store project info:", error);
     }
   }
-  
+
   /**
    * Store task information in memory
    * @param taskInfo - The task information
@@ -399,7 +434,7 @@ Create a summary that captures the key points, decisions, and context. Be factua
     try {
       // Convert to string
       const infoString = JSON.stringify(taskInfo, null, 2);
-      
+
       // Store in vector store
       await this.storeInVectorStore(
         infoString,
@@ -414,7 +449,7 @@ Create a summary that captures the key points, decisions, and context. Be factua
       console.error("Failed to store task info:", error);
     }
   }
-  
+
   /**
    * Store a decision in memory
    * @param decision - The decision that was made
@@ -435,7 +470,7 @@ Reasoning: ${reasoning}
 
 Context: ${context}
       `.trim();
-      
+
       // Store in vector store
       await this.storeInVectorStore(
         decisionString,
@@ -448,7 +483,7 @@ Context: ${context}
       console.error("Failed to store decision:", error);
     }
   }
-  
+
   /**
    * Get the message history
    * @returns The message history
@@ -456,7 +491,7 @@ Context: ${context}
   getMessageHistory(): ChatMessageHistory {
     return this.messageHistory;
   }
-  
+
   /**
    * Create a buffer memory for an agent
    * @returns A buffer memory
@@ -499,14 +534,13 @@ export async function storeMessage(
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Insert the message into the database
-    await db.insert(dbMessages).values({
-      project_id: projectId,
-      task_id: taskId,
-      role: message.role,
+    // Insert the message into the database as an AI suggestion
+    await db.insert(aiSuggestions).values({
+      projectId: projectId,
+      taskId: taskId,
+      type: message.role === 'user' ? 'user_message' : 'ai_message',
       content: message.content,
-      created_by: user?.id,
-      created_at: message.timestamp || new Date(),
+      createdAt: message.timestamp || new Date(),
     });
 
     return true;
@@ -527,19 +561,19 @@ export async function getRecentMessages(
   limit: number = 10
 ): Promise<AIMessage[]> {
   try {
-    // Get recent messages from the database
-    const dbMessagesResult = await db
+    // Get recent messages from the database using aiSuggestions
+    const aiSuggestionsResult = await db
       .select()
-      .from(dbMessages)
-      .where(eq(dbMessages.project_id, projectId))
-      .orderBy(desc(dbMessages.created_at))
+      .from(aiSuggestions)
+      .where(eq(aiSuggestions.projectId, projectId))
+      .orderBy(desc(aiSuggestions.createdAt))
       .limit(limit);
 
     // Convert to AIMessage format
-    const aiMessages: AIMessage[] = dbMessagesResult.map((msg) => ({
-      role: msg.role as "user" | "assistant" | "system",
+    const aiMessages: AIMessage[] = aiSuggestionsResult.map((msg) => ({
+      role: msg.type === 'user_message' ? 'user' : 'assistant' as "user" | "assistant" | "system",
       content: msg.content,
-      timestamp: msg.created_at,
+      timestamp: msg.createdAt,
     }));
 
     // Return in chronological order
@@ -565,14 +599,14 @@ export async function storeEnhancedMessage(
   try {
     // Create memory system
     const memory = await createEnhancedMemory(projectId);
-    
+
     // Store the message
     await memory.storeMessage(
       message,
       MemorySegmentType.CONVERSATION,
       taskId
     );
-    
+
     return true;
   } catch (error) {
     console.error("Failed to store enhanced message:", error);
@@ -591,19 +625,31 @@ export async function getProjectContext(
   query: string
 ): Promise<string> {
   try {
-    // Create memory system
-    const memory = await createEnhancedMemory(projectId);
-    
-    // Get context
-    return await memory.getContext(query, [
-      MemorySegmentType.CONVERSATION,
-      MemorySegmentType.PROJECT_INFO,
-      MemorySegmentType.TASK_INFO,
-      MemorySegmentType.DECISION_HISTORY,
-    ]);
+    // Import the comprehensive project context function
+    const { getComprehensiveProjectContext } = await import('./project-context');
+
+    // Use the comprehensive project context
+    return await getComprehensiveProjectContext(projectId, query);
   } catch (error) {
     console.error("Failed to get project context:", error);
-    return "";
+
+    // Fallback to basic context if comprehensive context fails
+    try {
+      // Create memory system
+      const memory = await createEnhancedMemory(projectId);
+
+      // Get context
+      return await memory.getContext(query, [
+        MemorySegmentType.CONVERSATION,
+        MemorySegmentType.PROJECT_INFO,
+        MemorySegmentType.TASK_INFO,
+        MemorySegmentType.DECISION_HISTORY,
+        MemorySegmentType.CODE_CONTEXT,
+      ], 30); // Increase limit to 30 documents
+    } catch (fallbackError) {
+      console.error("Failed to get fallback project context:", fallbackError);
+      return "";
+    }
   }
 }
 

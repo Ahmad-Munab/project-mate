@@ -1,38 +1,40 @@
 /**
- * Advanced Multi-Agent AI System
+ * AI System
  * This file exports the main functions for interacting with the AI system
- * using a sophisticated multi-agent architecture with minimal API calls
+ * using a proper agent architecture with tools properly connected to the agent
  */
 
 // Export the multi-agent orchestrator
 export {
   processUserMessage,
   processConversation
-} from './langchain/orchestrator';
+} from './langchain/proper-multi-agent';
 
 // Export the project creator
 export {
   generateProjectPlan,
-  generateProjectStructure
-} from './langchain/project-creator';
+  generateProjectTasks,
+  generateProjectDescription
+} from './tools/project-creator';
 
 // Export memory functions
 export {
   storeEnhancedMessage,
-  getProjectContext,
-  createEnhancedMemory,
-  storeMessage,
-  getRecentMessages,
-  getProjectInfo,
+  getEnhancedProjectContext,
   type AIMessage
-} from './langchain/enhanced-vector-memory';
+} from './memory/enhanced';
 
-// Export action detector
+// Export project info functions
 export {
-  detectAction,
-  detectAndExecuteAction,
-  ActionType
-} from './langchain/action-detector';
+  getProjectInfo,
+} from './langchain/tools';
+
+// Export new agent implementation
+export {
+  createAgent,
+  runAgent,
+  getAgentTools
+} from './agent/index';
 
 // Export tools
 export {
@@ -55,3 +57,9 @@ export {
   deleteTaskStatus,
   moveTask
 } from './langchain/tools';
+
+// Export client-side functions
+export {
+  initializeProjectContext as initializeProjectContextClient,
+  sendMessage
+} from './client';

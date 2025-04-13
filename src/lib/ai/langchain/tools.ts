@@ -6,7 +6,7 @@
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { db } from "@/db";
-import { tasks, taskStatuses, projects, users, projectMembers } from "@/db/schema";
+import { tasks, projectTaskStatuses, projects, projectMembers, authUsers as users, taskStatusEnum } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { createClient } from "@/utils/supabase/server";
 
@@ -69,9 +69,9 @@ export async function getTaskStatuses(projectId: string) {
     // Get the task statuses
     const statuses = await db
       .select()
-      .from(taskStatuses)
-      .where(eq(taskStatuses.project_id, projectId))
-      .orderBy(taskStatuses.order);
+      .from(projectTaskStatuses)
+      .where(eq(projectTaskStatuses.project_id, projectId))
+      .orderBy(projectTaskStatuses.order);
 
     return statuses;
   } catch (error) {
@@ -257,7 +257,7 @@ export async function createTaskStatus(
 
     // Create the status
     const [newStatus] = await db
-      .insert(taskStatuses)
+      .insert(projectTaskStatuses)
       .values({
         name,
         key,
@@ -303,11 +303,11 @@ export async function updateTaskStatus(
     // Get the status to check if it exists
     const [status] = await db
       .select()
-      .from(taskStatuses)
+      .from(projectTaskStatuses)
       .where(
         and(
-          eq(taskStatuses.id, statusId),
-          eq(taskStatuses.project_id, projectId)
+          eq(projectTaskStatuses.id, statusId),
+          eq(projectTaskStatuses.project_id, projectId)
         )
       );
 
@@ -322,14 +322,14 @@ export async function updateTaskStatus(
 
     // Update the status
     const [updatedStatus] = await db
-      .update(taskStatuses)
+      .update(projectTaskStatuses)
       .set({
         name: updates.name,
         key,
         color: updates.color,
         order: updates.position,
       })
-      .where(eq(taskStatuses.id, statusId))
+      .where(eq(projectTaskStatuses.id, statusId))
       .returning();
 
     return updatedStatus;
@@ -363,11 +363,11 @@ export async function deleteTaskStatus(
     // Get the status to check if it exists
     const [status] = await db
       .select()
-      .from(taskStatuses)
+      .from(projectTaskStatuses)
       .where(
         and(
-          eq(taskStatuses.id, statusId),
-          eq(taskStatuses.project_id, projectId)
+          eq(projectTaskStatuses.id, statusId),
+          eq(projectTaskStatuses.project_id, projectId)
         )
       );
 
@@ -385,11 +385,11 @@ export async function deleteTaskStatus(
       // Get the target status to check if it exists
       const [targetStatus] = await db
         .select()
-        .from(taskStatuses)
+        .from(projectTaskStatuses)
         .where(
           and(
-            eq(taskStatuses.id, moveTasksTo),
-            eq(taskStatuses.project_id, projectId)
+            eq(projectTaskStatuses.id, moveTasksTo),
+            eq(projectTaskStatuses.project_id, projectId)
           )
         );
 
@@ -414,8 +414,8 @@ export async function deleteTaskStatus(
 
     // Delete the status
     await db
-      .delete(taskStatuses)
-      .where(eq(taskStatuses.id, statusId));
+      .delete(projectTaskStatuses)
+      .where(eq(projectTaskStatuses.id, statusId));
 
     return true;
   } catch (error) {
@@ -463,11 +463,11 @@ export async function moveTask(
     // Get the target status to check if it exists
     const [status] = await db
       .select()
-      .from(taskStatuses)
+      .from(projectTaskStatuses)
       .where(
         and(
-          eq(taskStatuses.key, targetStatus),
-          eq(taskStatuses.project_id, projectId)
+          eq(projectTaskStatuses.key, targetStatus),
+          eq(projectTaskStatuses.project_id, projectId)
         )
       );
 

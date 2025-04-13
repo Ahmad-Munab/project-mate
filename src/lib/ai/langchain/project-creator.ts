@@ -46,6 +46,12 @@ function createModel(temperature: number = 0.4) {
  */
 export async function generateProjectPlan(idea: string): Promise<ProjectPlan> {
   try {
+    if (!idea) {
+      throw new Error("Project idea is required");
+    }
+
+    console.log("Generating project plan for idea:", idea);
+
     // Define the output schema
     const projectPlanSchema = z.object({
       name: z.string().describe("The name of the project (max 60 chars)"),
@@ -70,47 +76,29 @@ export async function generateProjectPlan(idea: string): Promise<ProjectPlan> {
     // Create the output parser
     const outputParser = StructuredOutputParser.fromZodSchema(projectPlanSchema);
 
-    // Create the prompt template
-    const promptTemplate = PromptTemplate.fromTemplate(`
-You are a SUPERINTELLIGENT technical project planner for software development projects. Create a detailed technical project plan for this idea: "{idea}"
-
-Rules:
-- Create 3-4 columns (task statuses) including at least "BACKLOG" (which is required), "TODO", "IN_PROGRESS", and "DONE"
-- Include 8-12 highly technical and specific tasks that would help a developer implement this project
-- Tasks should be technical in nature, like "Create responsive navbar component", "Setup authentication middleware", "Implement user dashboard UI", etc.
-- DO NOT include business tasks like "Market research", "Hire developers", etc.
-- Each task should have a detailed technical description that provides implementation guidance
-- Distribute tasks across different columns/statuses (not all in BACKLOG)
-- Each task priority must be one of: "LOW", "MEDIUM", "HIGH", "URGENT"
-
-{format_instructions}
-    `);
-
     // Create the model
     const model = createModel();
 
-    // Create the chain
-    const chain = RunnableSequence.from([
-      {
-        promptInput: async (input: { idea: string }) => {
-          return {
-            idea: input.idea,
-            format_instructions: outputParser.getFormatInstructions(),
-          };
-        },
-      },
-      {
-        prompt: promptTemplate,
-        promptInput: (formattedInput) => formattedInput,
-      },
-      model,
-      outputParser,
-    ]);
+    // Create the prompt template
+    const systemPrompt = `You are a SUPERINTELLIGENT technical project planner for software development projects.
+    Create a detailed technical project plan for this idea: ${idea}
 
-    // Run the chain
-    const result = await chain.invoke({
-      idea,
-    });
+    Rules:
+    - Create 3-4 columns (task statuses) including at least "BACKLOG" (which is required), "TODO", "IN_PROGRESS", and "DONE"
+    - Include 8-12 highly technical and specific tasks that would help a developer implement this project
+    - Tasks should be technical in nature, like "Create responsive navbar component", "Setup authentication middleware", "Implement user dashboard UI", etc.
+    - DO NOT include business tasks like "Market research", "Hire developers", etc.
+    - Each task should have a detailed technical description that provides implementation guidance
+    - Distribute tasks across different columns/statuses (not all in BACKLOG)
+    - Each task priority must be one of: "LOW", "MEDIUM", "HIGH", "URGENT"
+
+    ${outputParser.getFormatInstructions()}`;
+
+    // Run the model directly
+    const response = await model.invoke(systemPrompt);
+
+    // Parse the response
+    const result = await outputParser.parse(response.content);
 
     // Ensure task distribution
     const enhancedPlan = ensureTaskDistribution(result);
@@ -122,26 +110,7 @@ Rules:
   }
 }
 
-/**
- * Generate a project structure
- * @param projectName - The name of the project
- * @param projectDescription - The description of the project
- * @param projectType - The type of the project
- * @returns A project plan
- */
-export async function generateProjectStructure(
-  projectName: string,
-  projectDescription: string,
-  projectType: string
-): Promise<ProjectPlan> {
-  try {
-    // Generate the project plan using the LangChain implementation
-    return await generateProjectPlan(projectDescription || projectName);
-  } catch (error) {
-    console.error("Failed to generate project structure:", error);
-    throw error;
-  }
-}
+// Function removed to avoid duplication
 
 /**
  * Ensures tasks are intelligently distributed across all columns
@@ -269,20 +238,29 @@ function calculateRelevance(
 }
 
 /**
- * Generate a project structure
+ * Create a project structure with a new name to avoid conflicts
  * @param projectName - The name of the project
  * @param projectDescription - The description of the project
  * @param projectType - The type of the project
  * @returns A project plan
  */
-export async function generateProjectStructure(
+export async function createNewProjectStructure(
   projectName: string,
   projectDescription: string,
   projectType: string
 ): Promise<ProjectPlan> {
   try {
+    // Validate inputs
+    if (!projectName && !projectDescription) {
+      throw new Error("Project name or description is required");
+    }
+
+    // Combine the project description and type to create a more detailed idea
+    const idea = `${projectDescription || projectName} (${projectType} project)`;
+    console.log("Creating new project structure for idea:", idea);
+
     // Generate the project plan using the LangChain implementation
-    return await generateProjectPlan(projectDescription || projectName);
+    return await generateProjectPlan(idea);
   } catch (error) {
     console.error("Failed to generate project structure:", error);
     throw error;

@@ -1,0 +1,168 @@
+/**
+ * AI Agent System
+ * This file implements a proper agent architecture following best practices
+ * with tools properly connected to the agent
+ */
+
+import { ChatGroq } from "@langchain/groq";
+import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
+import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { getAgentTools } from "./tools";
+import { getEnhancedProjectContext, storeEnhancedMessage } from "../memory/enhanced";
+import { getProjectInfo } from "../langchain/tools";
+
+// Export tools
+export { getAgentTools } from './tools';
+
+/**
+ * Configuration for the LangChain agent
+ */
+const agentConfig = {
+  model: "llama3-70b-8192",
+  temperature: 0.7,
+  maxTokens: 2000,
+};
+
+/**
+ * Create a LangChain model
+ * @param temperature - The temperature to use for the model
+ * @returns A LangChain model
+ */
+function createModel(temperature: number = agentConfig.temperature) {
+  return new ChatGroq({
+    apiKey: process.env.GROQ_API_KEY!,
+    model: agentConfig.model,
+    temperature,
+    maxTokens: agentConfig.maxTokens,
+  });
+}
+
+/**
+ * Create a LangChain agent for a project
+ * @param projectId - The ID of the project
+ * @returns A LangChain agent executor
+ */
+export async function createAgent(projectId: string) {
+  try {
+    // Get project context
+    const projectContext = await getEnhancedProjectContext(projectId, "");
+
+    // Get project info
+    const projectInfo = await getProjectInfo(projectId);
+
+    // Get project tools - this is the key part that was missing
+    const tools = getAgentTools(projectId);
+
+    // Log the tools to ensure they're being loaded
+    console.log(`Loaded ${tools.length} tools for the agent`);
+
+    // Create the model
+    const model = createModel();
+
+    // Create the system message
+    const systemMessage = new SystemMessage(`
+You are Mate, an intelligent AI assistant for project management.
+You help users manage their projects by creating and organizing tasks, providing insights, and taking actions.
+
+Project: ${projectInfo.project.name}
+Description: ${projectInfo.project.description || "No description provided"}
+
+Project stats:
+- ${projectInfo.tasks.length} tasks
+- ${projectInfo.members.length} members
+
+${projectContext ? `Relevant context from project history:\n${projectContext}\n\n` : ""}
+
+Project Tasks:
+${projectInfo.tasks.map(task => `- ${task.title} (Status: ${task.status}, Priority: ${task.priority})`).join('\n')}
+
+You have access to tools that allow you to:
+- Create, update, and delete tasks
+- Create, update, and delete columns (task statuses)
+- Move tasks between columns
+- Get information about the project and its tasks
+- Generate suggestions, summaries, and analyses
+
+Be proactive, helpful, and focused on delivering value to the user.
+Use the most appropriate tool for each request.
+    `.trim());
+
+    // Create the agent
+    const agent = await createOpenAIFunctionsAgent({
+      llm: model,
+      tools, // Pass the tools to the agent
+      systemMessage,
+    });
+
+    // Create the executor
+    const agentExecutor = new AgentExecutor({
+      agent,
+      tools, // Pass the tools to the executor
+      verbose: true,
+      returnIntermediateSteps: true,
+    });
+
+    return agentExecutor;
+  } catch (error) {
+    console.error("Failed to create agent:", error);
+    throw error;
+  }
+}
+
+/**
+ * Run the agent with a user message
+ * @param projectId - The ID of the project
+ * @param userMessage - The user's message
+ * @returns The agent's response
+ */
+export async function runAgent(projectId: string, userMessage: string) {
+  try {
+    // Create the agent
+    const agentExecutor = await createAgent(projectId);
+
+    // Store the user message
+    await storeEnhancedMessage(
+      projectId,
+      {
+        role: "user",
+        content: userMessage,
+        timestamp: new Date(),
+      }
+    );
+
+    // Run the agent
+    const result = await agentExecutor.invoke({
+      input: userMessage,
+    });
+
+    // Get the response
+    const response = result.output;
+
+    // Store the assistant message
+    await storeEnhancedMessage(
+      projectId,
+      {
+        role: "assistant",
+        content: response,
+        timestamp: new Date(),
+      }
+    );
+
+    return response;
+  } catch (error) {
+    console.error("Failed to run agent:", error);
+
+    // Store the error message
+    await storeEnhancedMessage(
+      projectId,
+      {
+        role: "assistant",
+        content: `I'm sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date(),
+      }
+    );
+
+    // Return a fallback response
+    return "I'm sorry, I encountered an error while processing your message. Please try again.";
+  }
+}

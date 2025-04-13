@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { validateAuth, isValidStatusEnum, VALID_STATUS_ENUMS, ValidStatusEnum } from "@/utils/task-status";
+import { validateAuth, isValidStatusEnum, ValidStatusEnum } from "@/utils/task-status";
 
 /**
  * PATCH: Update a task's status
@@ -39,7 +39,7 @@ export async function PATCH(request: Request) {
       .set({
         // For the enum field, use a known valid value if possible, otherwise BACKLOG
         // This is just for backward compatibility
-        status: VALID_STATUS_ENUMS.includes(status as ValidStatusEnum) ? status : 'BACKLOG',
+        status: isValidStatusEnum(status) ? status : 'BACKLOG',
         // Always update the status_key to the requested value - this is what we actually use
         status_key: status
       })

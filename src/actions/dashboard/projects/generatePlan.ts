@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { generateProjectStructure } from "@/lib/ai";
+import { generateProjectPlan } from "@/lib/ai";
 
 const taskSchema = z.object({
   title: z.string(),
@@ -35,15 +35,14 @@ export const generateProjectPlan = async (
   idea: string
 ): Promise<ProjectPlan> => {
   try {
+    console.log("Generating project plan in action for idea:", idea);
+
+    if (!idea) {
+      throw new Error("Project idea is required");
+    }
+
     // Use the LangChain-based project structure generator
-    const result = await generateProjectStructure(
-      // Extract a project name from the idea
-      idea.split(" ").slice(0, 3).join(" "),
-      // Use the full idea as the description
-      idea,
-      // Default to "web" as the project type
-      "web"
-    );
+    const result = await generateProjectPlan(idea);
 
     // Validate basic structure
     if (!result.columns || !result.tasks) {

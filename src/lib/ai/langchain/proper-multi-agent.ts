@@ -1,20 +1,18 @@
 /**
- * Multi-Agent Orchestrator
- * This file implements a sophisticated multi-agent orchestration system
- * that coordinates multiple specialized agents to solve complex tasks
- * with minimal API calls and maximum intelligence.
+ * Enhanced Multi-Agent System
+ * This file implements a sophisticated multi-agent system using LangChain's agent framework
+ * with advanced tools, enhanced prompts, and specialized agents for more natural and intelligent interactions
  */
 
 import { ChatGroq } from "@langchain/groq";
-import { AgentExecutor, createOpenAIFunctionsAgent, createReactAgent } from "langchain/agents";
+import { AgentExecutor } from "langchain/agents";
+import { DynamicTool, Tool } from "@langchain/core/tools";
+import { createOpenAIFunctionsAgent } from "langchain/agents";
 import { SystemMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
-import { RunnableSequence, RunnableBranch } from "@langchain/core/runnables";
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import { StructuredOutputParser } from "langchain/output_parsers";
 import { z } from "zod";
-import { getProjectTools } from "./tools";
-import { createEnhancedMemory, storeEnhancedMessage, getProjectInfo, getProjectContext } from "./enhanced-vector-memory";
-import { detectAction, detectAndExecuteAction, ActionType } from "./action-detector";
+import { storeEnhancedMessage, getEnhancedProjectContext } from "../memory/enhanced";
+import { getProjectInfo, getProjectTools } from "./tools";
+import { getEnhancedBasePrompt, getEnhancedProjectContextSection, getEnhancedIntelligenceGuidelines, getEnhancedMultiAgentPrompt, getEnhancedAgentTypeInstructions } from "../prompts/enhanced-prompts";
 import { LLMCache } from "./cache";
 
 // Cache for LLM responses to reduce API calls
@@ -23,7 +21,7 @@ const llmCache = new LLMCache();
 /**
  * Agent types for specialized tasks
  */
-enum AgentType {
+export enum AgentType {
   PLANNER = "PLANNER",
   EXECUTOR = "EXECUTOR",
   ANALYZER = "ANALYZER",
@@ -49,7 +47,7 @@ const agentConfig = {
  */
 function createModel(temperature: number = agentConfig.temperature) {
   const model = new ChatGroq({
-    apiKey: process.env.GROQ_API_KEY!,
+    apiKey: process.env.GROQ_API_KEY || "",
     model: agentConfig.model,
     temperature,
     maxTokens: agentConfig.maxTokens,
@@ -72,120 +70,24 @@ async function createSystemMessage(
   agentType: AgentType = AgentType.CONVERSATIONAL
 ) {
   try {
-    // Get project information and context in a single operation
-    const [projectInfo, vectorContext] = await Promise.all([
-      getProjectInfo(projectId),
-      getProjectContext(projectId, query)
-    ]);
+    // Get project info and context
+    const projectInfo = await getProjectInfo(projectId);
+    const projectContext = await getEnhancedProjectContext(projectId, query);
 
-    // Base system message that all agents share
-    let baseMessage = `
-You are Mate, an advanced AI agent for project management.
-You help users manage their project "${projectInfo.project.name}".
+    // Use the enhanced multi-agent prompt
+    const systemPrompt = getEnhancedMultiAgentPrompt(
+      projectInfo,
+      agentType.toString().toLowerCase(),
+      projectContext
+    );
 
-Project description: ${projectInfo.project.description || "No description provided"}
-
-Project stats:
-- ${projectInfo.tasks.length} tasks
-- ${projectInfo.members.length} members
-
-${vectorContext ? `Relevant context from project history:\n${vectorContext}\n\n` : ""}
-
-Project Tasks:
-${projectInfo.tasks.map(task => `- ${task.title} (Status: ${task.status}, Priority: ${task.priority})`).join('\n')}
-    `.trim();
-
-    // Add specialized instructions based on agent type
-    let specializedInstructions = "";
-
-    switch (agentType) {
-      case AgentType.PLANNER:
-        specializedInstructions = `
-You are the PLANNING AGENT. Your job is to:
-1. Analyze user requests to determine what actions need to be taken
-2. Break down complex requests into smaller, actionable steps
-3. Create a structured plan with clear steps
-4. Consider multiple approaches and choose the most efficient one
-5. Identify potential issues or edge cases in the plan
-
-Think step by step and be thorough in your planning.
-        `.trim();
-        break;
-
-      case AgentType.EXECUTOR:
-        specializedInstructions = `
-You are the EXECUTION AGENT. Your job is to:
-1. Execute the planned actions using the available tools
-2. Handle errors and edge cases gracefully
-3. Provide clear feedback on the results of each action
-4. Adapt to changing circumstances during execution
-5. Ensure all actions are completed successfully
-
-Use the most appropriate tool for each action and be precise in your execution.
-        `.trim();
-        break;
-
-      case AgentType.ANALYZER:
-        specializedInstructions = `
-You are the ANALYSIS AGENT. Your job is to:
-1. Analyze the project's current state and progress
-2. Identify patterns, bottlenecks, and areas for improvement
-3. Provide data-driven insights and recommendations
-4. Consider both short-term and long-term implications
-5. Suggest concrete actions based on your analysis
-
-Be thorough in your analysis and provide actionable insights.
-        `.trim();
-        break;
-
-      case AgentType.CREATOR:
-        specializedInstructions = `
-You are the CREATION AGENT. Your job is to:
-1. Create new tasks, columns, and other project elements
-2. Ensure new elements are well-structured and clearly defined
-3. Consider how new elements fit into the existing project structure
-4. Provide clear descriptions and context for new elements
-5. Suggest related elements that might be needed
-
-Be creative but practical in your suggestions.
-        `.trim();
-        break;
-
-      case AgentType.REFLECTOR:
-        specializedInstructions = `
-You are the REFLECTION AGENT. Your job is to:
-1. Review the actions taken and their results
-2. Identify what went well and what could be improved
-3. Suggest improvements to the process for future interactions
-4. Consider alternative approaches that might have been more effective
-5. Learn from both successes and failures
-
-Be honest and constructive in your reflections.
-        `.trim();
-        break;
-
-      case AgentType.CONVERSATIONAL:
-      default:
-        specializedInstructions = `
-You are the CONVERSATIONAL AGENT. Your job is to:
-1. Engage with the user in a helpful, natural conversation
-2. Understand the user's needs and preferences
-3. Provide clear, concise, and relevant responses
-4. Maintain context across the conversation
-5. Be proactive in suggesting relevant actions or information
-
-Be helpful, friendly, and focused on delivering value to the user.
-        `.trim();
-        break;
-    }
-
-    // Combine base message and specialized instructions
-    const fullMessage = `${baseMessage}\n\n${specializedInstructions}`;
-
-    return new SystemMessage(fullMessage);
+    // Create the system message
+    return new SystemMessage(systemPrompt);
   } catch (error) {
     console.error(`Failed to create system message for ${agentType} agent:`, error);
-    throw error;
+
+    // Return a default system message if there's an error
+    return new SystemMessage(`You are Mate, an AI assistant for project management. You are the ${agentType} agent.`);
   }
 }
 
@@ -202,12 +104,15 @@ async function createSpecializedAgent(
   agentType: AgentType
 ) {
   try {
-    // Get enhanced vector memory
-    const enhancedMemory = await createEnhancedMemory(projectId);
-    const memory = enhancedMemory.createBufferMemory();
+    // Create buffer memory
+    const { BufferMemory } = await import("langchain/memory");
+    const bufferMemory = new BufferMemory();
 
-    // Get project tools
+    // Get comprehensive project tools
     const tools = getProjectTools(projectId);
+
+    // Log the number of tools available to the agent
+    console.log(`Loaded ${tools.length} tools for the ${agentType} agent`);
 
     // Create the system message for this specific agent type
     const systemMessage = await createSystemMessage(projectId, query, agentType);
@@ -237,39 +142,57 @@ async function createSpecializedAgent(
     // Create the model with appropriate temperature
     const model = createModel(temperature);
 
-    // Choose agent type based on the task
-    let agent;
-    if (agentType === AgentType.ANALYZER || agentType === AgentType.PLANNER) {
-      // Use ReAct agent for more complex reasoning
-      agent = await createReactAgent({
+    try {
+      // Create the agent with proper tool selection
+      const agent = await createOpenAIFunctionsAgent({
         llm: model,
         tools,
         systemMessage,
       });
-    } else {
-      // Use OpenAI Functions agent for other tasks
-      agent = await createOpenAIFunctionsAgent({
-        llm: model,
+
+      // Create the executor
+      const agentExecutor = new AgentExecutor({
+        agent,
         tools,
-        systemMessage,
+        memory: bufferMemory,
+        verbose: true,
       });
+
+      return agentExecutor;
+    } catch (agentError) {
+      console.error(`Failed to create ${agentType} agent with createOpenAIFunctionsAgent:`, agentError);
+
+      // Create a fallback agent that just uses the model directly
+      return {
+        invoke: async ({ input }: { input: string }) => {
+          try {
+            if (!input) {
+              return { output: "I didn't receive any message. Please try again with a specific request." };
+            }
+
+            const response = await model.invoke(
+              `${systemMessage.content}\n\nUser: ${input}\n\nAssistant: `
+            );
+
+            return { output: response.content || "I processed your request but didn't generate a response. Please try again." };
+          } catch (error) {
+            console.error(`Error in fallback ${agentType} agent:`, error);
+            return { output: "I encountered an error while processing your message. Please try again." };
+          }
+        }
+      };
     }
-
-    // Create the executor with configuration appropriate for the agent type
-    const agentExecutor = new AgentExecutor({
-      agent,
-      tools,
-      memory,
-      verbose: true,
-      returnIntermediateSteps: true,
-      maxIterations: agentType === AgentType.EXECUTOR ? 15 : 10, // More iterations for executor
-      earlyStoppingMethod: "generate",
-    });
-
-    return agentExecutor;
   } catch (error) {
     console.error(`Failed to create ${agentType} agent:`, error);
-    throw error;
+
+    // Return a minimal working executor that doesn't throw errors
+    return {
+      invoke: async ({ input }: { input: string }) => {
+        return {
+          output: `I'm having trouble setting up the ${agentType} agent. Please try again later or contact support if the issue persists.`
+        };
+      }
+    };
   }
 }
 
@@ -310,10 +233,7 @@ async function createPlan(projectId: string, userMessage: string) {
     // Create a planner agent
     const plannerAgent = await createSpecializedAgent(projectId, userMessage, AgentType.PLANNER);
 
-    // Create the output parser
-    const outputParser = StructuredOutputParser.fromZodSchema(planSchema);
-
-    // Create the prompt template
+    // Create the prompt for the planner
     const promptTemplate = `
 You are a planning agent for a project management system. Your task is to create a detailed plan for handling this user request:
 
@@ -322,7 +242,22 @@ You are a planning agent for a project management system. Your task is to create
 First, analyze what the user is asking for. Then, create a structured plan with clear steps.
 Consider whether specialized agents are needed for different parts of the task.
 
-${outputParser.getFormatInstructions()}
+Your response should be a JSON object with the following structure:
+{
+  "goal": "The main goal to achieve",
+  "requires_specialized_agents": true/false,
+  "steps": [
+    {
+      "step_number": 1,
+      "description": "Description of the step",
+      "agent_type": "PLANNER/EXECUTOR/ANALYZER/CREATOR/REFLECTOR/CONVERSATIONAL",
+      "expected_output": "What this step should produce",
+      "is_api_call_required": true/false
+    }
+  ],
+  "potential_issues": ["Issue 1", "Issue 2"],
+  "fallback_plan": "What to do if the main plan fails"
+}
     `.trim();
 
     // Run the planner agent
@@ -480,13 +415,24 @@ Make sure the response is natural, helpful, and directly addresses what the user
 }
 
 /**
- * Process a user message using the multi-agent orchestration system
+ * Process a user message using the proper multi-agent orchestration system
  * @param projectId - The ID of the project
  * @param userMessage - The user's message
  * @returns The orchestrated response
  */
 export async function processUserMessage(projectId: string, userMessage: string) {
   try {
+    // Validate inputs
+    if (!projectId) {
+      console.error("Project ID is required");
+      return "I need a project context to help you. Please try again from a project page.";
+    }
+
+    if (!userMessage) {
+      console.error("User message is required");
+      return "I didn't receive any message. Please try again with a specific request.";
+    }
+
     // Store the user message
     await storeEnhancedMessage(projectId, {
       role: "user",
@@ -509,50 +455,29 @@ export async function processUserMessage(projectId: string, userMessage: string)
       return cachedResponse;
     }
 
-    // First, try the integrated approach to reduce API calls
-    // This handles simple actions without the full orchestration
-    const integratedResponse = await detectAndExecuteAction(projectId, userMessage);
-
-    // If the integrated approach produced a meaningful response, use it
-    if (integratedResponse &&
-        integratedResponse.length > 20 &&
-        !integratedResponse.includes("I encountered an error") &&
-        !integratedResponse.includes("I'm not sure")) {
-
-      // Store the assistant message
-      await storeEnhancedMessage(projectId, {
-        role: "assistant",
-        content: integratedResponse,
-        timestamp: new Date(),
-      });
-
-      // Cache the response
-      llmCache.set(`${projectId}:${userMessage}:final_response`, integratedResponse, agentConfig.cacheTTL);
-
-      return integratedResponse;
-    }
-
-    // For more complex requests, use the full orchestration system
-
-    // 1. Create a plan
+    // Create a plan for handling the user's request
+    console.log("Creating plan for user message:", userMessage);
     const plan = await createPlan(projectId, userMessage);
+    console.log("Plan created:", JSON.stringify(plan, null, 2));
 
-    // 2. Execute the plan
+    // Execute the plan
+    console.log("Executing plan");
     const response = await executePlan(projectId, userMessage, plan);
+    console.log("Plan executed");
 
-    // 3. Store the assistant message
+    // Store the assistant message
     await storeEnhancedMessage(projectId, {
       role: "assistant",
       content: response,
       timestamp: new Date(),
     });
 
-    // 4. Cache the response
+    // Cache the response
     llmCache.set(`${projectId}:${userMessage}:final_response`, response, agentConfig.cacheTTL);
 
     return response;
   } catch (error) {
-    console.error("Error in multi-agent orchestration:", error);
+    console.error("Error in proper multi-agent orchestration:", error);
 
     // Fallback to a simple response
     const fallbackResponse = "I'm sorry, I encountered an error while processing your message. Please try again.";
@@ -569,7 +494,7 @@ export async function processUserMessage(projectId: string, userMessage: string)
 }
 
 /**
- * Process a conversation with the user
+ * Process a conversation with the user using the proper multi-agent system
  * @param projectId - The ID of the project
  * @param userMessage - The user's message
  * @param conversationHistory - The conversation history
@@ -581,12 +506,40 @@ export async function processConversation(
   conversationHistory: Array<{ role: string; content: string }> = []
 ) {
   try {
+    // Validate inputs
+    if (!projectId) {
+      console.error("Project ID is required");
+      return "I need a project context to help you. Please try again from a project page.";
+    }
+
+    if (!userMessage) {
+      console.error("User message is required");
+      return "I didn't receive any message. Please try again with a specific request.";
+    }
+
     // Store the user message
     await storeEnhancedMessage(projectId, {
       role: "user",
       content: userMessage,
       timestamp: new Date(),
     });
+
+    // Format the conversation history for context
+    for (const msg of conversationHistory) {
+      if (msg.role === "user") {
+        await storeEnhancedMessage(projectId, {
+          role: "user",
+          content: msg.content,
+          timestamp: new Date(Date.now() - 60000), // 1 minute ago
+        });
+      } else if (msg.role === "assistant") {
+        await storeEnhancedMessage(projectId, {
+          role: "assistant",
+          content: msg.content,
+          timestamp: new Date(Date.now() - 30000), // 30 seconds ago
+        });
+      }
+    }
 
     // Create a conversational agent
     const conversationalAgent = await createSpecializedAgent(
@@ -595,32 +548,9 @@ export async function processConversation(
       AgentType.CONVERSATIONAL
     );
 
-    // Format the conversation history
-    const formattedHistory = conversationHistory.map(msg => {
-      if (msg.role === "user") {
-        return `User: ${msg.content}`;
-      } else if (msg.role === "assistant") {
-        return `Assistant: ${msg.content}`;
-      } else {
-        return `${msg.role}: ${msg.content}`;
-      }
-    }).join("\n\n");
-
-    // Create the input with conversation history
-    const input = `
-${formattedHistory ? `Conversation history:\n${formattedHistory}\n\n` : ""}
-
-User's latest message: "${userMessage}"
-
-Please respond to the user's message in a helpful, conversational way.
-If they're asking you to perform an action, explain what you're going to do and then do it.
-If they're asking a question, provide a thorough but concise answer.
-If they're making a statement, acknowledge it and respond appropriately.
-    `.trim();
-
-    // Run the agent
+    // Run the conversational agent
     const result = await conversationalAgent.invoke({
-      input,
+      input: userMessage,
     });
 
     // Get the response
@@ -635,7 +565,7 @@ If they're making a statement, acknowledge it and respond appropriately.
 
     return response;
   } catch (error) {
-    console.error("Error processing conversation:", error);
+    console.error("Error processing conversation with proper multi-agent system:", error);
 
     // Fallback to a simple response
     const fallbackResponse = "I'm sorry, I encountered an error while processing your message. Please try again.";

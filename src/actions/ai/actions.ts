@@ -11,11 +11,11 @@ import {
   deleteTask,
   deleteTaskStatus,
   updateTask
-} from "@/lib/ai/tools";
+} from "@/lib/ai/langchain/tools";
 import { tasks as TaskSchema } from "@/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { storeEnhancedMessage } from "@/lib/ai/memory/enhanced";
-import { runProjectAgent } from "@/lib/ai/agent";
+import { runAgent } from "@/lib/ai";
 import { Groq } from "groq-sdk";
 
 // Action to create a task via AI
@@ -240,7 +240,7 @@ export async function updateProjectDescriptionViaAI(
     const projectInfo = await getProjectInfo(projectId);
 
     // Run the agent with a specific project description update prompt
-    const response = await runProjectAgent(
+    const response = await runAgent(
       projectId,
       `The project "${projectInfo.project.name}" needs its description updated to: ${newDescription}. Please update it and confirm the change.`
     );
@@ -496,7 +496,7 @@ export async function moveTaskViaAI(
     }
 
     // Move the task to the column
-    const updatedTask = await moveTask(task.id, column.id);
+    const updatedTask = await moveTask(task.id, column.id, projectId);
 
     // Store the action in memory
     await storeEnhancedMessage(
@@ -674,8 +674,8 @@ export async function deleteDomainSpecificTasksViaAI(
       return { error: "User not authenticated" };
     }
 
-    // Define the Task type based on the schema
-    type Task = InferSelectModel<typeof TaskSchema>;
+    // Define the task type for better type safety
+    // Using InferSelectModel<typeof TaskSchema> directly in the code
 
     // Get project tasks
     const tasks = await getProjectTasks(projectId);
@@ -760,7 +760,7 @@ export async function deleteDomainSpecificTasksViaAI(
         task: tasks[info.index - 1],
         reason: info.reason
       }))
-      .filter((item: { task: any, reason: string }) => item.task); // Filter out undefined tasks
+      .filter((item: { task: InferSelectModel<typeof TaskSchema>, reason: string }) => item.task); // Filter out undefined tasks
 
     // Delete the tasks
     for (const item of relatedTasks) {
@@ -782,7 +782,7 @@ export async function deleteDomainSpecificTasksViaAI(
     message += '\n\n';
 
     // List the tasks with reasons
-    relatedTasks.forEach((item: { task: any, reason: string }, index: number) => {
+    relatedTasks.forEach((item: { task: InferSelectModel<typeof TaskSchema>, reason: string }, index: number) => {
       const task = item.task;
       message += `${index + 1}. **"${task.title}"** (${task.status}, ${task.priority})\n`;
       message += `   Reason: ${item.reason}\n\n`;
@@ -1172,7 +1172,7 @@ export async function deleteColumnViaAI(
     }
 
     // Delete the column
-    await deleteTaskStatus(columnToDelete.id);
+    await deleteTaskStatus(columnToDelete.id, projectId);
 
     // Store the action in memory
     await storeEnhancedMessage(
@@ -1218,8 +1218,8 @@ export async function previewUselessTasksViaAI(
       return { error: "User not authenticated" };
     }
 
-    // Define the Task type based on the schema
-    type Task = InferSelectModel<typeof TaskSchema>;
+    // Define the task type for better type safety
+    // Using InferSelectModel<typeof TaskSchema> directly in the code
 
     // Get project tasks
     const tasks = await getProjectTasks(projectId);
@@ -1305,14 +1305,14 @@ export async function previewUselessTasksViaAI(
         task: tasks[info.index - 1],
         reason: info.reason
       }))
-      .filter((item: { task: any, reason: string }) => item.task); // Filter out undefined tasks
+      .filter((item: { task: InferSelectModel<typeof TaskSchema>, reason: string }) => item.task); // Filter out undefined tasks
 
     // Create a preview message
     let message = `I've analyzed your project and found ${uselessTasks.length} tasks that appear to be unnecessary:`;
     message += '\n\n';
 
     // List the tasks with reasons
-    uselessTasks.forEach((item: { task: any, reason: string }, index: number) => {
+    uselessTasks.forEach((item: { task: InferSelectModel<typeof TaskSchema>, reason: string }, index: number) => {
       const task = item.task;
       message += `${index + 1}. **"${task.title}"** (${task.status}, ${task.priority})\n`;
       message += `   Reason: ${item.reason}\n\n`;
@@ -1323,7 +1323,7 @@ export async function previewUselessTasksViaAI(
     return {
       success: true,
       message: message,
-      uselessTasks: uselessTasks.map((item: { task: any }) => item.task)
+      uselessTasks: uselessTasks.map((item: { task: InferSelectModel<typeof TaskSchema> }) => item.task)
     };
   } catch (error) {
     console.error("Failed to preview useless tasks via AI:", error);
@@ -1738,14 +1738,14 @@ export async function previewDomainSpecificTasksViaAI(
         task: tasks[info.index - 1],
         reason: info.reason
       }))
-      .filter((item: { task: any, reason: string }) => item.task); // Filter out undefined tasks
+      .filter((item: { task: InferSelectModel<typeof TaskSchema>, reason: string }) => item.task); // Filter out undefined tasks
 
     // Create a preview message
     let message = `I've analyzed your project and found ${relatedTasks.length} tasks related to "${domainDescription}":`;
     message += '\n\n';
 
     // List the tasks with reasons
-    relatedTasks.forEach((item: { task: any, reason: string }, index: number) => {
+    relatedTasks.forEach((item: { task: InferSelectModel<typeof TaskSchema>, reason: string }, index: number) => {
       const task = item.task;
       message += `${index + 1}. **"${task.title}"** (${task.status}, ${task.priority})\n`;
       message += `   Reason: ${item.reason}\n\n`;
@@ -1756,7 +1756,7 @@ export async function previewDomainSpecificTasksViaAI(
     return {
       success: true,
       message: message,
-      relatedTasks: relatedTasks.map((item: { task: any }) => item.task)
+      relatedTasks: relatedTasks.map((item: { task: InferSelectModel<typeof TaskSchema> }) => item.task)
     };
   } catch (error) {
     console.error("Failed to preview domain-specific tasks via AI:", error);
@@ -1906,7 +1906,7 @@ export async function performAIAction(
     const projectInfo = await getProjectInfo(projectId);
 
     // Run the agent with the action description and project context
-    const response = await runProjectAgent(
+    const response = await runAgent(
       projectId,
       `For the project "${projectInfo.project.name}", please perform the following action: ${actionDescription}. Be specific to this project and its current state.`
     );

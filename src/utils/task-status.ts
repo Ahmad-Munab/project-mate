@@ -3,11 +3,11 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projectTaskStatuses, tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { VALID_STATUS_ENUMS, DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey } from "./task-status-client";
+import { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey } from "./task-status-client";
 import type { ValidStatusEnum } from "./task-status-client";
 
 // Re-export for convenience
-export { VALID_STATUS_ENUMS, DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey, ValidStatusEnum };
+export { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey, ValidStatusEnum };
 
 /**
  * Validates user authentication

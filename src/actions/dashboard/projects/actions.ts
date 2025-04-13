@@ -58,8 +58,8 @@ export async function createProject(formData: FormData) {
 
     // Create task statuses/columns that don't already exist
     const columnPromises = plan.columns
-      .filter(column => !existingKeys.includes(column.key)) // Skip columns that already exist
-      .map((column, index) =>
+      .filter((column: { key: string, name: string, color: string }) => !existingKeys.includes(column.key)) // Skip columns that already exist
+      .map((column: { key: string, name: string, color: string }, index: number) =>
         db.insert(projectTaskStatuses)
           .values({
             project_id: newProject.id,
@@ -76,7 +76,7 @@ export async function createProject(formData: FormData) {
     }
 
     // Create tasks with the appropriate status keys
-    const taskPromises = plan.tasks.map(task =>
+    const taskPromises = plan.tasks.map((task: { title: string, description: string, status: string, priority: string }) =>
       db.insert(tasks)
         .values({
           title: task.title,
@@ -86,7 +86,10 @@ export async function createProject(formData: FormData) {
                  task.status === 'IN_PROGRESS' ? 'IN_PROGRESS' :
                  task.status === 'DONE' ? 'DONE' : 'BACKLOG', // Map to enum values for backward compatibility
           status_key: task.status, // Store the custom status key
-          priority: task.priority,
+          priority: task.priority === 'LOW' ? 'LOW' :
+                 task.priority === 'MEDIUM' ? 'MEDIUM' :
+                 task.priority === 'HIGH' ? 'HIGH' :
+                 task.priority === 'URGENT' ? 'URGENT' : 'MEDIUM', // Map to enum values
           project_id: newProject.id,
           created_by: user.id,
         })

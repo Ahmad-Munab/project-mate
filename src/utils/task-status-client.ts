@@ -6,6 +6,20 @@ export const BASE_STATUS_KEYS = ['BACKLOG', 'DONE'] as const;
 export type ValidStatusEnum = string;
 
 /**
+ * Valid status enum values
+ * This is a more comprehensive list of possible statuses
+ */
+export const VALID_STATUS_ENUMS = [
+  'BACKLOG',
+  'TODO',
+  'IN_PROGRESS',
+  'REVIEW',
+  'TESTING',
+  'DONE',
+  'ARCHIVED'
+] as const;
+
+/**
  * Default task statuses to initialize for a new project
  * Minimal set - the AI will create more specialized columns based on project needs
  */
