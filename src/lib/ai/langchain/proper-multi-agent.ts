@@ -6,13 +6,13 @@
 
 import { ChatGroq } from "@langchain/groq";
 import { AgentExecutor } from "langchain/agents";
-import { DynamicTool, Tool } from "@langchain/core/tools";
+// No need for these imports
 import { createOpenAIFunctionsAgent } from "langchain/agents";
-import { SystemMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
+import { SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import { storeEnhancedMessage, getEnhancedProjectContext } from "../memory/enhanced";
 import { getProjectInfo, getProjectTools } from "./tools";
-import { getEnhancedBasePrompt, getEnhancedProjectContextSection, getEnhancedIntelligenceGuidelines, getEnhancedMultiAgentPrompt, getEnhancedAgentTypeInstructions } from "../prompts/enhanced-prompts";
+import { getEnhancedMultiAgentPrompt } from "../prompts/enhanced-prompts";
 import { LLMCache } from "./cache";
 
 // Cache for LLM responses to reduce API calls
@@ -196,31 +196,7 @@ async function createSpecializedAgent(
   }
 }
 
-/**
- * Plan schema for structured planning
- */
-const planSchema = z.object({
-  goal: z.string().describe("The main goal to achieve"),
-  requires_specialized_agents: z.boolean().describe("Whether specialized agents are needed"),
-  steps: z.array(
-    z.object({
-      step_number: z.number().describe("The step number"),
-      description: z.string().describe("Description of the step"),
-      agent_type: z.enum([
-        AgentType.PLANNER,
-        AgentType.EXECUTOR,
-        AgentType.ANALYZER,
-        AgentType.CREATOR,
-        AgentType.REFLECTOR,
-        AgentType.CONVERSATIONAL
-      ]).describe("The type of agent best suited for this step"),
-      expected_output: z.string().describe("What this step should produce"),
-      is_api_call_required: z.boolean().describe("Whether this step requires an API call"),
-    })
-  ).describe("The steps to achieve the goal"),
-  potential_issues: z.array(z.string()).describe("Potential issues that might arise"),
-  fallback_plan: z.string().describe("What to do if the main plan fails"),
-});
+// Plan schema removed as it's not being used
 
 /**
  * Create a plan for handling a user request
@@ -330,7 +306,7 @@ Your response should be a JSON object with the following structure:
 async function executePlan(projectId: string, userMessage: string, plan: any) {
   try {
     let finalResponse = "";
-    let intermediateResults: Record<string, any> = {};
+    const intermediateResults: Record<string, unknown> = {};
 
     // Execute each step in the plan
     for (const step of plan.steps) {

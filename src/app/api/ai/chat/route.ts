@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-import { type AIMessage } from "@/lib/ai";
+// Import only what we need
 import { processUserMessage, processConversation } from "@/lib/ai/langchain/proper-multi-agent";
 
 export async function POST(request: Request) {

@@ -46,8 +46,8 @@ When the user asks you to perform an action, do it immediately rather than just 
  * @returns Enhanced project context section
  */
 export function getEnhancedProjectContextSection(
-  projectInfo: any,
-  taskStatuses: any[],
+  projectInfo: Record<string, unknown>,
+  taskStatuses: Record<string, unknown>[],
   columnNames: string[],
   vectorContext?: string
 ): string {
@@ -57,19 +57,19 @@ export function getEnhancedProjectContextSection(
   taskStatuses.forEach(status => {
     tasksByStatus[status.name] = projectInfo.tasks.filter(task => task.status_key === status.key).length;
   });
-  
+
   const tasksByPriority = {
     LOW: projectInfo.tasks.filter(task => task.priority === "LOW").length,
     MEDIUM: projectInfo.tasks.filter(task => task.priority === "MEDIUM").length,
     HIGH: projectInfo.tasks.filter(task => task.priority === "HIGH").length,
     URGENT: projectInfo.tasks.filter(task => task.priority === "URGENT").length,
   };
-  
+
   // Get recent tasks (last 5)
   const recentTasks = [...projectInfo.tasks]
     .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
     .slice(0, 5);
-  
+
   return `
 You are currently assisting with the project "${projectInfo.project.name}".
 
@@ -84,7 +84,7 @@ Task distribution:
 ${Object.entries(tasksByStatus).map(([status, count]) => `- ${status}: ${count} tasks`).join('\n')}
 
 Priority breakdown:
-${Object.entries(tasksByPriority).filter(([_, count]) => count > 0).map(([priority, count]) => `- ${priority}: ${count} tasks`).join('\n')}
+${Object.entries(tasksByPriority).filter(([, count]) => count > 0).map(([priority, count]) => `- ${priority}: ${count} tasks`).join('\n')}
 
 Recent activity:
 ${recentTasks.map(task => `- ${task.title} (${task.status}, ${task.priority})`).join('\n')}
@@ -181,7 +181,7 @@ Think outside the box, suggest novel approaches, and help the user explore new p
 Balance creativity with practicality to ensure suggestions are valuable and implementable.
     `,
   };
-  
+
   return (instructions[agentType.toLowerCase()] || instructions.conversational).trim();
 }
 
@@ -193,13 +193,13 @@ Balance creativity with practicality to ensure suggestions are valuable and impl
  * @returns Enhanced multi-agent system prompt
  */
 export function getEnhancedMultiAgentPrompt(
-  projectInfo: any,
+  projectInfo: Record<string, unknown>,
   agentType: string,
   projectContext: string
 ): string {
   // Base prompt that all agents share
   const basePrompt = getEnhancedBasePrompt();
-  
+
   // Project context section
   const projectContextSection = `
 Project: ${projectInfo?.project?.name || "Unknown Project"}
@@ -207,13 +207,13 @@ Description: ${projectInfo?.project?.description || "No description provided"}
 
 ${projectContext ? `Project Context:\n${projectContext}\n\n` : ''}
   `.trim();
-  
+
   // Agent type specific instructions
   const agentTypeInstructions = getEnhancedAgentTypeInstructions(agentType);
-  
+
   // Intelligence guidelines
   const intelligenceGuidelines = getEnhancedIntelligenceGuidelines();
-  
+
   // Combine all sections
   return `
 ${basePrompt}

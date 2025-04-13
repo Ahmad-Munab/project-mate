@@ -102,7 +102,7 @@ export async function createProject(formData: FormData) {
       newProject.id,
       {
         role: "system",
-        content: `Project created: ${plan.name}\n\nDescription: ${plan.description}\n\nColumns: ${plan.columns.map(col => col.name).join(', ')}\n\nTasks: ${plan.tasks.length} tasks created across different columns`,
+        content: `Project created: ${plan.name}\n\nDescription: ${plan.description}\n\nColumns: ${plan.columns.map((col: { name: string }) => col.name).join(', ')}\n\nTasks: ${plan.tasks.length} tasks created across different columns`,
         timestamp: new Date(),
       }
     );
