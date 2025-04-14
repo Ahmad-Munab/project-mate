@@ -64,7 +64,7 @@ export const generateProjectPlan = async (
       result.columns.push({
         name: "Backlog",
         key: "BACKLOG",
-        color: "bg-gray-50"
+        color: "gray"
       });
     }
 

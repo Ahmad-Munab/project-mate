@@ -29,7 +29,7 @@ export async function generateProjectPlan(projectDescription: string) {
       temperature: projectCreatorConfig.temperature,
       maxTokens: projectCreatorConfig.maxTokens,
     });
-    
+
     // Create the prompt
     const prompt = `
 You are an expert project planner. You need to create a detailed project plan based on the following description:
@@ -47,6 +47,7 @@ Format your response as JSON with the following structure:
   "columns": [
     {
       "name": "Column name",
+      "key": "COLUMN_KEY", // Uppercase with underscores, e.g., BACKLOG, IN_PROGRESS, DONE
       "color": "blue" // or green, red, yellow, purple, etc.
     }
   ],
@@ -54,7 +55,7 @@ Format your response as JSON with the following structure:
     {
       "title": "Task title",
       "description": "Task description",
-      "status": "Column name (must match one of the columns above)",
+      "status": "COLUMN_KEY", // Must match the key of one of the columns above
       "priority": "HIGH" // or MEDIUM, LOW, URGENT
     }
   ]
@@ -63,26 +64,59 @@ Format your response as JSON with the following structure:
 Make sure to create appropriate columns beyond just "Backlog" and organize tasks into these columns.
 Create at least 3-5 columns and 10-15 tasks.
 Be specific and technical in your task descriptions.
+
+IMPORTANT RULES:
+1. Each column MUST have a unique "key" field that is UPPERCASE with underscores (e.g., BACKLOG, IN_PROGRESS, DONE)
+2. Each task's "status" field MUST match the "key" of one of the columns (not the name)
+3. Always include a "BACKLOG" column
+4. Valid colors are: blue, green, red, yellow, purple, gray, pink, orange
     `.trim();
-    
+
     // Call the model
     const response = await model.invoke(prompt);
-    
+
     // Parse the response
     const content = response.content as string;
+    console.log("Raw AI response:", content.substring(0, 200) + "...");
+
     const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```\n([\s\S]*?)\n```/) || content.match(/{[\s\S]*?}/);
-    
+
+    let parsedResult;
     if (jsonMatch) {
       const jsonString = jsonMatch[0].replace(/```json\n|```\n|```/g, '');
-      return JSON.parse(jsonString);
+      try {
+        parsedResult = JSON.parse(jsonString);
+      } catch (error) {
+        console.error("Failed to parse JSON from match:", error);
+        console.error("JSON string:", jsonString.substring(0, 200) + "...");
+        return null;
+      }
     } else {
       try {
-        return JSON.parse(content);
+        parsedResult = JSON.parse(content);
       } catch (error) {
         console.error("Failed to parse project plan:", error);
+        console.error("Content:", content.substring(0, 200) + "...");
         return null;
       }
     }
+
+    // Validate the result has the required structure
+    if (!parsedResult || !parsedResult.columns || !parsedResult.tasks) {
+      console.error("Invalid project plan structure:", parsedResult);
+      return null;
+    }
+
+    // Ensure all columns have keys
+    parsedResult.columns = parsedResult.columns.map(column => {
+      if (!column.key) {
+        // Generate a key from the name if missing
+        column.key = column.name.toUpperCase().replace(/\s+/g, '_');
+      }
+      return column;
+    });
+
+    return parsedResult;
   } catch (error) {
     console.error("Failed to generate project plan:", error);
     return null;
@@ -99,11 +133,11 @@ export async function generateProjectTasks(projectId: string, projectDescription
   try {
     // Generate the project plan
     const projectPlan = await generateProjectPlan(projectDescription);
-    
+
     if (!projectPlan) {
       return null;
     }
-    
+
     // Store the project plan as a message
     await storeEnhancedMessage(
       projectId,
@@ -113,7 +147,7 @@ export async function generateProjectTasks(projectId: string, projectDescription
         timestamp: new Date(),
       }
     );
-    
+
     return projectPlan;
   } catch (error) {
     console.error("Failed to generate project tasks:", error);
@@ -135,17 +169,17 @@ export async function generateProjectDescription(projectTitle: string) {
       temperature: projectCreatorConfig.temperature,
       maxTokens: 200,
     });
-    
+
     // Create the prompt
     const prompt = `
 Generate a brief but detailed project description for a project titled "${projectTitle}".
 The description should be 2-3 sentences long and explain what the project is about.
 Focus on technical aspects and be specific.
     `.trim();
-    
+
     // Call the model
     const response = await model.invoke(prompt);
-    
+
     return response.content as string;
   } catch (error) {
     console.error("Failed to generate project description:", error);
