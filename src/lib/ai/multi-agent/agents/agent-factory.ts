@@ -7,10 +7,10 @@ import { ChatGroq } from "@langchain/groq";
 import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
 import { SystemMessage } from "@langchain/core/messages";
 import { getEnhancedProjectContext } from "../../memory/enhanced";
-import { getProjectInfo, getProjectTools } from "../../langchain/tools";
+import { getProjectInfo, getProjectTools } from "../../tools";
 import { getEnhancedMultiAgentPrompt } from "../../prompts/enhanced-prompts";
 import { AgentType } from "../types";
-import { LLMCache } from "../../langchain/cache";
+import { LLMCache } from "../../tools/utils";
 
 // Cache for LLM responses to reduce API calls
 const llmCache = new LLMCache();

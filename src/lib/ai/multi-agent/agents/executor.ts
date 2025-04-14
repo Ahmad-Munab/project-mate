@@ -5,7 +5,7 @@
 
 import { createSpecializedAgent } from "./agent-factory";
 import { AgentType, Plan, AgentResult } from "../types";
-import { LLMCache } from "../../langchain/cache";
+import { LLMCache } from "../../tools/utils";
 
 // Cache for LLM responses to reduce API calls
 const llmCache = new LLMCache();
@@ -18,8 +18,8 @@ const llmCache = new LLMCache();
  * @returns The result of executing the plan
  */
 export async function executePlan(
-  projectId: string, 
-  userMessage: string, 
+  projectId: string,
+  userMessage: string,
   plan: Plan
 ): Promise<string> {
   try {
@@ -33,7 +33,7 @@ export async function executePlan(
       // Check if we have a cached result for this step
       const cacheKey = `${projectId}_${userMessage}_${step.description}`;
       const cachedResult = llmCache.get(cacheKey);
-      
+
       if (cachedResult) {
         console.log(`Using cached result for step ${step.step_number}`);
         intermediateResults[`step_${step.step_number}`] = cachedResult;
@@ -63,7 +63,7 @@ Your task: ${step.expected_output}
         try {
           const stepResult = await agent.invoke({ input: stepInput });
           intermediateResults[`step_${step.step_number}`] = stepResult.output;
-          
+
           // Cache the result
           llmCache.set(cacheKey, stepResult.output);
         } catch (error) {
@@ -79,7 +79,7 @@ Your task: ${step.expected_output}
     if (plan.steps.length > 0) {
       // Use the result of the last step as the final response
       const lastStepKey = `step_${plan.steps[plan.steps.length - 1].step_number}`;
-      
+
       // Create a summary of all steps
       const stepSummary = `
 Here's what I did to handle your request:
