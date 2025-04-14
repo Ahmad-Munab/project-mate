@@ -5,7 +5,6 @@
 
 import { storeEnhancedMessage } from "../../memory/enhanced";
 import { createPlan, executePlan } from "../agents";
-import { AgentMessage } from "../types";
 
 /**
  * Process a user message using the multi-agent system

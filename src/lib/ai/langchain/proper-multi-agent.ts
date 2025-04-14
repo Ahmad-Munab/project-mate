@@ -9,7 +9,7 @@ import { AgentExecutor } from "langchain/agents";
 // No need for these imports
 import { createOpenAIFunctionsAgent } from "langchain/agents";
 import { SystemMessage } from "@langchain/core/messages";
-import { z } from "zod";
+// Import dependencies
 import { storeEnhancedMessage, getEnhancedProjectContext } from "../memory/enhanced";
 import { getProjectInfo, getProjectTools } from "./tools";
 import { getEnhancedMultiAgentPrompt } from "../prompts/enhanced-prompts";
@@ -187,7 +187,7 @@ async function createSpecializedAgent(
 
     // Return a minimal working executor that doesn't throw errors
     return {
-      invoke: async ({ input }: { input: string }) => {
+      invoke: async (_: { input: string }) => {
         return {
           output: `I'm having trouble setting up the ${agentType} agent. Please try again later or contact support if the issue persists.`
         };
@@ -303,7 +303,7 @@ Your response should be a JSON object with the following structure:
  * @param plan - The plan to execute
  * @returns The result of executing the plan
  */
-async function executePlan(projectId: string, userMessage: string, plan: any) {
+async function executePlan(projectId: string, userMessage: string, plan: { steps: Array<{ step_number: number; description: string; agent_type: string; is_api_call_required: boolean }> }) {
   try {
     let finalResponse = "";
     const intermediateResults: Record<string, unknown> = {};

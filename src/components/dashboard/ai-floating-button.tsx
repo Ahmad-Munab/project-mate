@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Bot, Sparkles, MessageSquare } from "lucide-react"
+import { Bot, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import AIAssistant from "./ai-assistant"
 

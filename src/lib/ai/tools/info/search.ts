@@ -4,7 +4,7 @@
  */
 
 import { db } from "@/db";
-import { tasks, projects } from "@/db/schema";
+import { tasks } from "@/db/schema";
 import { eq, like, and } from "drizzle-orm";
 import { z } from "zod";
 

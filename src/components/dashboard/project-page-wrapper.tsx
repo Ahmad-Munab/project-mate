@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
 import AIFloatingButton from "./ai-floating-button"
-import type { Task } from "@/components/kanban/ProjectBoard"
 
 type Project = {
   id: string;

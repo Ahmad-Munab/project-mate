@@ -4,7 +4,7 @@
  */
 
 import { createSpecializedAgent } from "./agent-factory";
-import { AgentType, Plan, AgentResult } from "../types";
+import { AgentType, Plan } from "../types";
 import { LLMCache } from "../../tools/utils";
 
 // Cache for LLM responses to reduce API calls

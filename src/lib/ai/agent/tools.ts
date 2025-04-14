@@ -64,7 +64,7 @@ export function createTaskTool(projectId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for updating a task
  */
-export function updateTaskTool(_projectId: string) {
+export function updateTaskTool() {
   return new DynamicStructuredTool({
     name: "update_task",
     description: "Update an existing task. Use this when the user wants to modify a task.",
@@ -104,7 +104,7 @@ export function updateTaskTool(_projectId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for deleting a task
  */
-export function deleteTaskTool(_projectId: string) {
+export function deleteTaskTool() {
   return new DynamicStructuredTool({
     name: "delete_task",
     description: "Delete a task from the project. Use this when the user wants to remove a task.",
@@ -170,7 +170,7 @@ export function createColumnTool(projectId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for updating a column
  */
-export function updateColumnTool(_projectId: string) {
+export function updateColumnTool() {
   return new DynamicStructuredTool({
     name: "update_column",
     description: "Update an existing column (task status). Use this when the user wants to modify a column.",
@@ -207,7 +207,7 @@ export function updateColumnTool(_projectId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for deleting a column
  */
-export function deleteColumnTool(_projectId: string) {
+export function deleteColumnTool() {
   return new DynamicStructuredTool({
     name: "delete_column",
     description: "Delete a column (task status) from the project. Use this when the user wants to remove a column.",
@@ -237,7 +237,7 @@ export function deleteColumnTool(_projectId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for moving a task
  */
-export function moveTaskTool(_projectId: string) {
+export function moveTaskTool() {
   return new DynamicStructuredTool({
     name: "move_task",
     description: "Move a task to a different column. Use this when the user wants to change the status of a task.",

@@ -41,7 +41,7 @@ export async function storeEnhancedMessage(
 }
 
 // Get project context for a query
-export async function getEnhancedProjectContext(projectId: string, _query: string) {
+export async function getEnhancedProjectContext(projectId: string) {
   try {
     // Get project information
     const projectInfo = await getProjectInfo(projectId);

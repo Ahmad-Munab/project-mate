@@ -100,10 +100,10 @@ export function createTaskStatusTool(projectId: string) {
       try {
         // Generate a key from the name
         const key = name.toUpperCase().replace(/\s+/g, "_");
-        
+
         // Create the task status
         const status = await createTaskStatus(projectId, name, color, key);
-        
+
         return status;
       } catch (error) {
         console.error("Failed to create task status:", error);
@@ -148,7 +148,7 @@ export async function updateTaskStatus(
  * @param projectId - The ID of the project
  * @returns A tool for updating a task status
  */
-export function updateTaskStatusTool(projectId: string) {
+export function updateTaskStatusTool(_projectId: string) {
   return {
     name: "update_task_status",
     description: "Update an existing task status (column) in the project. Use this when the user wants to modify a column.",
@@ -161,7 +161,7 @@ export function updateTaskStatusTool(projectId: string) {
       try {
         // Update the task status
         const status = await updateTaskStatus(statusId, name, color);
-        
+
         return status;
       } catch (error) {
         console.error("Failed to update task status:", error);
@@ -196,7 +196,7 @@ export async function deleteTaskStatus(statusId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for deleting a task status
  */
-export function deleteTaskStatusTool(projectId: string) {
+export function deleteTaskStatusTool(_projectId: string) {
   return {
     name: "delete_task_status",
     description: "Delete a task status (column) from the project. Use this when the user wants to remove a column.",
@@ -207,7 +207,7 @@ export function deleteTaskStatusTool(projectId: string) {
       try {
         // Delete the task status
         const status = await deleteTaskStatus(statusId);
-        
+
         return status;
       } catch (error) {
         console.error("Failed to delete task status:", error);

@@ -1,14 +1,13 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Sparkles, X, Send, Zap, Loader2, PlusCircle, Bot, User, ChevronDown, ChevronUp, Lightbulb, Brain, Code, Database, Wand2, ListTodo, Calendar, ArrowRight } from "lucide-react"
+import { X, Send, Loader2, PlusCircle, Bot, User, Lightbulb, Brain, Database, Wand2, ListTodo, Calendar, ArrowRight } from "lucide-react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent } from "@/components/ui/card"
+// UI components
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { useAIStore } from "@/store/aiStore"
@@ -56,10 +55,12 @@ interface AIAssistantProps {
 
 export default function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
   const [input, setInput] = useState("")
-  const [pendingAction, setPendingAction] = useState<any>(null)
+  const [pendingAction, setPendingAction] = useState<{ type: string; data: Record<string, unknown> } | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const { messages: storedMessages, isTyping, setIsTyping, addMessage } = useAIStore()
-  const projectMessages = project?.id ? (storedMessages[project.id] || []) : []
+  const projectMessages = useMemo(() => {
+    return project?.id ? (storedMessages[project.id] || []) : []
+  }, [project?.id, storedMessages])
 
   // Dynamic suggestions based on project context
   const [suggestions, setSuggestions] = useState([
@@ -77,12 +78,12 @@ export default function AIAssistant({ open, onOpenChange, project }: AIAssistant
       // Get project-specific suggestions
       performAIAction(project.id, "Generate 6 short, specific suggestions for prompts that would be helpful for this project. Each suggestion should be a single sentence and focus on technical aspects. Return ONLY the list of suggestions separated by '|' characters with no additional text.")
         .then(result => {
-          if (result.success && result.message) {
+          if ('success' in result && result.success && 'message' in result && result.message) {
             // Parse the suggestions
             const newSuggestions = result.message
               .split('|')
-              .map(s => s.trim())
-              .filter(s => s.length > 0)
+              .map((s: string) => s.trim())
+              .filter((s: string) => s.length > 0)
 
             // Update suggestions if we got valid ones
             if (newSuggestions.length >= 3) {
@@ -121,7 +122,7 @@ export default function AIAssistant({ open, onOpenChange, project }: AIAssistant
           // Call server action to get a personalized welcome message
           const result = await performAIAction(project.id, "Introduce yourself as Mate, the AI project assistant, and provide a brief overview of what you can do to help with this specific project. Be concise but informative.")
 
-          if (result.error) {
+          if ('error' in result && result.error) {
             // Fallback message if there's an error
             addMessage(project.id, {
               role: "assistant",
@@ -565,9 +566,9 @@ How can I assist you today?`,
         })
 
         // Create tasks one by one
-        let tasksCreated = []
+        const tasksCreated = []
         let errorOccurred = false
-        let newColumns = new Set()
+        const newColumns = new Set()
 
         // First, create a task with the full context to potentially create a new column
         try {

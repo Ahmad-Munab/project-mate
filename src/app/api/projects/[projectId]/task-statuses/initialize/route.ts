@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from "@/db";
 import { projectTaskStatuses } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { validateAuth, DEFAULT_STATUSES } from "@/utils/task-status";
 
 /**
@@ -34,7 +34,7 @@ export async function POST(
     const statuses = [];
 
     // First check which statuses already exist
-    const existingStatusMap: Record<string, any> = {};
+    const existingStatusMap: Record<string, { id: string; name: string; key: string; color: string }> = {};
     for (const existingStatus of existingStatuses) {
       existingStatusMap[existingStatus.key] = existingStatus;
     }

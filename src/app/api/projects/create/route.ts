@@ -66,8 +66,15 @@ export async function POST(request: Request) {
       db.insert(tasks).values({
         title: task.title,
         description: task.description,
-        status: task.status,
-        priority: task.priority,
+        status: task.status === "BACKLOG" ? "BACKLOG" :
+               task.status === "TODO" ? "TODO" :
+               task.status === "IN_PROGRESS" ? "IN_PROGRESS" :
+               task.status === "DONE" ? "DONE" : "BACKLOG", // Map to enum values
+        status_key: task.status,
+        priority: task.priority === "LOW" ? "LOW" :
+                 task.priority === "MEDIUM" ? "MEDIUM" :
+                 task.priority === "HIGH" ? "HIGH" :
+                 task.priority === "URGENT" ? "URGENT" : "MEDIUM", // Map to enum values
         project_id: newProject.id,
         created_by: user.id,
       })

@@ -7,7 +7,7 @@
  * Simple cache for LLM responses
  */
 export class LLMCache {
-  private cache: Map<string, any>;
+  private cache: Map<string, { value: unknown; expiry: number }>;
   private maxSize: number;
   private ttl: number;
 
@@ -27,19 +27,19 @@ export class LLMCache {
    * @param key - The cache key
    * @returns The cached value, or undefined if not found
    */
-  get(key: string): any {
+  get(key: string): unknown {
     const item = this.cache.get(key);
-    
+
     if (!item) {
       return undefined;
     }
-    
+
     // Check if the item has expired
     if (Date.now() > item.expiry) {
       this.cache.delete(key);
       return undefined;
     }
-    
+
     return item.value;
   }
 
@@ -48,13 +48,13 @@ export class LLMCache {
    * @param key - The cache key
    * @param value - The value to cache
    */
-  set(key: string, value: any): void {
+  set(key: string, value: unknown): void {
     // If the cache is full, remove the oldest item
     if (this.cache.size >= this.maxSize) {
       const oldestKey = this.cache.keys().next().value;
       this.cache.delete(oldestKey);
     }
-    
+
     // Add the new item
     this.cache.set(key, {
       value,

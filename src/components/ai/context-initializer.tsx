@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { initializeProjectContextClient } from '@/lib/ai';
-import { useToast } from '@/components/ui/use-toast';
+// Import dependencies
 
 interface ContextInitializerProps {
   projectId: string;
@@ -16,7 +16,7 @@ interface ContextInitializerProps {
 export function ProjectContextInitializer({ projectId }: ContextInitializerProps) {
   const [initialized, setInitialized] = useState(false);
   const [initializing, setInitializing] = useState(false);
-  const { toast } = useToast();
+  // Use toast directly from sonner
 
   useEffect(() => {
     // Skip if already initialized or initializing
@@ -32,7 +32,7 @@ export function ProjectContextInitializer({ projectId }: ContextInitializerProps
       try {
         // Check if we've already initialized this project in this session
         const initializedProjects = JSON.parse(sessionStorage.getItem('initializedProjects') || '{}');
-        
+
         if (initializedProjects[projectId]) {
           console.log('Project context already initialized in this session');
           setInitialized(true);
@@ -45,11 +45,11 @@ export function ProjectContextInitializer({ projectId }: ContextInitializerProps
 
         if (success) {
           console.log('Project context initialized successfully');
-          
+
           // Store in session storage
           initializedProjects[projectId] = true;
           sessionStorage.setItem('initializedProjects', JSON.stringify(initializedProjects));
-          
+
           // Show success toast (uncomment if you want to show a toast)
           // toast({
           //   title: 'AI Context Initialized',
@@ -58,7 +58,7 @@ export function ProjectContextInitializer({ projectId }: ContextInitializerProps
           // });
         } else {
           console.error('Failed to initialize project context');
-          
+
           // Show error toast (uncomment if you want to show a toast)
           // toast({
           //   title: 'AI Context Initialization Failed',
@@ -71,7 +71,7 @@ export function ProjectContextInitializer({ projectId }: ContextInitializerProps
         setInitialized(true);
       } catch (error) {
         console.error('Error initializing project context:', error);
-        
+
         // Show error toast (uncomment if you want to show a toast)
         // toast({
         //   title: 'AI Context Initialization Failed',
@@ -86,7 +86,7 @@ export function ProjectContextInitializer({ projectId }: ContextInitializerProps
 
     // Initialize context
     initializeContext();
-  }, [projectId, initialized, initializing, toast]);
+  }, [projectId, initialized, initializing]);
 
   // This component doesn't render anything
   return null;

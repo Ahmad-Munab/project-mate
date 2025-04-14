@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from "@/db";
 import { tasks } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { validateAuth, isValidStatusEnum, ValidStatusEnum } from "@/utils/task-status";
+import { validateAuth, isValidStatusEnum } from "@/utils/task-status";
 
 /**
  * PATCH: Update a task's status

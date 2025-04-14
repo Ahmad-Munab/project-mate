@@ -44,13 +44,13 @@ export function getProjectTasksTool(projectId: string) {
     func: async ({ status }: { status?: string }) => {
       try {
         const projectTasks = await getProjectTasks(projectId);
-        
+
         if (status) {
-          return projectTasks.filter(task => 
+          return projectTasks.filter(task =>
             task.status === status || task.status_key === status
           );
         }
-        
+
         return projectTasks;
       } catch (error) {
         console.error("Failed to get project tasks:", error);
@@ -84,10 +84,10 @@ export async function createTask(
     // Get the task statuses to validate the status
     const taskStatuses = await getTaskStatuses(projectId);
     const statusKeys = taskStatuses.map(status => status.key);
-    
+
     // Use the status key if it exists, otherwise use the default status
     const statusKey = statusKeys.includes(status) ? status : "BACKLOG";
-    
+
     // Create the task
     const [task] = await db
       .insert(tasks)
@@ -130,18 +130,18 @@ export function createTaskTool(projectId: string) {
       assigneeId: z.string().optional().describe("The ID of the assignee"),
       dueDate: z.string().optional().describe("The due date of the task (ISO format)"),
     }),
-    func: async ({ title, description, status, priority, assigneeId, dueDate }: { 
-      title: string; 
-      description: string; 
-      status: string; 
-      priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"; 
-      assigneeId?: string; 
+    func: async ({ title, description, status, priority, assigneeId, dueDate }: {
+      title: string;
+      description: string;
+      status: string;
+      priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+      assigneeId?: string;
       dueDate?: string;
     }) => {
       try {
         // Parse the due date if provided
         const parsedDueDate = dueDate ? new Date(dueDate) : undefined;
-        
+
         // Create the task
         const task = await createTask(
           projectId,
@@ -152,7 +152,7 @@ export function createTaskTool(projectId: string) {
           assigneeId,
           parsedDueDate
         );
-        
+
         return task;
       } catch (error) {
         console.error("Failed to create task:", error);
@@ -196,10 +196,10 @@ export async function updateTask(
     // Get the task statuses to validate the status
     const taskStatuses = await getTaskStatuses(task.project_id);
     const statusKeys = taskStatuses.map(status => status.key);
-    
+
     // Use the status key if it exists, otherwise use the current status
     const statusKey = status && statusKeys.includes(status) ? status : task.status_key;
-    
+
     // Update the task
     const [updatedTask] = await db
       .update(tasks)
@@ -230,7 +230,7 @@ export async function updateTask(
  * @param projectId - The ID of the project
  * @returns A tool for updating a task
  */
-export function updateTaskTool(projectId: string) {
+export function updateTaskTool(_projectId: string) {
   return {
     name: "update_task",
     description: "Update an existing task in the project. Use this when the user wants to modify a task.",
@@ -243,19 +243,19 @@ export function updateTaskTool(projectId: string) {
       assigneeId: z.string().optional().describe("The new ID of the assignee"),
       dueDate: z.string().optional().describe("The new due date of the task (ISO format)"),
     }),
-    func: async ({ taskId, title, description, status, priority, assigneeId, dueDate }: { 
-      taskId: string; 
-      title?: string; 
-      description?: string; 
-      status?: string; 
-      priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT"; 
-      assigneeId?: string; 
+    func: async ({ taskId, title, description, status, priority, assigneeId, dueDate }: {
+      taskId: string;
+      title?: string;
+      description?: string;
+      status?: string;
+      priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+      assigneeId?: string;
       dueDate?: string;
     }) => {
       try {
         // Parse the due date if provided
         const parsedDueDate = dueDate ? new Date(dueDate) : undefined;
-        
+
         // Update the task
         const task = await updateTask(
           taskId,
@@ -266,7 +266,7 @@ export function updateTaskTool(projectId: string) {
           assigneeId,
           parsedDueDate
         );
-        
+
         return task;
       } catch (error) {
         console.error("Failed to update task:", error);
@@ -301,7 +301,7 @@ export async function deleteTask(taskId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for deleting a task
  */
-export function deleteTaskTool(projectId: string) {
+export function deleteTaskTool(_projectId: string) {
   return {
     name: "delete_task",
     description: "Delete a task from the project. Use this when the user wants to remove a task.",
@@ -312,7 +312,7 @@ export function deleteTaskTool(projectId: string) {
       try {
         // Delete the task
         const task = await deleteTask(taskId);
-        
+
         return task;
       } catch (error) {
         console.error("Failed to delete task:", error);
@@ -343,10 +343,10 @@ export async function moveTask(taskId: string, status: string) {
     // Get the task statuses to validate the status
     const taskStatuses = await getTaskStatuses(task.project_id);
     const statusKeys = taskStatuses.map(status => status.key);
-    
+
     // Use the status key if it exists, otherwise use the current status
     const statusKey = statusKeys.includes(status) ? status : task.status_key;
-    
+
     // Update the task
     const [updatedTask] = await db
       .update(tasks)
@@ -372,7 +372,7 @@ export async function moveTask(taskId: string, status: string) {
  * @param projectId - The ID of the project
  * @returns A tool for moving a task
  */
-export function moveTaskTool(projectId: string) {
+export function moveTaskTool(_projectId: string) {
   return {
     name: "move_task",
     description: "Move a task to a different status. Use this when the user wants to change the status of a task.",
@@ -384,7 +384,7 @@ export function moveTaskTool(projectId: string) {
       try {
         // Move the task
         const task = await moveTask(taskId, status);
-        
+
         return task;
       } catch (error) {
         console.error("Failed to move task:", error);
