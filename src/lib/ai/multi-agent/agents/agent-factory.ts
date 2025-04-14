@@ -4,7 +4,8 @@
  */
 
 import { ChatGroq } from "@langchain/groq";
-import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
+import { AgentExecutor } from "langchain/agents";
+import { createOpenAIFunctionsAgent } from "@langchain/openai";
 import { SystemMessage } from "@langchain/core/messages";
 import { getEnhancedProjectContext } from "../../memory/enhanced";
 import { getProjectInfo, getProjectTools } from "../../tools";

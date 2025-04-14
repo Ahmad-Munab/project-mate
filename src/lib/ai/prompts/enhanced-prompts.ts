@@ -46,48 +46,69 @@ When the user asks you to perform an action, do it immediately rather than just 
  * @returns Enhanced project context section
  */
 export function getEnhancedProjectContextSection(
-  projectInfo: Record<string, unknown>,
-  taskStatuses: Record<string, unknown>[],
-  columnNames: string[],
+  projectInfo: Record<string, any> = {},
+  taskStatuses: Record<string, any>[] = [],
+  columnNames: string[] = [],
   vectorContext?: string
 ): string {
+  // Ensure tasks array exists
+  const tasks = Array.isArray(projectInfo?.tasks) ? projectInfo.tasks : [];
+
   // Calculate task statistics
-  const totalTasks = projectInfo.tasks.length;
+  const totalTasks = tasks.length;
   const tasksByStatus = {};
-  taskStatuses.forEach(status => {
-    tasksByStatus[status.name] = projectInfo.tasks.filter(task => task.status_key === status.key).length;
-  });
+
+  if (Array.isArray(taskStatuses)) {
+    taskStatuses.forEach(status => {
+      if (status && status.name && status.key) {
+        tasksByStatus[status.name] = tasks.filter(task => task && task.status_key === status.key).length;
+      }
+    });
+  }
 
   const tasksByPriority = {
-    LOW: projectInfo.tasks.filter(task => task.priority === "LOW").length,
-    MEDIUM: projectInfo.tasks.filter(task => task.priority === "MEDIUM").length,
-    HIGH: projectInfo.tasks.filter(task => task.priority === "HIGH").length,
-    URGENT: projectInfo.tasks.filter(task => task.priority === "URGENT").length,
+    LOW: tasks.filter(task => task && task.priority === "LOW").length,
+    MEDIUM: tasks.filter(task => task && task.priority === "MEDIUM").length,
+    HIGH: tasks.filter(task => task && task.priority === "HIGH").length,
+    URGENT: tasks.filter(task => task && task.priority === "URGENT").length,
   };
 
   // Get recent tasks (last 5)
-  const recentTasks = [...projectInfo.tasks]
-    .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
-    .slice(0, 5);
+  const recentTasks = tasks.length > 0 ?
+    [...tasks]
+      .filter(task => task && (task.updated_at || task.created_at))
+      .sort((a, b) => {
+        const dateA = a.updated_at || a.created_at;
+        const dateB = b.updated_at || b.created_at;
+        return new Date(dateB).getTime() - new Date(dateA).getTime();
+      })
+      .slice(0, 5) :
+    [];
 
   return `
-You are currently assisting with the project "${projectInfo.project.name}".
+You are currently assisting with the project "${projectInfo?.project?.name || 'Unnamed Project'}".
 
-Project description: ${projectInfo.project.description || "No description provided"}
+Project description: ${projectInfo?.project?.description || "No description provided"}
 
 Project overview:
 - ${totalTasks} total tasks
-- ${projectInfo.members.length} team members
+- ${Array.isArray(projectInfo?.members) ? projectInfo.members.length : 0} team members
 - ${taskStatuses.length} workflow columns: ${columnNames.join(', ')}
 
 Task distribution:
-${Object.entries(tasksByStatus).map(([status, count]) => `- ${status}: ${count} tasks`).join('\n')}
+${Object.entries(tasksByStatus).length > 0 ?
+  Object.entries(tasksByStatus).map(([status, count]) => `- ${status}: ${count} tasks`).join('\n') :
+  "No task distribution data available"}
 
 Priority breakdown:
-${Object.entries(tasksByPriority).filter(([, count]) => count > 0).map(([priority, count]) => `- ${priority}: ${count} tasks`).join('\n')}
+${Object.entries(tasksByPriority).filter(([, count]) => count > 0).length > 0 ?
+  Object.entries(tasksByPriority).filter(([, count]) => count > 0).map(([priority, count]) => `- ${priority}: ${count} tasks`).join('\n') :
+  "No priority data available"}
 
 Recent activity:
-${recentTasks.map(task => `- ${task.title} (${task.status}, ${task.priority})`).join('\n')}
+${recentTasks.length > 0 ?
+  recentTasks.map(task => `- ${task.title || 'Untitled'} (${task.status || 'Unknown'}, ${task.priority || 'Medium'})`).join('\n') :
+  "No recent activity"}
 
 ${vectorContext ? `Relevant project context:\n${vectorContext}` : ""}
   `.trim();
@@ -193,9 +214,9 @@ Balance creativity with practicality to ensure suggestions are valuable and impl
  * @returns Enhanced multi-agent system prompt
  */
 export function getEnhancedMultiAgentPrompt(
-  projectInfo: Record<string, unknown>,
-  agentType: string,
-  projectContext: string
+  projectInfo: Record<string, any> = {},
+  agentType: string = 'conversational',
+  projectContext: string = ''
 ): string {
   // Base prompt that all agents share
   const basePrompt = getEnhancedBasePrompt();
