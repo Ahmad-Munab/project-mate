@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "db-push": "npx drizzle-kit push",
-    "db-push-develop": "cross-env DRIZZLE_ENV=develop npx drizzle-kit push"
+    "db-push-develop": "cross-env DRIZZLE_ENV=develop npx drizzle-kit push",
+    "db-generate": "npx drizzle-kit generate:pg"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",

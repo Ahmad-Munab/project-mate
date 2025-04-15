@@ -25,15 +25,24 @@ export async function storeEnhancedMessage(
     const { db } = await import("@/db");
     const { messages } = await import("@/db/schema");
 
-    await db.insert(messages).values({
-      project_id: projectId,
-      role: message.role,
-      content: message.content,
-      created_at: message.timestamp,
-      task_id: taskId || null,
-    });
-
-    return true;
+    // Check if the messages table exists
+    try {
+      await db.insert(messages).values({
+        project_id: projectId,
+        role: message.role,
+        content: message.content,
+        created_at: message.timestamp,
+        task_id: taskId || null,
+      });
+      return true;
+    } catch (dbError: any) {
+      // If the table doesn't exist, log the error but don't fail the operation
+      if (dbError.code === '42P01') { // PostgreSQL error code for 'relation does not exist'
+        console.warn("Messages table does not exist. Skipping message storage.");
+        return true; // Return true to avoid breaking the flow
+      }
+      throw dbError; // Re-throw other errors
+    }
   } catch (error) {
     console.error("Failed to store enhanced message:", error);
     return false;
@@ -60,11 +69,21 @@ export async function getEnhancedProjectContext(projectId: string): Promise<stri
     const { messages } = await import("@/db/schema");
     const { desc, eq } = await import("drizzle-orm");
 
-    const recentMessages = await db.query.messages.findMany({
-      where: eq(messages.project_id, projectId),
-      orderBy: [desc(messages.created_at)],
-      limit: 10,
-    });
+    let recentMessages = [];
+    try {
+      recentMessages = await db.query.messages.findMany({
+        where: eq(messages.project_id, projectId),
+        orderBy: [desc(messages.created_at)],
+        limit: 10,
+      });
+    } catch (dbError: any) {
+      // If the table doesn't exist, log the error but continue with empty messages
+      if (dbError.code === '42P01') { // PostgreSQL error code for 'relation does not exist'
+        console.warn("Messages table does not exist. Continuing with empty messages.");
+      } else {
+        console.error("Error fetching messages:", dbError);
+      }
+    }
 
     // Create a system message with the combined context
     const systemMessage = `

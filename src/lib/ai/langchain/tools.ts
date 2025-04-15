@@ -17,45 +17,78 @@ import { createClient } from "@/utils/supabase/server";
  */
 export async function getProjectInfo(projectId: string) {
   try {
+    if (!projectId) {
+      console.error("Project ID is required");
+      return {
+        project: { name: "Unknown Project", description: "No project information available" },
+        tasks: [],
+        members: [],
+      };
+    }
+
     // Get the project
-    const [project] = await db
+    const projectResult = await db
       .select()
       .from(projects)
       .where(eq(projects.id, projectId));
 
+    const project = projectResult && projectResult.length > 0 ? projectResult[0] : null;
+
     if (!project) {
-      throw new Error("Project not found");
+      console.warn(`Project not found with ID: ${projectId}`);
+      return {
+        project: { name: "Unknown Project", description: "Project not found" },
+        tasks: [],
+        members: [],
+      };
     }
 
     // Get the project tasks
-    const projectTasks = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.project_id, projectId));
+    let projectTasks = [];
+    try {
+      projectTasks = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.project_id, projectId));
+    } catch (taskError) {
+      console.error("Error fetching project tasks:", taskError);
+    }
 
     // Get the project members
-    const members = await db
-      .select({
-        user: users,
-        role: projectMembers.role,
-      })
-      .from(projectMembers)
-      .where(eq(projectMembers.project_id, projectId))
-      .innerJoin(users, eq(users.id, projectMembers.user_id));
+    let members = [];
+    try {
+      const memberResults = await db
+        .select({
+          user: users,
+          role: projectMembers.role,
+        })
+        .from(projectMembers)
+        .where(eq(projectMembers.project_id, projectId))
+        .innerJoin(users, eq(users.id, projectMembers.user_id));
+
+      members = memberResults.map(m => ({
+        id: m.user?.id,
+        name: m.user?.name,
+        email: m.user?.email,
+        role: m.role,
+      }));
+    } catch (memberError) {
+      console.error("Error fetching project members:", memberError);
+    }
 
     return {
       project,
       tasks: projectTasks,
-      members: members.map(m => ({
-        id: m.user.id,
-        name: m.user.name,
-        email: m.user.email,
-        role: m.role,
-      })),
+      members,
     };
   } catch (error) {
     console.error("Failed to get project info:", error);
-    throw error;
+    // Return a default object instead of throwing
+    return {
+      project: { name: "Unknown Project", description: "Error retrieving project information" },
+      tasks: [],
+      members: [],
+    };
   }
 }
 
@@ -66,6 +99,11 @@ export async function getProjectInfo(projectId: string) {
  */
 export async function getTaskStatuses(projectId: string) {
   try {
+    if (!projectId) {
+      console.error("Project ID is required");
+      return [];
+    }
+
     // Get the task statuses
     const statuses = await db
       .select()
@@ -73,10 +111,11 @@ export async function getTaskStatuses(projectId: string) {
       .where(eq(projectTaskStatuses.project_id, projectId))
       .orderBy(projectTaskStatuses.order);
 
-    return statuses;
+    return statuses || [];
   } catch (error) {
     console.error("Failed to get task statuses:", error);
-    throw error;
+    // Return an empty array instead of throwing
+    return [];
   }
 }
 
