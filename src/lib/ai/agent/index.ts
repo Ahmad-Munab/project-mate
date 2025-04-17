@@ -6,7 +6,7 @@
 import { ChatGroq } from "@langchain/groq";
 import { SystemMessage } from "@langchain/core/messages";
 import { getAgentTools } from "./tools";
-import { getEnhancedProjectContext, storeEnhancedMessage } from "../memory/enhanced";
+import { storeEnhancedMessage } from "../memory/enhanced";
 import { getProjectInfo } from "../langchain/tools";
 // No need for complex agent imports with our simplified approach
 
@@ -29,8 +29,13 @@ const modelConfig = {
  */
 export async function createAgent(projectId: string) {
   try {
-    // Get project context
-    const projectContext = await getEnhancedProjectContext(projectId, "");
+    // Get project context using the enhanced vector memory system
+    const { createEnhancedMemory } = await import("../langchain/enhanced-vector-memory");
+    const memory = await createEnhancedMemory(projectId);
+    await memory.initialize();
+
+    // Get context from the vector memory
+    const projectContext = await memory.getContext("What is the current state of the project?");
 
     // Get project info
     const projectInfo = await getProjectInfo(projectId);
@@ -57,16 +62,7 @@ You help users manage their projects by creating and organizing tasks, providing
 Project: ${projectInfo.project.name}
 Description: ${projectInfo.project.description || "No description provided"}
 
-Project stats:
-- ${projectInfo.tasks?.length || 0} tasks
-- ${projectInfo.members?.length || 0} members
-
 ${projectContext ? `Relevant context from project history:\n${projectContext}\n\n` : ""}
-
-Project Tasks:
-${projectInfo.tasks && projectInfo.tasks.length > 0 ?
-  projectInfo.tasks.map(task => `- ${task.title || 'Untitled'} (Status: ${task.status || 'Unknown'}, Priority: ${task.priority || 'Medium'})`).join('\n') :
-  "No tasks yet"}
 
 Available tools:
 ${tools.map(tool => `- ${tool.name}: ${tool.description}`).join('\n')}
@@ -83,8 +79,9 @@ IMPORTANT INSTRUCTIONS:
 9. After using tools, summarize what you did in a friendly, conversational manner.
 10. If a request requires multiple actions (like moving several tasks), use multiple tool calls in sequence.
 11. Always use tools to take action rather than just talking about actions.
-12. Respond like a helpful colleague, not a robot.
-13. Keep responses concise and focused on what you actually did.
+12. Keep responses EXTREMELY concise and focused on what you actually did.
+13. Only provide information that the user explicitly asks for - don't list all tasks or project details unless requested.
+14. Be brief and to the point - users prefer short, direct responses over lengthy explanations.
 
 When you need to use a tool, format your response like this:
 
@@ -238,7 +235,9 @@ Respond in a natural, conversational way without showing raw JSON data to the us
                   { role: "system", content: `${successMessage} Here's the result: ${JSON.stringify(parsedResult)}.
                   ${userFriendlyMessage}
                   Please respond to the user in a natural, conversational way without showing raw JSON data.
-                  Acknowledge what you did (e.g., "I've created the task for you") and provide any relevant details or next steps.` }
+                  Acknowledge what you did (e.g., "I've created the task for you") in a VERY BRIEF way.
+                  Keep your response extremely concise - no more than 1-2 sentences.
+                  Only provide information that was explicitly requested - don't list all tasks or project details unless asked.` }
                 ]);
                 followUpContent = followUpResponse.content;
               } catch (error) {

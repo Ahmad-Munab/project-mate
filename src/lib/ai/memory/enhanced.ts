@@ -14,7 +14,7 @@ export interface AIMessage {
   timestamp: Date;
 }
 
-// Store a message in the database
+// Store a message in the database and vector store
 export async function storeEnhancedMessage(
   projectId: string,
   message: AIMessage,
@@ -34,15 +34,26 @@ export async function storeEnhancedMessage(
         created_at: message.timestamp,
         task_id: taskId || null,
       });
-      return true;
     } catch (dbError: any) {
       // If the table doesn't exist, log the error but don't fail the operation
       if (dbError.code === '42P01') { // PostgreSQL error code for 'relation does not exist'
         console.warn("Messages table does not exist. Skipping message storage.");
-        return true; // Return true to avoid breaking the flow
+      } else {
+        console.error("Error storing message in database:", dbError);
       }
-      throw dbError; // Re-throw other errors
     }
+
+    // Store in vector memory
+    try {
+      const { createEnhancedMemory, MemorySegmentType } = await import("../langchain/enhanced-vector-memory");
+      const memory = await createEnhancedMemory(projectId);
+      await memory.initialize();
+      await memory.storeMessage(message, MemorySegmentType.CONVERSATION, taskId);
+    } catch (vectorError) {
+      console.error("Error storing message in vector memory:", vectorError);
+    }
+
+    return true;
   } catch (error) {
     console.error("Failed to store enhanced message:", error);
     return false;
@@ -50,9 +61,21 @@ export async function storeEnhancedMessage(
 }
 
 // Get project context for a query
-export async function getEnhancedProjectContext(projectId: string): Promise<string> {
+export async function getEnhancedProjectContext(projectId: string, query: string = "What is the current state of the project?"): Promise<string> {
   try {
-    // Get project information
+    // Use the enhanced vector memory to get context
+    const { createEnhancedMemory } = await import("../langchain/enhanced-vector-memory");
+    const memory = await createEnhancedMemory(projectId);
+    await memory.initialize();
+
+    // Get context from the vector memory
+    const vectorContext = await memory.getContext(query);
+
+    if (vectorContext) {
+      return vectorContext;
+    }
+
+    // Fallback to basic context if vector memory fails
     const projectInfo = await getProjectInfo(projectId);
 
     if (!projectInfo || !projectInfo.project) {
@@ -64,45 +87,11 @@ export async function getEnhancedProjectContext(projectId: string): Promise<stri
     const taskStatuses = await getTaskStatuses(projectId) || [];
     const columnNames = taskStatuses.map(status => status.name || 'Unnamed');
 
-    // Get recent messages from the database
-    const { db } = await import("@/db");
-    const { messages } = await import("@/db/schema");
-    const { desc, eq } = await import("drizzle-orm");
-
-    let recentMessages = [];
-    try {
-      recentMessages = await db.query.messages.findMany({
-        where: eq(messages.project_id, projectId),
-        orderBy: [desc(messages.created_at)],
-        limit: 10,
-      });
-    } catch (dbError: any) {
-      // If the table doesn't exist, log the error but continue with empty messages
-      if (dbError.code === '42P01') { // PostgreSQL error code for 'relation does not exist'
-        console.warn("Messages table does not exist. Continuing with empty messages.");
-      } else {
-        console.error("Error fetching messages:", dbError);
-      }
-    }
-
-    // Create a system message with the combined context
+    // Create a basic system message with minimal context
     const systemMessage = `
 You are an AI project assistant named "Mate" for the project "${projectInfo.project.name}".
 
 Project description: ${projectInfo.project.description || "No description provided"}
-
-Project stats:
-- ${projectInfo.tasks?.length || 0} tasks
-- ${projectInfo.members?.length || 0} members
-- ${taskStatuses.length} columns: ${columnNames.join(', ')}
-
-Recent conversation:
-${recentMessages.length > 0 ? recentMessages.reverse().map(msg => `${msg.role}: ${msg.content}`).join('\n') : "No recent conversation"}
-
-Project Tasks:
-${projectInfo.tasks && projectInfo.tasks.length > 0 ?
-  projectInfo.tasks.map(task => `- ${task.title || 'Untitled'} (Status: ${task.status || 'Unknown'}, Priority: ${task.priority || 'Medium'})`).join('\n') :
-  "No tasks yet"}
 
 You can perform actions on the Kanban board, including creating tasks, updating tasks, moving tasks, creating columns, etc.
     `.trim();
