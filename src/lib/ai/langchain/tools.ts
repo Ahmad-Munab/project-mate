@@ -249,8 +249,12 @@ export async function updateTask(
       const [updatedTask] = await db
         .update(tasks)
         .set({
-          ...validatedUpdates,
+          title: validatedUpdates.title,
+          description: validatedUpdates.description,
+          status: validatedUpdates.status as any,
           status_key: validatedUpdates.status || task.status_key,
+          priority: validatedUpdates.priority as any,
+          due_date: validatedUpdates.due_date,
         })
         .where(eq(tasks.id, taskId))
         .returning();
@@ -590,7 +594,7 @@ export async function deleteTaskStatus(
           await db
             .update(tasks)
             .set({
-              status: targetStatus.key,
+              status: targetStatus.key as any,
               status_key: targetStatus.key,
             })
             .where(
@@ -689,7 +693,7 @@ export async function moveTask(
       const [updatedTask] = await db
         .update(tasks)
         .set({
-          status: targetStatus,
+          status: targetStatus as any,
           status_key: targetStatus,
         })
         .where(eq(tasks.id, taskId))

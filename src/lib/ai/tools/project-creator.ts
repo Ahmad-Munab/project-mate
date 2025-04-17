@@ -37,13 +37,15 @@ You are an expert project planner. You need to create a detailed project plan ba
 ${projectDescription}
 
 Generate a project plan with the following:
-1. A list of tasks organized into appropriate categories (features, fixes, front-end, back-end, etc.)
-2. Suggested task statuses (columns) for the project
-3. A brief project overview
+1. A concise project name (3-5 words)
+2. A brief project description (2-3 sentences)
+3. A list of tasks organized into appropriate categories (features, fixes, front-end, back-end, etc.)
+4. Suggested task statuses (columns) for the project
 
 Format your response as JSON with the following structure:
 {
-  "overview": "Brief project overview",
+  "name": "Project Name",
+  "description": "Brief project description (2-3 sentences)",
   "columns": [
     {
       "name": "Column name",
@@ -66,10 +68,11 @@ Create at least 3-5 columns and 10-15 tasks.
 Be specific and technical in your task descriptions.
 
 IMPORTANT RULES:
-1. Each column MUST have a unique "key" field that is UPPERCASE with underscores (e.g., BACKLOG, IN_PROGRESS, DONE)
-2. Each task's "status" field MUST match the "key" of one of the columns (not the name)
-3. Always include a "BACKLOG" column
-4. Valid colors are: blue, green, red, yellow, purple, gray, pink, orange
+1. You MUST include both "name" and "description" fields in your JSON response
+2. Each column MUST have a unique "key" field that is UPPERCASE with underscores (e.g., BACKLOG, IN_PROGRESS, DONE)
+3. Each task's "status" field MUST match the "key" of one of the columns (not the name)
+4. Always include a "BACKLOG" column
+5. Valid colors are: blue, green, red, yellow, purple, gray, pink, orange
     `.trim();
 
     // Call the model
@@ -105,6 +108,20 @@ IMPORTANT RULES:
     if (!parsedResult || !parsedResult.columns || !parsedResult.tasks) {
       console.error("Invalid project plan structure:", parsedResult);
       return null;
+    }
+
+    // Handle the case where the AI returns 'overview' instead of 'name' and 'description'
+    if (parsedResult.overview && !parsedResult.name) {
+      // Extract a name from the overview (first 5-7 words)
+      const words = parsedResult.overview.split(' ');
+      parsedResult.name = words.slice(0, Math.min(7, words.length)).join(' ');
+
+      // Use the overview as the description
+      if (!parsedResult.description) {
+        parsedResult.description = parsedResult.overview;
+      }
+
+      console.log("Generated name from overview:", parsedResult.name);
     }
 
     // Ensure all columns have keys
