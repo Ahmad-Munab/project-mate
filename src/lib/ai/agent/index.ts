@@ -8,10 +8,7 @@ import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { getAgentTools } from "./tools";
 import { getEnhancedProjectContext, storeEnhancedMessage } from "../memory/enhanced";
 import { getProjectInfo } from "../langchain/tools";
-import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { RunnableSequence } from "@langchain/core/runnables";
-import { formatToOpenAIFunctionMessages } from "langchain/agents/format_utils";
+// No need for complex agent imports with our simplified approach
 
 // Export tools
 export { getAgentTools } from './tools';
@@ -26,9 +23,9 @@ const modelConfig = {
 };
 
 /**
- * Create a proper agent for a project that can use tools
+ * Create a direct agent for a project with improved tool usage
  * @param projectId - The ID of the project
- * @returns An agent executor that can process user messages and use tools
+ * @returns A function that can process user messages and use tools
  */
 export async function createAgent(projectId: string) {
   try {
@@ -52,25 +49,27 @@ export async function createAgent(projectId: string) {
       maxTokens: modelConfig.maxTokens,
     });
 
-    // Create the system prompt template
-    const systemPrompt = PromptTemplate.fromTemplate(`
+    // Create the system message with improved instructions
+    const systemMessage = new SystemMessage(`
 You are Mate, an intelligent AI assistant for project management.
 You help users manage their projects by creating and organizing tasks, providing insights, and taking actions.
 
-Project: {project_name}
-Description: {project_description}
+Project: ${projectInfo.project.name}
+Description: ${projectInfo.project.description || "No description provided"}
 
 Project stats:
-- {task_count} tasks
-- {member_count} members
+- ${projectInfo.tasks?.length || 0} tasks
+- ${projectInfo.members?.length || 0} members
 
-{project_context}
+${projectContext ? `Relevant context from project history:\n${projectContext}\n\n` : ""}
 
 Project Tasks:
-{tasks_list}
+${projectInfo.tasks && projectInfo.tasks.length > 0 ?
+  projectInfo.tasks.map(task => `- ${task.title || 'Untitled'} (Status: ${task.status || 'Unknown'}, Priority: ${task.priority || 'Medium'})`).join('\n') :
+  "No tasks yet"}
 
-You have access to the following tools to help the user:
-{tools}
+Available tools:
+${tools.map(tool => `- ${tool.name}: ${tool.description}`).join('\n')}
 
 IMPORTANT INSTRUCTIONS:
 1. When the user asks you to create columns or tasks, ALWAYS use the appropriate tools to actually create them.
@@ -83,54 +82,75 @@ IMPORTANT INSTRUCTIONS:
 8. Respond like a helpful colleague, not a robot.
 9. Keep responses concise and focused on what you actually did.
 
+When you need to use a tool, format your response like this:
+<tool>create_column</tool>
+<parameters>
+{
+  "name": "Deployment",
+  "color": "blue"
+}
+</parameters>
+
+Then after using the tool, respond in a natural way without showing JSON data.
+
 Be proactive, helpful, and focused on delivering value to the user.
 Respond in a natural, conversational way without showing raw JSON data to the user.
-`);
+    `.trim());
 
-    // Create the prompt with the project information
-    const prompt = await systemPrompt.format({
-      project_name: projectInfo.project.name,
-      project_description: projectInfo.project.description || "No description provided",
-      task_count: projectInfo.tasks?.length || 0,
-      member_count: projectInfo.members?.length || 0,
-      project_context: projectContext ? `Relevant context from project history:\n${projectContext}` : "",
-      tasks_list: projectInfo.tasks && projectInfo.tasks.length > 0 ?
-        projectInfo.tasks.map(task => `- ${task.title || 'Untitled'} (Status: ${task.status || 'Unknown'}, Priority: ${task.priority || 'Medium'})`).join('\n') :
-        "No tasks yet",
-      tools: tools.map(tool => `- ${tool.name}: ${tool.description}`).join('\n')
-    });
+    // Return a function that can process user messages and use tools
+    return {
+      processMessage: async (userMessage: string) => {
+        try {
+          // Use the model directly
+          const response = await model.invoke([
+            systemMessage,
+            { role: "user", content: userMessage }
+          ]);
 
-    // Create the agent
-    const agent = await createOpenAIFunctionsAgent({
-      llm: model,
-      tools,
-      prompt: RunnableSequence.from([
-        {
-          input: (i: { input: string; tools: any[]; agent_scratchpad: any[] }) => i,
-          tools: (i: { input: string; tools: any[]; agent_scratchpad: any[] }) => i.tools,
-          agent_scratchpad: (i: { input: string; tools: any[]; agent_scratchpad: any[] }) => i.agent_scratchpad,
-        },
-        async (i: { input: string; tools: any[]; agent_scratchpad: any[] }) => {
-          const messages = [
-            new SystemMessage(prompt),
-            new HumanMessage(i.input),
-            ...formatToOpenAIFunctionMessages(i.agent_scratchpad),
-          ];
-          return messages;
-        },
-      ]),
-    });
+          // Extract tool usage from the response
+          const content = response.content as string;
+          const toolMatch = content.match(/<tool>(.*?)<\/tool>\s*<parameters>\s*({[\s\S]*?})\s*<\/parameters>/i);
 
-    // Create the agent executor
-    const agentExecutor = new AgentExecutor({
-      agent,
-      tools,
-      verbose: true,
-      maxIterations: 5,
-    });
+          if (toolMatch) {
+            // Extract tool name and parameters
+            const toolName = toolMatch[1];
+            const toolParams = JSON.parse(toolMatch[2]);
 
-    // Return the agent executor
-    return agentExecutor;
+            // Find the tool
+            const tool = tools.find(t => t.name === toolName);
+
+            if (tool) {
+              // Execute the tool
+              console.log(`Executing tool ${toolName} with parameters:`, toolParams);
+              const toolResult = await tool.invoke(toolParams);
+
+              // Parse the tool result
+              let parsedResult;
+              try {
+                parsedResult = JSON.parse(toolResult);
+              } catch (e) {
+                parsedResult = { message: toolResult };
+              }
+
+              // Generate a response that includes the tool result but in a natural way
+              const followUpResponse = await model.invoke([
+                systemMessage,
+                { role: "user", content: userMessage },
+                { role: "assistant", content: content },
+                { role: "system", content: `The tool ${toolName} was executed successfully. Here's the result: ${JSON.stringify(parsedResult)}. Please respond to the user in a natural, conversational way without showing raw JSON data.` }
+              ]);
+
+              return followUpResponse.content;
+            }
+          }
+
+          return content;
+        } catch (error) {
+          console.error("Error processing message:", error);
+          return "I'm sorry, I encountered an error while processing your message. Please try again.";
+        }
+      }
+    };
   } catch (error) {
     console.error("Failed to create agent:", error);
     throw error;
@@ -145,8 +165,8 @@ Respond in a natural, conversational way without showing raw JSON data to the us
  */
 export async function runAgent(projectId: string, userMessage: string) {
   try {
-    // Create the agent executor
-    const agentExecutor = await createAgent(projectId);
+    // Create the agent
+    const agent = await createAgent(projectId);
 
     // Store the user message
     await storeEnhancedMessage(
@@ -158,13 +178,8 @@ export async function runAgent(projectId: string, userMessage: string) {
       }
     );
 
-    // Execute the agent with the user message
-    const result = await agentExecutor.invoke({
-      input: userMessage,
-    });
-
-    // Extract the response
-    const response = result.output;
+    // Process the message with the agent
+    const response = await agent.processMessage(userMessage);
 
     // Store the assistant message
     await storeEnhancedMessage(
