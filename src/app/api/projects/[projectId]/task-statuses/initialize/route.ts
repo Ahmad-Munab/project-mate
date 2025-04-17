@@ -54,18 +54,43 @@ export async function POST(
             project_id: projectId,
             name: status.name,
             key: status.key,
-            color: status.color,
-            order: status.order,
-            is_default: status.is_default,
+            color: status.color || 'bg-gray-50 dark:bg-gray-900',
+            order: typeof status.order === 'number' ? status.order : 0,
+            is_default: status.is_default || false,
           })
           .returning();
 
         if (newStatus) {
           statuses.push(newStatus);
+          console.log(`Created status: ${status.name} (${status.key})`);
         }
       } catch (statusError) {
         console.error(`Error creating status ${status.key}:`, statusError);
         // Continue with other statuses even if one fails
+      }
+    }
+
+    // If we have no statuses yet, create at least a BACKLOG status as fallback
+    if (statuses.length === 0 && !existingStatusMap['BACKLOG']) {
+      try {
+        console.log('Creating fallback BACKLOG status');
+        const [backlogStatus] = await db.insert(projectTaskStatuses)
+          .values({
+            project_id: projectId,
+            name: 'Backlog',
+            key: 'BACKLOG',
+            color: 'bg-gray-50 dark:bg-gray-900',
+            order: 0,
+            is_default: true,
+          })
+          .returning();
+
+        if (backlogStatus) {
+          statuses.push(backlogStatus);
+          console.log('Created fallback BACKLOG status successfully');
+        }
+      } catch (backlogError) {
+        console.error('Error creating fallback BACKLOG status:', backlogError);
       }
     }
 

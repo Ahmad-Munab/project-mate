@@ -70,7 +70,11 @@ const defaultColumnHeaders = {
   DONE: "Done",
 };
 
-// Default task statuses (fallback)
+/**
+ * Get default task statuses as a fallback when API calls fail
+ * @param projectId Project ID
+ * @returns Array of default task statuses
+ */
 const getDefaultTaskStatuses = (projectId: string) => [
   {
     id: 'default-backlog',
@@ -183,9 +187,19 @@ async function fetchProjectTasks(projectId: string) {
   }
 }
 
+/**
+ * Fetch task statuses for a project with robust error handling
+ * @param projectId Project ID
+ * @returns Array of task statuses
+ */
 async function fetchProjectTaskStatuses(projectId: string) {
   try {
     console.log('Fetching task statuses for project:', projectId);
+
+    if (!projectId) {
+      console.error('Project ID is required');
+      return getDefaultTaskStatuses('default');
+    }
 
     // First check if we already have statuses
     let statuses = [];
@@ -205,7 +219,7 @@ async function fetchProjectTaskStatuses(projectId: string) {
     }
 
     // If we have statuses, return them
-    if (statuses.length > 0) {
+    if (statuses && statuses.length > 0) {
       return statuses;
     }
 
@@ -219,6 +233,9 @@ async function fetchProjectTaskStatuses(projectId: string) {
           console.log(`Initializing statuses (attempt ${attempt}/3)...`);
           const initResponse = await fetch(`/api/projects/${projectId}/task-statuses/initialize`, {
             method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
           });
 
           if (initResponse.ok) {
@@ -226,14 +243,15 @@ async function fetchProjectTaskStatuses(projectId: string) {
             console.log('Successfully initialized statuses:', newStatuses.length);
 
             // If we got statuses back, return them
-            if (newStatuses.length > 0) {
+            if (newStatuses && newStatuses.length > 0) {
               return newStatuses;
             }
 
             // If we didn't get any statuses, try again or use defaults
             console.warn('Initialization returned 0 statuses, will retry or use defaults');
           } else {
-            console.warn(`Initialization failed (attempt ${attempt}/3):`, await initResponse.text());
+            const errorText = await initResponse.text();
+            console.warn(`Initialization failed (attempt ${attempt}/3): ${errorText}`);
           }
 
           // Wait a bit before retrying
