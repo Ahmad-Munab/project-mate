@@ -59,12 +59,26 @@ export async function PATCH(request: Request) {
       // We'll continue anyway, but log a warning
     }
 
+    // Map the status to a valid enum value for the status field
+    // The status field is an enum with limited values, while status_key can be any string
+    let enumStatus = 'BACKLOG';
+    if (status === 'BACKLOG' || status === 'TODO' || status === 'IN_PROGRESS' || status === 'DONE') {
+      // If the status is one of the enum values, use it directly
+      enumStatus = status;
+    } else if (status === 'PLANNING' || status === 'FRONTEND' || status === 'BACKEND' || status === 'TESTING') {
+      // Map custom statuses to the closest enum value
+      enumStatus = 'IN_PROGRESS';
+    } else if (status === 'ARCHIVED') {
+      enumStatus = 'DONE';
+    }
+
+    console.log(`Updating task ${taskId} with status_key=${status} and status=${enumStatus}`);
+
     // Update the task
     const [updatedTask] = await db.update(tasks)
       .set({
-        // For the enum field, use a known valid value if possible, otherwise BACKLOG
-        // This is just for backward compatibility
-        status: isValidStatusEnum(status) ? status : 'BACKLOG',
+        // For the enum field, use a mapped value that's in the enum
+        status: enumStatus,
         // Always update the status_key to the requested value - this is what we actually use
         status_key: status
       })
