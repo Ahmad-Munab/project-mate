@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from "@/db";
-import { tasks } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { tasks, projectTaskStatuses } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { validateAuth, isValidStatusEnum } from "@/utils/task-status";
 
 /**
@@ -34,6 +34,31 @@ export async function PATCH(request: Request) {
       );
     }
 
+    // First, get the task to check if it exists and get its project_id
+    const task = await db.query.tasks.findFirst({
+      where: eq(tasks.id, taskId),
+    });
+
+    if (!task) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check if the status exists for this project
+    const statusExists = await db.query.projectTaskStatuses.findFirst({
+      where: and(
+        eq(projectTaskStatuses.project_id, task.project_id),
+        eq(projectTaskStatuses.key, status)
+      ),
+    });
+
+    if (!statusExists) {
+      console.warn(`Status ${status} does not exist for project ${task.project_id}`);
+      // We'll continue anyway, but log a warning
+    }
+
     // Update the task
     const [updatedTask] = await db.update(tasks)
       .set({
@@ -48,8 +73,8 @@ export async function PATCH(request: Request) {
 
     if (!updatedTask) {
       return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
+        { error: 'Failed to update task' },
+        { status: 500 }
       );
     }
 
@@ -57,7 +82,7 @@ export async function PATCH(request: Request) {
   } catch (error) {
     console.error('Error updating task status:', error);
     return NextResponse.json(
-      { error: 'Failed to update task' },
+      { error: error instanceof Error ? error.message : 'Failed to update task' },
       { status: 500 }
     );
   }

@@ -288,23 +288,37 @@ async function fetchProjectTaskStatuses(projectId: string) {
  * @returns Updated task
  */
 async function updateTaskStatus(taskId: string, newStatus: string) {
-  const response = await fetch("/api/tasks/update", {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      taskId,
-      status: newStatus,
-      status_key: newStatus,
-    }),
-  });
+  try {
+    // Validate the status is not empty
+    if (!newStatus) {
+      throw new Error("Status cannot be empty");
+    }
 
-  if (!response.ok) {
-    throw new Error("Failed to update task status");
+    // Make the API call
+    const response = await fetch("/api/tasks/update", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        taskId,
+        status: newStatus,
+        status_key: newStatus,
+      }),
+    });
+
+    // Handle non-OK responses
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to update task status");
+    }
+
+    // Parse and return the response
+    return await response.json();
+  } catch (error) {
+    console.error("Error in updateTaskStatus:", error);
+    throw error;
   }
-
-  return await response.json();
 }
 
 const sortTasks = (
@@ -532,6 +546,19 @@ export default function ProjectBoard({
     const newStatus = destination.droppableId;
     const taskId = draggableId;
 
+    // Validate the new status
+    if (!newStatus) {
+      toast.error("Invalid destination column");
+      return;
+    }
+
+    // Find the task being moved
+    const taskToMove = projectTasks.find(task => task.id === taskId);
+    if (!taskToMove) {
+      toast.error("Task not found");
+      return;
+    }
+
     // Store the original tasks state in case we need to revert
     const originalTasks = [...projectTasks];
 
@@ -551,9 +578,12 @@ export default function ProjectBoard({
 
       // Make the API call to update the status
       await updateTaskStatus(taskId, newStatus);
+
+      // Show success message
+      toast.success(`Moved "${taskToMove.title}" to ${taskStatuses.find(s => s.key === newStatus)?.name || newStatus}`);
     } catch (err) {
       console.error('Error updating task status:', err);
-      toast.error("Failed to update task status");
+      toast.error(err instanceof Error ? err.message : "Failed to update task status");
 
       // Revert to the original state if the API call fails
       setProjectTasks(originalTasks);
