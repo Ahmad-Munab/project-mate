@@ -150,14 +150,69 @@ Respond in a natural, conversational way without showing raw JSON data to the us
               }
 
               // Generate a response that includes the tool result but in a natural way
-              const followUpResponse = await model.invoke([
-                systemMessage,
-                { role: "user", content: userMessage },
-                { role: "assistant", content: content },
-                { role: "system", content: `The tool ${toolName} was executed successfully. Here's the result: ${JSON.stringify(parsedResult)}. Please respond to the user in a natural, conversational way without showing raw JSON data.` }
-              ]);
+              const successMessage = parsedResult.success === false
+                ? `The tool ${toolName} encountered an issue: ${parsedResult.error || 'Unknown error'}.`
+                : `The tool ${toolName} was executed successfully.`;
 
-              return followUpResponse.content;
+              // Create a user-friendly message based on the tool type
+              let userFriendlyMessage = '';
+              if (parsedResult.success !== false) {
+                switch (toolName) {
+                  case 'create_task':
+                    const taskTitle = parsedResult.task?.title || toolParams.title;
+                    userFriendlyMessage = `I've created a new task "${taskTitle}" for you.`;
+                    break;
+                  case 'update_task':
+                    userFriendlyMessage = `I've updated the task for you.`;
+                    break;
+                  case 'delete_task':
+                    userFriendlyMessage = `I've deleted the task for you.`;
+                    break;
+                  case 'create_column':
+                    const columnName = parsedResult.column?.name || toolParams.name;
+                    userFriendlyMessage = `I've created a new column "${columnName}" for you.`;
+                    break;
+                  case 'update_column':
+                    userFriendlyMessage = `I've updated the column for you.`;
+                    break;
+                  case 'delete_column':
+                    userFriendlyMessage = `I've deleted the column for you.`;
+                    break;
+                  case 'move_task':
+                    userFriendlyMessage = `I've moved the task to a different column for you.`;
+                    break;
+                  default:
+                    userFriendlyMessage = `I've completed the ${toolName.replace(/_/g, ' ')} operation successfully.`;
+                }
+              } else {
+                userFriendlyMessage = `I encountered an issue while trying to ${toolName.replace(/_/g, ' ')}: ${parsedResult.error || 'Unknown error'}.`;
+              }
+
+              // Try to get a follow-up response from the model
+              let followUpContent;
+              try {
+                const followUpResponse = await model.invoke([
+                  systemMessage,
+                  { role: "user", content: userMessage },
+                  { role: "assistant", content: content },
+                  { role: "system", content: `${successMessage} Here's the result: ${JSON.stringify(parsedResult)}.
+                  ${userFriendlyMessage}
+                  Please respond to the user in a natural, conversational way without showing raw JSON data.
+                  Acknowledge what you did (e.g., "I've created the task for you") and provide any relevant details or next steps.` }
+                ]);
+                followUpContent = followUpResponse.content;
+              } catch (error) {
+                console.error("Error generating follow-up response:", error);
+                // If we can't get a follow-up response, use a fallback
+                followUpContent = userFriendlyMessage || `I've completed the ${toolName.replace('_', ' ')} operation successfully.`;
+              }
+
+              // If the follow-up content is empty or just whitespace, use a fallback
+              if (!followUpContent || typeof followUpContent === 'string' && followUpContent.trim() === '') {
+                followUpContent = userFriendlyMessage || `I've completed the ${toolName.replace('_', ' ')} operation successfully.`;
+              }
+
+              return followUpContent;
             }
           }
 
