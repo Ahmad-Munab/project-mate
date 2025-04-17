@@ -136,32 +136,52 @@ export async function createTask(
   priority: string = "MEDIUM"
 ) {
   try {
+    if (!projectId) {
+      console.error("Project ID is required");
+      return null;
+    }
+
     // Get the current user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      throw new Error("User not authenticated");
+      console.error("User not authenticated");
+      return null;
     }
 
-    // Create the task
-    const [newTask] = await db
-      .insert(tasks)
-      .values({
-        title,
-        description,
-        status: status as any,
-        status_key: status,
-        priority: priority as any,
-        project_id: projectId,
-        created_by: user.id,
-      })
-      .returning();
+    // Validate status and priority
+    const validStatus = status === "BACKLOG" || status === "TODO" ||
+                       status === "IN_PROGRESS" || status === "DONE" ?
+                       status : "BACKLOG";
 
-    return newTask;
+    const validPriority = priority === "LOW" || priority === "MEDIUM" ||
+                         priority === "HIGH" || priority === "URGENT" ?
+                         priority : "MEDIUM";
+
+    // Create the task
+    try {
+      const [newTask] = await db
+        .insert(tasks)
+        .values({
+          title: title || "Untitled Task",
+          description: description || "",
+          status: validStatus,
+          status_key: validStatus,
+          priority: validPriority,
+          project_id: projectId,
+          created_by: user.id,
+        })
+        .returning();
+
+      return newTask;
+    } catch (dbError) {
+      console.error("Database error creating task:", dbError);
+      return null;
+    }
   } catch (error) {
     console.error("Failed to create task:", error);
-    throw error;
+    return null;
   }
 }
 
@@ -182,38 +202,67 @@ export async function updateTask(
   }
 ) {
   try {
+    if (!taskId) {
+      console.error("Task ID is required");
+      return null;
+    }
+
     // Get the current user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      throw new Error("User not authenticated");
+      console.error("User not authenticated");
+      return null;
     }
 
     // Get the task to check if it exists and get the project ID
-    const [task] = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.id, taskId));
+    try {
+      const taskResult = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, taskId));
 
-    if (!task) {
-      throw new Error("Task not found");
+      const task = taskResult && taskResult.length > 0 ? taskResult[0] : null;
+
+      if (!task) {
+        console.error("Task not found");
+        return null;
+      }
+
+      // Validate status and priority if provided
+      let validatedUpdates = { ...updates };
+
+      if (updates.status) {
+        validatedUpdates.status = updates.status === "BACKLOG" || updates.status === "TODO" ||
+                                updates.status === "IN_PROGRESS" || updates.status === "DONE" ?
+                                updates.status : task.status_key;
+      }
+
+      if (updates.priority) {
+        validatedUpdates.priority = updates.priority === "LOW" || updates.priority === "MEDIUM" ||
+                                  updates.priority === "HIGH" || updates.priority === "URGENT" ?
+                                  updates.priority : task.priority;
+      }
+
+      // Update the task
+      const [updatedTask] = await db
+        .update(tasks)
+        .set({
+          ...validatedUpdates,
+          status_key: validatedUpdates.status || task.status_key,
+        })
+        .where(eq(tasks.id, taskId))
+        .returning();
+
+      return updatedTask;
+    } catch (dbError) {
+      console.error("Database error updating task:", dbError);
+      return null;
     }
-
-    // Update the task
-    const [updatedTask] = await db
-      .update(tasks)
-      .set({
-        ...updates,
-        status_key: updates.status || task.status_key,
-      })
-      .where(eq(tasks.id, taskId))
-      .returning();
-
-    return updatedTask;
   } catch (error) {
     console.error("Failed to update task:", error);
-    throw error;
+    return null;
   }
 }
 
@@ -224,23 +273,47 @@ export async function updateTask(
  */
 export async function deleteTask(taskId: string) {
   try {
+    if (!taskId) {
+      console.error("Task ID is required");
+      return false;
+    }
+
     // Get the current user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      throw new Error("User not authenticated");
+      console.error("User not authenticated");
+      return false;
     }
 
-    // Delete the task
-    await db
-      .delete(tasks)
-      .where(eq(tasks.id, taskId));
+    // Check if the task exists
+    try {
+      const taskResult = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.id, taskId));
 
-    return true;
+      const task = taskResult && taskResult.length > 0 ? taskResult[0] : null;
+
+      if (!task) {
+        console.error("Task not found");
+        return false;
+      }
+
+      // Delete the task
+      await db
+        .delete(tasks)
+        .where(eq(tasks.id, taskId));
+
+      return true;
+    } catch (dbError) {
+      console.error("Database error deleting task:", dbError);
+      return false;
+    }
   } catch (error) {
     console.error("Failed to delete task:", error);
-    throw error;
+    return false;
   }
 }
 
@@ -251,16 +324,26 @@ export async function deleteTask(taskId: string) {
  */
 export async function getProjectTasks(projectId: string) {
   try {
-    // Get all tasks for the project
-    const projectTasks = await db
-      .select()
-      .from(tasks)
-      .where(eq(tasks.project_id, projectId));
+    if (!projectId) {
+      console.error("Project ID is required");
+      return [];
+    }
 
-    return projectTasks;
+    // Get all tasks for the project
+    try {
+      const projectTasks = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.project_id, projectId));
+
+      return projectTasks || [];
+    } catch (dbError) {
+      console.error("Database error getting project tasks:", dbError);
+      return [];
+    }
   } catch (error) {
     console.error("Failed to get project tasks:", error);
-    throw error;
+    return [];
   }
 }
 
@@ -277,40 +360,63 @@ export async function createTaskStatus(
   color?: string
 ) {
   try {
+    if (!projectId) {
+      console.error("Project ID is required");
+      return null;
+    }
+
+    if (!name) {
+      console.error("Status name is required");
+      return null;
+    }
+
     // Get the current user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      throw new Error("User not authenticated");
+      console.error("User not authenticated");
+      return null;
     }
 
-    // Get the highest order value
-    const statuses = await getTaskStatuses(projectId);
-    const maxOrder = statuses.length > 0
-      ? Math.max(...statuses.map(s => s.order))
-      : -1;
+    try {
+      // Get the highest order value
+      const statuses = await getTaskStatuses(projectId);
+      const maxOrder = statuses.length > 0
+        ? Math.max(...statuses.map(s => s.order || 0))
+        : -1;
 
-    // Create the key from the name
-    const key = name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
+      // Create the key from the name
+      const key = name.toUpperCase().replace(/[^A-Z0-9]/g, "_");
 
-    // Create the status
-    const [newStatus] = await db
-      .insert(projectTaskStatuses)
-      .values({
-        name,
-        key,
-        color: color || "bg-gray-50",
-        project_id: projectId,
-        order: maxOrder + 1,
-        is_default: false,
-      })
-      .returning();
+      // Check if a status with this key already exists
+      const existingStatuses = statuses.filter(s => s.key === key);
+      if (existingStatuses.length > 0) {
+        console.error(`Status with key ${key} already exists`);
+        return null;
+      }
 
-    return newStatus;
+      // Create the status
+      const [newStatus] = await db
+        .insert(projectTaskStatuses)
+        .values({
+          name,
+          key,
+          color: color || "gray",
+          project_id: projectId,
+          order: maxOrder + 1,
+          is_default: false,
+        })
+        .returning();
+
+      return newStatus;
+    } catch (dbError) {
+      console.error("Database error creating task status:", dbError);
+      return null;
+    }
   } catch (error) {
     console.error("Failed to create task status:", error);
-    throw error;
+    return null;
   }
 }
 
@@ -331,50 +437,79 @@ export async function updateTaskStatus(
   }
 ) {
   try {
+    if (!statusId || !projectId) {
+      console.error("Status ID and Project ID are required");
+      return null;
+    }
+
+    if (!updates || Object.keys(updates).length === 0) {
+      console.error("No updates provided");
+      return null;
+    }
+
     // Get the current user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      throw new Error("User not authenticated");
+      console.error("User not authenticated");
+      return null;
     }
 
-    // Get the status to check if it exists
-    const [status] = await db
-      .select()
-      .from(projectTaskStatuses)
-      .where(
-        and(
-          eq(projectTaskStatuses.id, statusId),
-          eq(projectTaskStatuses.project_id, projectId)
-        )
-      );
+    try {
+      // Get the status to check if it exists
+      const statusResult = await db
+        .select()
+        .from(projectTaskStatuses)
+        .where(
+          and(
+            eq(projectTaskStatuses.id, statusId),
+            eq(projectTaskStatuses.project_id, projectId)
+          )
+        );
 
-    if (!status) {
-      throw new Error("Status not found");
+      const status = statusResult && statusResult.length > 0 ? statusResult[0] : null;
+
+      if (!status) {
+        console.error("Status not found");
+        return null;
+      }
+
+      // Create the key from the name if name is provided
+      const key = updates.name
+        ? updates.name.toUpperCase().replace(/[^A-Z0-9]/g, "_")
+        : undefined;
+
+      // Check if the new key would conflict with an existing key
+      if (key) {
+        const statuses = await getTaskStatuses(projectId);
+        const existingStatuses = statuses.filter(s => s.key === key && s.id !== statusId);
+        if (existingStatuses.length > 0) {
+          console.error(`Status with key ${key} already exists`);
+          return null;
+        }
+      }
+
+      // Update the status
+      const [updatedStatus] = await db
+        .update(projectTaskStatuses)
+        .set({
+          name: updates.name,
+          key,
+          color: updates.color,
+          order: updates.position,
+        })
+        .where(eq(projectTaskStatuses.id, statusId))
+        .returning();
+
+      return updatedStatus;
+    } catch (dbError) {
+      console.error("Database error updating task status:", dbError);
+      return null;
     }
-
-    // Create the key from the name if name is provided
-    const key = updates.name
-      ? updates.name.toUpperCase().replace(/[^A-Z0-9]/g, "_")
-      : undefined;
-
-    // Update the status
-    const [updatedStatus] = await db
-      .update(projectTaskStatuses)
-      .set({
-        name: updates.name,
-        key,
-        color: updates.color,
-        order: updates.position,
-      })
-      .where(eq(projectTaskStatuses.id, statusId))
-      .returning();
-
-    return updatedStatus;
   } catch (error) {
     console.error("Failed to update task status:", error);
-    throw error;
+    return null;
   }
 }
 
@@ -391,75 +526,98 @@ export async function deleteTaskStatus(
   moveTasksTo?: string
 ) {
   try {
+    if (!statusId || !projectId) {
+      console.error("Status ID and Project ID are required");
+      return false;
+    }
+
     // Get the current user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      throw new Error("User not authenticated");
+      console.error("User not authenticated");
+      return false;
     }
 
-    // Get the status to check if it exists
-    const [status] = await db
-      .select()
-      .from(projectTaskStatuses)
-      .where(
-        and(
-          eq(projectTaskStatuses.id, statusId),
-          eq(projectTaskStatuses.project_id, projectId)
-        )
-      );
-
-    if (!status) {
-      throw new Error("Status not found");
-    }
-
-    // If the status is the default status, don't allow deletion
-    if (status.is_default) {
-      throw new Error("Cannot delete the default status");
-    }
-
-    // If moveTasksTo is provided, move tasks to that status
-    if (moveTasksTo) {
-      // Get the target status to check if it exists
-      const [targetStatus] = await db
+    try {
+      // Get the status to check if it exists
+      const statusResult = await db
         .select()
         .from(projectTaskStatuses)
         .where(
           and(
-            eq(projectTaskStatuses.id, moveTasksTo),
+            eq(projectTaskStatuses.id, statusId),
             eq(projectTaskStatuses.project_id, projectId)
           )
         );
 
-      if (!targetStatus) {
-        throw new Error("Target status not found");
+      const status = statusResult && statusResult.length > 0 ? statusResult[0] : null;
+
+      if (!status) {
+        console.error("Status not found");
+        return false;
       }
 
-      // Move tasks to the target status
+      // If the status is the default status, don't allow deletion
+      if (status.is_default) {
+        console.error("Cannot delete the default status");
+        return false;
+      }
+
+      // If moveTasksTo is provided, move tasks to that status
+      if (moveTasksTo) {
+        // Get the target status to check if it exists
+        const targetStatusResult = await db
+          .select()
+          .from(projectTaskStatuses)
+          .where(
+            and(
+              eq(projectTaskStatuses.id, moveTasksTo),
+              eq(projectTaskStatuses.project_id, projectId)
+            )
+          );
+
+        const targetStatus = targetStatusResult && targetStatusResult.length > 0 ? targetStatusResult[0] : null;
+
+        if (!targetStatus) {
+          console.error("Target status not found");
+          return false;
+        }
+
+        // Move tasks to the target status
+        try {
+          await db
+            .update(tasks)
+            .set({
+              status: targetStatus.key,
+              status_key: targetStatus.key,
+            })
+            .where(
+              and(
+                eq(tasks.project_id, projectId),
+                eq(tasks.status_key, status.key)
+              )
+            );
+        } catch (moveError) {
+          console.error("Error moving tasks to target status:", moveError);
+          return false;
+        }
+      }
+
+      // Delete the status
       await db
-        .update(tasks)
-        .set({
-          status: targetStatus.key as any,
-          status_key: targetStatus.key,
-        })
-        .where(
-          and(
-            eq(tasks.project_id, projectId),
-            eq(tasks.status_key, status.key)
-          )
-        );
+        .delete(projectTaskStatuses)
+        .where(eq(projectTaskStatuses.id, statusId));
+
+      return true;
+    } catch (dbError) {
+      console.error("Database error deleting task status:", dbError);
+      return false;
     }
-
-    // Delete the status
-    await db
-      .delete(projectTaskStatuses)
-      .where(eq(projectTaskStatuses.id, statusId));
-
-    return true;
   } catch (error) {
     console.error("Failed to delete task status:", error);
-    throw error;
+    return false;
   }
 }
 
@@ -476,58 +634,75 @@ export async function moveTask(
   projectId: string
 ) {
   try {
+    if (!taskId || !targetStatus || !projectId) {
+      console.error("Task ID, Target Status, and Project ID are required");
+      return null;
+    }
+
     // Get the current user
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      throw new Error("User not authenticated");
+      console.error("User not authenticated");
+      return null;
     }
 
-    // Get the task to check if it exists
-    const [task] = await db
-      .select()
-      .from(tasks)
-      .where(
-        and(
-          eq(tasks.id, taskId),
-          eq(tasks.project_id, projectId)
-        )
-      );
+    try {
+      // Get the task to check if it exists
+      const taskResult = await db
+        .select()
+        .from(tasks)
+        .where(
+          and(
+            eq(tasks.id, taskId),
+            eq(tasks.project_id, projectId)
+          )
+        );
 
-    if (!task) {
-      throw new Error("Task not found");
+      const task = taskResult && taskResult.length > 0 ? taskResult[0] : null;
+
+      if (!task) {
+        console.error("Task not found");
+        return null;
+      }
+
+      // Get the target status to check if it exists
+      const statusResult = await db
+        .select()
+        .from(projectTaskStatuses)
+        .where(
+          and(
+            eq(projectTaskStatuses.key, targetStatus),
+            eq(projectTaskStatuses.project_id, projectId)
+          )
+        );
+
+      const status = statusResult && statusResult.length > 0 ? statusResult[0] : null;
+
+      if (!status) {
+        console.error("Target status not found");
+        return null;
+      }
+
+      // Update the task
+      const [updatedTask] = await db
+        .update(tasks)
+        .set({
+          status: targetStatus,
+          status_key: targetStatus,
+        })
+        .where(eq(tasks.id, taskId))
+        .returning();
+
+      return updatedTask;
+    } catch (dbError) {
+      console.error("Database error moving task:", dbError);
+      return null;
     }
-
-    // Get the target status to check if it exists
-    const [status] = await db
-      .select()
-      .from(projectTaskStatuses)
-      .where(
-        and(
-          eq(projectTaskStatuses.key, targetStatus),
-          eq(projectTaskStatuses.project_id, projectId)
-        )
-      );
-
-    if (!status) {
-      throw new Error("Target status not found");
-    }
-
-    // Update the task
-    const [updatedTask] = await db
-      .update(tasks)
-      .set({
-        status: targetStatus as any,
-        status_key: targetStatus,
-      })
-      .where(eq(tasks.id, taskId))
-      .returning();
-
-    return updatedTask;
   } catch (error) {
     console.error("Failed to move task:", error);
-    throw error;
+    return null;
   }
 }
 
