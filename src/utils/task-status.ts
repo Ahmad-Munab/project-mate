@@ -6,8 +6,54 @@ import { eq, and } from "drizzle-orm";
 import { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey } from "./task-status-client";
 import type { ValidStatusEnum } from "./task-status-client";
 
+// Server-side default statuses with more columns for better task organization
+const SERVER_DEFAULT_STATUSES = [
+  {
+    name: "Backlog",
+    key: "BACKLOG",
+    color: "bg-gray-50 dark:bg-gray-900",
+    order: 0,
+    is_default: true,
+  },
+  {
+    name: "Planning",
+    key: "PLANNING",
+    color: "bg-blue-50 dark:bg-blue-900/20",
+    order: 1,
+    is_default: false,
+  },
+  {
+    name: "Frontend",
+    key: "FRONTEND",
+    color: "bg-indigo-50 dark:bg-indigo-900/20",
+    order: 2,
+    is_default: false,
+  },
+  {
+    name: "Backend",
+    key: "BACKEND",
+    color: "bg-green-50 dark:bg-green-900/20",
+    order: 3,
+    is_default: false,
+  },
+  {
+    name: "Testing",
+    key: "TESTING",
+    color: "bg-purple-50 dark:bg-purple-900/20",
+    order: 4,
+    is_default: false,
+  },
+  {
+    name: "Done",
+    key: "DONE",
+    color: "bg-emerald-50 dark:bg-emerald-900/20",
+    order: 5,
+    is_default: false,
+  },
+];
+
 // Re-export for convenience
-export { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey, ValidStatusEnum };
+export { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey, ValidStatusEnum, SERVER_DEFAULT_STATUSES };
 
 /**
  * Validates user authentication

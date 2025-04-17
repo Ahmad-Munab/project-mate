@@ -21,7 +21,7 @@ export const VALID_STATUS_ENUMS = [
 
 /**
  * Default task statuses to initialize for a new project
- * Minimal set - the AI will create more specialized columns based on project needs
+ * More comprehensive set of columns for better task organization
  */
 export const DEFAULT_STATUSES = [
   {
@@ -32,10 +32,31 @@ export const DEFAULT_STATUSES = [
     is_default: true,
   },
   {
+    name: "Planning",
+    key: "PLANNING",
+    color: "bg-blue-50 dark:bg-blue-900/20",
+    order: 1,
+    is_default: false,
+  },
+  {
+    name: "In Progress",
+    key: "IN_PROGRESS",
+    color: "bg-yellow-50 dark:bg-yellow-900/20",
+    order: 2,
+    is_default: false,
+  },
+  {
+    name: "Testing",
+    key: "TESTING",
+    color: "bg-purple-50 dark:bg-purple-900/20",
+    order: 3,
+    is_default: false,
+  },
+  {
     name: "Done",
     key: "DONE",
     color: "bg-emerald-50 dark:bg-emerald-900/20",
-    order: 1,
+    order: 4,
     is_default: false,
   },
 ];

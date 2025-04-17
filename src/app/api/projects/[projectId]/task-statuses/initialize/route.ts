@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { db } from "@/db";
 import { projectTaskStatuses } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { validateAuth, DEFAULT_STATUSES } from "@/utils/task-status";
+import { validateAuth } from "@/utils/task-status";
+import { SERVER_DEFAULT_STATUSES } from "@/utils/task-status";
 
 /**
  * POST: Initialize default task statuses for a project
@@ -40,7 +41,7 @@ export async function POST(
     }
 
     // Process each default status individually
-    for (const status of DEFAULT_STATUSES) {
+    for (const status of SERVER_DEFAULT_STATUSES) {
       try {
         // Skip if status already exists
         if (existingStatusMap[status.key]) {

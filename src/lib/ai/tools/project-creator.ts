@@ -39,8 +39,8 @@ ${projectDescription}
 Generate a project plan with the following:
 1. A concise project name (3-5 words)
 2. A brief project description (2-3 sentences)
-3. A list of tasks organized into appropriate categories (features, fixes, front-end, back-end, etc.)
-4. Suggested task statuses (columns) for the project
+3. At least 4-6 different columns (task statuses) for organizing tasks (e.g., Backlog, Planning, Frontend, Backend, Testing, Done)
+4. A list of 10-15 tasks distributed across these columns (not all in Backlog)
 
 Format your response as JSON with the following structure:
 {
@@ -69,10 +69,12 @@ Be specific and technical in your task descriptions.
 
 IMPORTANT RULES:
 1. You MUST include both "name" and "description" fields in your JSON response
-2. Each column MUST have a unique "key" field that is UPPERCASE with underscores (e.g., BACKLOG, IN_PROGRESS, DONE)
-3. Each task's "status" field MUST match the "key" of one of the columns (not the name)
-4. Always include a "BACKLOG" column
-5. Valid colors are: blue, green, red, yellow, purple, gray, pink, orange
+2. You MUST create at least 4-6 different columns (not just Backlog and Done)
+3. Each column MUST have a unique "key" field that is UPPERCASE with underscores (e.g., BACKLOG, FRONTEND, BACKEND, TESTING, DONE)
+4. Each task's "status" field MUST match the "key" of one of the columns (not the name)
+5. Tasks MUST be distributed across different columns (not all in Backlog)
+6. Always include a "BACKLOG" column
+7. Valid colors are: blue, green, red, yellow, purple, gray, pink, orange
     `.trim();
 
     // Call the model
@@ -122,6 +124,66 @@ IMPORTANT RULES:
       }
 
       console.log("Generated name from overview:", parsedResult.name);
+    }
+
+    // Ensure we have at least 4 columns
+    if (parsedResult.columns.length < 4) {
+      console.log("Not enough columns, adding default columns");
+
+      // Default columns to add if missing
+      const defaultColumns = [
+        { name: "Backlog", key: "BACKLOG", color: "bg-gray-50 dark:bg-gray-900" },
+        { name: "Planning", key: "PLANNING", color: "bg-blue-50 dark:bg-blue-900/20" },
+        { name: "Frontend", key: "FRONTEND", color: "bg-indigo-50 dark:bg-indigo-900/20" },
+        { name: "Backend", key: "BACKEND", color: "bg-green-50 dark:bg-green-900/20" },
+        { name: "Testing", key: "TESTING", color: "bg-purple-50 dark:bg-purple-900/20" },
+        { name: "Done", key: "DONE", color: "bg-emerald-50 dark:bg-emerald-900/20" },
+      ];
+
+      // Get existing column keys
+      const existingKeys = parsedResult.columns.map(col => col.key);
+
+      // Add missing columns
+      for (const col of defaultColumns) {
+        if (!existingKeys.includes(col.key)) {
+          parsedResult.columns.push(col);
+        }
+      }
+    }
+
+    // Ensure tasks are distributed across columns
+    const columnKeys = parsedResult.columns.map(col => col.key);
+    const tasksPerColumn: Record<string, number> = {};
+
+    // Initialize task counts
+    columnKeys.forEach(key => {
+      tasksPerColumn[key] = 0;
+    });
+
+    // Count tasks per column
+    parsedResult.tasks.forEach(task => {
+      if (tasksPerColumn[task.status] !== undefined) {
+        tasksPerColumn[task.status]++;
+      } else {
+        // If task has invalid status, set it to BACKLOG
+        task.status = "BACKLOG";
+        tasksPerColumn["BACKLOG"]++;
+      }
+    });
+
+    // Redistribute tasks if they're all in one column
+    const totalTasks = parsedResult.tasks.length;
+    const columnsWithTasks = Object.values(tasksPerColumn).filter(count => count > 0).length;
+
+    if (columnsWithTasks <= 1 && totalTasks > 3) {
+      console.log("Tasks not distributed, redistributing...");
+
+      // Distribute tasks across columns
+      parsedResult.tasks.forEach((task, index) => {
+        // Simple distribution algorithm
+        const columnIndex = index % columnKeys.length;
+        task.status = columnKeys[columnIndex];
+      });
     }
 
     // Ensure all columns have keys
