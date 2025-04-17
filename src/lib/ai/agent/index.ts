@@ -1,11 +1,9 @@
 /**
  * AI Agent System
- * This file implements a proper agent architecture following best practices
- * with tools properly connected to the agent
+ * This file implements a direct approach using Groq with LangChain
  */
 
 import { ChatGroq } from "@langchain/groq";
-import { AgentExecutor, createOpenAIFunctionsAgent } from "langchain/agents";
 import { SystemMessage } from "@langchain/core/messages";
 import { getAgentTools } from "./tools";
 import { getEnhancedProjectContext, storeEnhancedMessage } from "../memory/enhanced";
@@ -15,32 +13,18 @@ import { getProjectInfo } from "../langchain/tools";
 export { getAgentTools } from './tools';
 
 /**
- * Configuration for the LangChain agent
+ * Configuration for the Groq model
  */
-const agentConfig = {
+const modelConfig = {
   model: "llama3-70b-8192",
   temperature: 0.7,
   maxTokens: 2000,
 };
 
 /**
- * Create a LangChain model
- * @param temperature - The temperature to use for the model
- * @returns A LangChain model
- */
-function createModel(temperature: number = agentConfig.temperature) {
-  return new ChatGroq({
-    apiKey: process.env.GROQ_API_KEY!,
-    model: agentConfig.model,
-    temperature,
-    maxTokens: agentConfig.maxTokens,
-  });
-}
-
-/**
- * Create a LangChain agent for a project
+ * Create a direct agent for a project
  * @param projectId - The ID of the project
- * @returns A LangChain agent executor
+ * @returns A function that can process user messages
  */
 export async function createAgent(projectId: string) {
   try {
@@ -50,14 +34,19 @@ export async function createAgent(projectId: string) {
     // Get project info
     const projectInfo = await getProjectInfo(projectId);
 
-    // Get project tools - this is the key part that was missing
+    // Get project tools
     const tools = getAgentTools(projectId);
 
     // Log the tools to ensure they're being loaded
     console.log(`Loaded ${tools.length} tools for the agent`);
 
     // Create the model
-    const model = createModel();
+    const model = new ChatGroq({
+      apiKey: process.env.GROQ_API_KEY!,
+      model: modelConfig.model,
+      temperature: modelConfig.temperature,
+      maxTokens: modelConfig.maxTokens,
+    });
 
     // Create the system message
     const systemMessage = new SystemMessage(`
@@ -68,66 +57,39 @@ Project: ${projectInfo.project.name}
 Description: ${projectInfo.project.description || "No description provided"}
 
 Project stats:
-- ${projectInfo.tasks.length} tasks
-- ${projectInfo.members.length} members
+- ${projectInfo.tasks?.length || 0} tasks
+- ${projectInfo.members?.length || 0} members
 
 ${projectContext ? `Relevant context from project history:\n${projectContext}\n\n` : ""}
 
 Project Tasks:
-${projectInfo.tasks.map(task => `- ${task.title} (Status: ${task.status}, Priority: ${task.priority})`).join('\n')}
+${projectInfo.tasks && projectInfo.tasks.length > 0 ?
+  projectInfo.tasks.map(task => `- ${task.title || 'Untitled'} (Status: ${task.status || 'Unknown'}, Priority: ${task.priority || 'Medium'})`).join('\n') :
+  "No tasks yet"}
 
-You have access to tools that allow you to:
-- Create, update, and delete tasks
-- Create, update, and delete columns (task statuses)
-- Move tasks between columns
-- Get information about the project and its tasks
-- Generate suggestions, summaries, and analyses
+Available tools:
+${tools.map(tool => `- ${tool.name}: ${tool.description}`).join('\n')}
 
 Be proactive, helpful, and focused on delivering value to the user.
-Use the most appropriate tool for each request.
     `.trim());
 
-    // Create the agent
-    try {
-      const agent = await createOpenAIFunctionsAgent({
-        llm: model,
-        tools, // Pass the tools to the agent
-        systemMessage,
-      });
+    // Return a function that can process user messages
+    return {
+      processMessage: async (userMessage: string) => {
+        try {
+          // Use the model directly
+          const response = await model.invoke([
+            systemMessage,
+            { role: "user", content: userMessage }
+          ]);
 
-      // Create the executor
-      const agentExecutor = new AgentExecutor({
-        agent,
-        tools, // Pass the tools to the executor
-        verbose: true,
-        returnIntermediateSteps: true,
-      });
-
-      return agentExecutor;
-    } catch (agentError) {
-      console.error("Error creating agent with createOpenAIFunctionsAgent:", agentError);
-
-      // Fallback to a simpler approach if the agent creation fails
-      console.log("Using fallback agent creation method");
-
-      // Import the createReactAgent function
-      const { createReactAgent } = await import("langchain/agents");
-
-      // Create a React agent as fallback
-      const fallbackAgent = createReactAgent({
-        llm: model,
-        tools,
-      });
-
-      // Create the executor with the fallback agent
-      const fallbackExecutor = AgentExecutor.fromAgentAndTools({
-        agent: fallbackAgent,
-        tools,
-        verbose: true,
-      });
-
-      return fallbackExecutor;
-    }
+          return response.content;
+        } catch (error) {
+          console.error("Error processing message:", error);
+          return "I'm sorry, I encountered an error while processing your message. Please try again.";
+        }
+      }
+    };
   } catch (error) {
     console.error("Failed to create agent:", error);
     throw error;
@@ -143,7 +105,7 @@ Use the most appropriate tool for each request.
 export async function runAgent(projectId: string, userMessage: string) {
   try {
     // Create the agent
-    const agentExecutor = await createAgent(projectId);
+    const agent = await createAgent(projectId);
 
     // Store the user message
     await storeEnhancedMessage(
@@ -155,13 +117,8 @@ export async function runAgent(projectId: string, userMessage: string) {
       }
     );
 
-    // Run the agent
-    const result = await agentExecutor.invoke({
-      input: userMessage,
-    });
-
-    // Get the response
-    const response = result.output;
+    // Process the message
+    const response = await agent.processMessage(userMessage);
 
     // Store the assistant message
     await storeEnhancedMessage(
