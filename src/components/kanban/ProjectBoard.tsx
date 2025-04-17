@@ -538,7 +538,8 @@ export default function ProjectBoard({
     }
 
     // Check permissions before allowing drag
-    if (!isOwner && !userIsManager && !can("canEdit") && !can("editTasks")) {
+    const hasPermission = isOwner || userIsManager || can("canEdit") || can("editTasks");
+    if (!hasPermission) {
       toast.error("You don't have permission to move tasks");
       return;
     }
@@ -563,6 +564,8 @@ export default function ProjectBoard({
     const originalTasks = [...projectTasks];
 
     try {
+      console.log(`Moving task ${taskId} to ${newStatus}`);
+
       // Optimistically update the UI
       setProjectTasks((prevTasks) =>
         prevTasks.map((task) =>
@@ -580,7 +583,8 @@ export default function ProjectBoard({
       await updateTaskStatus(taskId, newStatus);
 
       // Show success message
-      toast.success(`Moved "${taskToMove.title}" to ${taskStatuses.find(s => s.key === newStatus)?.name || newStatus}`);
+      const targetColumnName = taskStatuses.find(s => s.key === newStatus)?.name || newStatus;
+      toast.success(`Moved "${taskToMove.title}" to ${targetColumnName}`);
     } catch (err) {
       console.error('Error updating task status:', err);
       toast.error(err instanceof Error ? err.message : "Failed to update task status");
@@ -817,7 +821,7 @@ export default function ProjectBoard({
         />
       )}
 
-      <DragDropContext onDragEnd={(isOwner || userIsManager || canDragTasks) ? onDragEnd : () => {}}>
+      <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex-1 overflow-x-auto p-4 md:p-6">
           <div className={`flex h-full ${isMobile ? 'flex-col' : 'flex-row'} gap-4 md:gap-6 ${!isMobile && 'min-w-fit'}`}>
             {isMobile ? (
@@ -843,6 +847,7 @@ export default function ProjectBoard({
                             key={task.id}
                             draggableId={task.id}
                             index={index}
+                            isDragDisabled={!(isOwner || userIsManager || canDragTasks)}
                           >
                             {(provided) => (
                               <div
@@ -917,6 +922,7 @@ export default function ProjectBoard({
                               key={task.id}
                               draggableId={task.id}
                               index={index}
+                              isDragDisabled={!(isOwner || userIsManager || canDragTasks)}
                             >
                               {(provided) => (
                                 <div
