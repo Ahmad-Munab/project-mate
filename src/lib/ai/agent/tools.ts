@@ -64,7 +64,7 @@ export function createTaskTool(projectId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for updating a task
  */
-export function updateTaskTool() {
+export function updateTaskTool(projectId: string) {
   return new DynamicStructuredTool({
     name: "update_task",
     description: "Update an existing task. Use this when the user wants to modify a task.",
@@ -77,11 +77,12 @@ export function updateTaskTool() {
     }),
     func: async ({ taskId, title, description, status, priority }) => {
       try {
+        console.log(`Updating task ${taskId} in project ${projectId}`);
         const task = await updateTask(taskId, {
           title,
           description,
-          status_key: status,
-          priority,
+          status,
+          priority
         });
 
         return JSON.stringify({
@@ -90,6 +91,7 @@ export function updateTaskTool() {
           message: `Task ${taskId} updated successfully`,
         });
       } catch (error) {
+        console.error("Error in update_task tool:", error);
         return JSON.stringify({
           success: false,
           error: error instanceof Error ? error.message : "Unknown error",
@@ -104,7 +106,7 @@ export function updateTaskTool() {
  * @param projectId - The ID of the project
  * @returns A tool for deleting a task
  */
-export function deleteTaskTool() {
+export function deleteTaskTool(projectId: string) {
   return new DynamicStructuredTool({
     name: "delete_task",
     description: "Delete a task from the project. Use this when the user wants to remove a task.",
@@ -113,6 +115,7 @@ export function deleteTaskTool() {
     }),
     func: async ({ taskId }) => {
       try {
+        console.log(`Deleting task ${taskId} in project ${projectId}`);
         await deleteTask(taskId);
 
         return JSON.stringify({
@@ -120,6 +123,7 @@ export function deleteTaskTool() {
           message: `Task ${taskId} deleted successfully`,
         });
       } catch (error) {
+        console.error("Error in delete_task tool:", error);
         return JSON.stringify({
           success: false,
           error: error instanceof Error ? error.message : "Unknown error",
@@ -170,7 +174,7 @@ export function createColumnTool(projectId: string) {
  * @param projectId - The ID of the project
  * @returns A tool for updating a column
  */
-export function updateColumnTool() {
+export function updateColumnTool(projectId: string) {
   return new DynamicStructuredTool({
     name: "update_column",
     description: "Update an existing column (task status). Use this when the user wants to modify a column.",
@@ -183,8 +187,8 @@ export function updateColumnTool() {
       try {
         const column = await updateTaskStatus(
           columnId,
-          name,
-          color
+          projectId,
+          { name, color }
         );
 
         return JSON.stringify({
@@ -207,16 +211,17 @@ export function updateColumnTool() {
  * @param projectId - The ID of the project
  * @returns A tool for deleting a column
  */
-export function deleteColumnTool() {
+export function deleteColumnTool(projectId: string) {
   return new DynamicStructuredTool({
     name: "delete_column",
     description: "Delete a column (task status) from the project. Use this when the user wants to remove a column.",
     schema: z.object({
       columnId: z.string().describe("The ID of the column to delete"),
+      moveTasksTo: z.string().optional().describe("The ID of the column to move tasks to"),
     }),
-    func: async ({ columnId }) => {
+    func: async ({ columnId, moveTasksTo }) => {
       try {
-        await deleteTaskStatus(columnId);
+        await deleteTaskStatus(columnId, projectId, moveTasksTo);
 
         return JSON.stringify({
           success: true,
@@ -237,24 +242,33 @@ export function deleteColumnTool() {
  * @param projectId - The ID of the project
  * @returns A tool for moving a task
  */
-export function moveTaskTool() {
+export function moveTaskTool(projectId: string) {
   return new DynamicStructuredTool({
     name: "move_task",
     description: "Move a task to a different column. Use this when the user wants to change the status of a task.",
     schema: z.object({
       taskId: z.string().describe("The ID of the task to move"),
-      columnId: z.string().describe("The ID of the column to move the task to"),
+      targetStatus: z.string().describe("The key of the column to move the task to (e.g., 'BACKLOG', 'FRONTEND', 'BACKEND')"),
     }),
-    func: async ({ taskId, columnId }) => {
+    func: async ({ taskId, targetStatus }) => {
       try {
-        const task = await moveTask(taskId, columnId);
+        console.log(`Moving task ${taskId} to status ${targetStatus} in project ${projectId}`);
+        const task = await moveTask(taskId, targetStatus, projectId);
+
+        if (!task) {
+          return JSON.stringify({
+            success: false,
+            error: "Failed to move task. Task or target column not found.",
+          });
+        }
 
         return JSON.stringify({
           success: true,
           task,
-          message: `Task ${taskId} moved successfully`,
+          message: `Task ${taskId} moved successfully to ${targetStatus}`,
         });
       } catch (error) {
+        console.error("Error in move_task tool:", error);
         return JSON.stringify({
           success: false,
           error: error instanceof Error ? error.message : "Unknown error",
