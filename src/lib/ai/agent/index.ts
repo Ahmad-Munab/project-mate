@@ -4,7 +4,7 @@
  */
 
 import { ChatGroq } from "@langchain/groq";
-import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { SystemMessage } from "@langchain/core/messages";
 import { getAgentTools } from "./tools";
 import { getEnhancedProjectContext, storeEnhancedMessage } from "../memory/enhanced";
 import { getProjectInfo } from "../langchain/tools";
@@ -72,22 +72,48 @@ Available tools:
 ${tools.map(tool => `- ${tool.name}: ${tool.description}`).join('\n')}
 
 IMPORTANT INSTRUCTIONS:
-1. When the user asks you to create columns or tasks, ALWAYS use the appropriate tools to actually create them.
-2. Do not just describe what you would do - actually use the tools to perform the actions.
-3. NEVER show raw JSON data to the user - format your responses in a natural, conversational way.
-4. After using tools, summarize what you did in a friendly, conversational manner.
-5. Be proactive - if the user asks for a new column, create it using the create_column tool.
-6. If the user asks for tasks, create them using the create_task tool.
-7. Always use tools to take action rather than just talking about actions.
-8. Respond like a helpful colleague, not a robot.
-9. Keep responses concise and focused on what you actually did.
+1. You are a TRULY AGENTIC AI - you MUST use tools to perform actions, not just describe them.
+2. When the user asks you to create, update, delete, or move anything, ALWAYS use the appropriate tools.
+3. For moving tasks between columns, use the move_task tool - NEVER just describe the move.
+4. For creating tasks, use the create_task tool.
+5. For creating columns, use the create_column tool.
+6. For updating tasks or columns, use the update_task or update_column tools.
+7. For deleting tasks or columns, use the delete_task or delete_column tools.
+8. NEVER show raw JSON data to the user - format your responses in a natural, conversational way.
+9. After using tools, summarize what you did in a friendly, conversational manner.
+10. If a request requires multiple actions (like moving several tasks), use multiple tool calls in sequence.
+11. Always use tools to take action rather than just talking about actions.
+12. Respond like a helpful colleague, not a robot.
+13. Keep responses concise and focused on what you actually did.
 
 When you need to use a tool, format your response like this:
+
+For creating a column:
 <tool>create_column</tool>
 <parameters>
 {
   "name": "Deployment",
   "color": "blue"
+}
+</parameters>
+
+For moving a task:
+<tool>move_task</tool>
+<parameters>
+{
+  "taskId": "task-id-here",
+  "columnId": "column-id-here"
+}
+</parameters>
+
+For creating a task:
+<tool>create_task</tool>
+<parameters>
+{
+  "title": "Implement feature X",
+  "description": "Description of the task",
+  "status": "BACKLOG",
+  "priority": "MEDIUM"
 }
 </parameters>
 
@@ -109,9 +135,15 @@ Respond in a natural, conversational way without showing raw JSON data to the us
 
           // Extract tool usage from the response
           const content = response.content as string;
-          const toolMatch = content.match(/<tool>(.*?)<\/tool>\s*<parameters>\s*({[\s\S]*?})\s*<\/parameters>/i);
+          const toolMatches = Array.from(content.matchAll(/<tool>(.*?)<\/tool>\s*<parameters>\s*({[\s\S]*?})\s*<\/parameters>/gi));
 
-          if (toolMatch) {
+          if (toolMatches.length > 0) {
+            // We'll process just the first tool call for now
+            // In the future, we can enhance this to process multiple tool calls
+
+            // Process the first tool call for now (we'll enhance this later)
+            const toolMatch = toolMatches[0];
+
             // Extract tool name and parameters
             const toolName = toolMatch[1];
             const rawParams = JSON.parse(toolMatch[2]);
