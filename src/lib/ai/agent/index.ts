@@ -102,7 +102,7 @@ For moving a task:
 <parameters>
 {
   "taskId": "task-id-here",
-  "columnId": "column-id-here"
+  "targetStatus": "BACKLOG" // Use the key of the column, e.g., 'BACKLOG', 'FRONTEND', 'BACKEND', 'DONE'
 }
 </parameters>
 
@@ -160,6 +160,14 @@ Respond in a natural, conversational way without showing raw JSON data to the us
                 toolParams.title = toolParams.name;
                 delete toolParams.name;
                 console.log("Fixed parameter naming: 'name' -> 'title'");
+              }
+
+              // Fix move_task parameter naming
+              if (toolName === "move_task" && 'columnId' in toolParams && !('targetStatus' in toolParams)) {
+                // If the AI used 'columnId' instead of 'targetStatus', fix it
+                toolParams.targetStatus = toolParams.columnId;
+                delete toolParams.columnId;
+                console.log("Fixed parameter naming: 'columnId' -> 'targetStatus'");
               }
 
               // Execute the tool
