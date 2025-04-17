@@ -114,21 +114,38 @@ Respond in a natural, conversational way without showing raw JSON data to the us
           if (toolMatch) {
             // Extract tool name and parameters
             const toolName = toolMatch[1];
-            const toolParams = JSON.parse(toolMatch[2]);
-
+            const rawParams = JSON.parse(toolMatch[2]);
             // Find the tool
             const tool = tools.find(t => t.name === toolName);
 
             if (tool) {
+              // Create a mutable copy of the parameters and fix common naming issues
+              const toolParams = { ...rawParams };
+
+              // Fix common parameter naming issues
+              if (toolName === "create_task" && 'name' in toolParams && !('title' in toolParams)) {
+                // If the AI used 'name' instead of 'title', fix it
+                toolParams.title = toolParams.name;
+                delete toolParams.name;
+                console.log("Fixed parameter naming: 'name' -> 'title'");
+              }
+
               // Execute the tool
               console.log(`Executing tool ${toolName} with parameters:`, toolParams);
-              const toolResult = await tool.invoke(toolParams);
+              let toolResult;
+              try {
+                toolResult = await tool.invoke(toolParams);
+              } catch (error) {
+                console.error(`Error executing tool ${toolName}:`, error);
+                return `I'm sorry, I encountered an error while trying to ${toolName.replace('_', ' ')}: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again with different parameters.`;
+              }
 
               // Parse the tool result
               let parsedResult;
               try {
                 parsedResult = JSON.parse(toolResult);
-              } catch (e) {
+              } catch (error) {
+                console.warn("Failed to parse tool result as JSON:", error);
                 parsedResult = { message: toolResult };
               }
 
@@ -186,7 +203,7 @@ export async function runAgent(projectId: string, userMessage: string) {
       projectId,
       {
         role: "assistant",
-        content: response,
+        content: typeof response === 'string' ? response : JSON.stringify(response),
         timestamp: new Date(),
       }
     );
