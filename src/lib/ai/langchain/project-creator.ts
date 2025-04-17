@@ -84,6 +84,8 @@ export async function generateProjectPlan(idea: string): Promise<ProjectPlan> {
     Create a detailed technical project plan for this idea: ${idea}
 
     Rules:
+    - Generate a concise, descriptive project name (3-5 words) that captures the essence of the project
+    - Write a brief project description (2-3 sentences) that explains the project's purpose and main features
     - Create 3-4 columns (task statuses) including at least "BACKLOG" (which is required), "TODO", "IN_PROGRESS", and "DONE"
     - Include 8-12 highly technical and specific tasks that would help a developer implement this project
     - Tasks should be technical in nature, like "Create responsive navbar component", "Setup authentication middleware", "Implement user dashboard UI", etc.

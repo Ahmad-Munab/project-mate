@@ -49,9 +49,9 @@ export const generateProjectPlan = async (
       throw new Error("Response missing required fields");
     }
 
-    // Validate name and description lengths
-    const name = result.columns.length > 0 ? result.columns[0].name : idea.substring(0, 60);
-    const description = idea.substring(0, 200);
+    // Use the name and description from the AI response, or fall back to defaults
+    const name = result.name || (result.columns.length > 0 ? result.columns[0].name : idea.substring(0, 60));
+    const description = result.description || idea.substring(0, 200);
 
     // Validate columns
     if (result.columns.length < 2) {
