@@ -78,19 +78,38 @@ export async function createSpecializedAgent(
     });
 
     // Create the agent
-    const agent = createOpenAIFunctionsAgent({
-      llm: model,
-      tools,
-      systemMessage,
-    });
+    try {
+      const agent = createOpenAIFunctionsAgent({
+        llm: model,
+        tools,
+        systemMessage,
+      });
 
-    // Create the agent executor
-    return AgentExecutor.fromAgentAndTools({
-      agent,
-      tools,
-      verbose: true,
-      maxIterations: 5,
-    });
+      // Create the agent executor
+      return AgentExecutor.fromAgentAndTools({
+        agent,
+        tools,
+        verbose: true,
+        maxIterations: 5,
+      });
+    } catch (agentError) {
+      console.error(`Error creating ${agentType} agent with createOpenAIFunctionsAgent:`, agentError);
+
+      // Fallback to a simpler approach if the agent creation fails
+      console.log(`Using fallback agent creation method for ${agentType} agent`);
+
+      // Create a simple executor that just uses the model directly
+      return AgentExecutor.fromAgentAndTools({
+        agent: {
+          invoke: async ({ input }) => {
+            const result = await model.invoke(input);
+            return { output: result.content };
+          }
+        } as any,
+        tools,
+        verbose: true,
+      });
+    }
   } catch (error) {
     console.error(`Failed to create ${agentType} agent:`, error);
     throw new Error(`Failed to create ${agentType} agent: ${error}`);

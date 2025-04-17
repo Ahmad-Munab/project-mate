@@ -26,36 +26,49 @@ export async function GET(request: NextRequest) {
         }
 
         // Get members with auth user information
-        const members = await db
-            .select({
-                id: projectMembers.id,
-                userId: projectMembers.userId,
-                projectId: projectMembers.projectId,
-                role: projectMembers.role,
-                createdAt: projectMembers.createdAt,
-                updatedAt: projectMembers.updatedAt,
-                metadata: authUsers.metadata,
-            })
-            .from(projectMembers)
-            .leftJoin(authUsers, eq(projectMembers.userId, authUsers.id))
-            .where(eq(projectMembers.projectId, projectId));
+        try {
+            const members = await db
+                .select({
+                    id: projectMembers.id,
+                    userId: projectMembers.userId,
+                    projectId: projectMembers.projectId,
+                    role: projectMembers.role,
+                    createdAt: projectMembers.createdAt,
+                    updatedAt: projectMembers.updatedAt,
+                    metadata: authUsers.metadata,
+                })
+                .from(projectMembers)
+                .leftJoin(authUsers, eq(projectMembers.userId, authUsers.id))
+                .where(eq(projectMembers.projectId, projectId));
 
-        const membersWithDefaults = members.map((member) => ({
-            ...member,
-            email: member.metadata?.email || "",
-            name:
-                member.metadata?.full_name ||
-                member.metadata?.email?.split("@")[0] ||
-                "Unknown User",
-            avatar: member.metadata?.avatar_url || "",
-            metadata: undefined,
-        }));
+            if (!members || members.length === 0) {
+                console.log(`API: No members found for project ${projectId}`);
+                return NextResponse.json([]);
+            }
 
-        console.log(
-            `API: Found ${membersWithDefaults.length} members for project ${projectId}`
-        );
+            const membersWithDefaults = members.map((member) => ({
+                ...member,
+                email: member.metadata?.email || "",
+                name:
+                    member.metadata?.full_name ||
+                    member.metadata?.email?.split("@")?.[0] ||
+                    "Unknown User",
+                avatar: member.metadata?.avatar_url || "",
+                metadata: undefined,
+            }));
 
-        return NextResponse.json(membersWithDefaults);
+            console.log(
+                `API: Found ${membersWithDefaults.length} members for project ${projectId}`
+            );
+
+            return NextResponse.json(membersWithDefaults);
+        } catch (dbError) {
+            console.error("Database error fetching project members:", dbError);
+            return NextResponse.json(
+                { error: "Database error fetching members" },
+                { status: 500 }
+            );
+        }
     } catch (error) {
         console.error("Error fetching project members:", error);
         return NextResponse.json(

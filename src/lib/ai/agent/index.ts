@@ -88,21 +88,46 @@ Use the most appropriate tool for each request.
     `.trim());
 
     // Create the agent
-    const agent = await createOpenAIFunctionsAgent({
-      llm: model,
-      tools, // Pass the tools to the agent
-      systemMessage,
-    });
+    try {
+      const agent = await createOpenAIFunctionsAgent({
+        llm: model,
+        tools, // Pass the tools to the agent
+        systemMessage,
+      });
 
-    // Create the executor
-    const agentExecutor = new AgentExecutor({
-      agent,
-      tools, // Pass the tools to the executor
-      verbose: true,
-      returnIntermediateSteps: true,
-    });
+      // Create the executor
+      const agentExecutor = new AgentExecutor({
+        agent,
+        tools, // Pass the tools to the executor
+        verbose: true,
+        returnIntermediateSteps: true,
+      });
 
-    return agentExecutor;
+      return agentExecutor;
+    } catch (agentError) {
+      console.error("Error creating agent with createOpenAIFunctionsAgent:", agentError);
+
+      // Fallback to a simpler approach if the agent creation fails
+      console.log("Using fallback agent creation method");
+
+      // Import the createReactAgent function
+      const { createReactAgent } = await import("langchain/agents");
+
+      // Create a React agent as fallback
+      const fallbackAgent = createReactAgent({
+        llm: model,
+        tools,
+      });
+
+      // Create the executor with the fallback agent
+      const fallbackExecutor = AgentExecutor.fromAgentAndTools({
+        agent: fallbackAgent,
+        tools,
+        verbose: true,
+      });
+
+      return fallbackExecutor;
+    }
   } catch (error) {
     console.error("Failed to create agent:", error);
     throw error;
