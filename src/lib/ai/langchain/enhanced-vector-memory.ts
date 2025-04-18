@@ -7,7 +7,8 @@
 import { BufferMemory, ChatMessageHistory } from "langchain/memory";
 import { AIMessage as LangChainAIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
+import { FakeEmbeddings } from "@langchain/core/utils/testing";
+import { OpenAIEmbeddings } from "@langchain/openai";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
 import { createClient } from "@/utils/supabase/server";
@@ -49,7 +50,7 @@ export enum MemorySegmentType {
 export class EnhancedVectorMemory {
   private projectId: string;
   private vectorStore: SupabaseVectorStore | null = null;
-  private embeddings: HuggingFaceInferenceEmbeddings;
+  private embeddings: FakeEmbeddings;
   private messageHistory: ChatMessageHistory;
   private supabase: any;
 
@@ -57,11 +58,8 @@ export class EnhancedVectorMemory {
     this.projectId = projectId;
     this.messageHistory = new ChatMessageHistory();
 
-    // Create embeddings model using HuggingFace
-    this.embeddings = new HuggingFaceInferenceEmbeddings({
-      apiKey: process.env.HUGGINGFACE_API_KEY || process.env.GROQ_API_KEY!, // Fallback to GROQ key if HF key not available
-      model: "sentence-transformers/all-MiniLM-L6-v2", // Small, efficient model that works well
-    });
+    // Create fake embeddings model (no API key needed)
+    this.embeddings = new FakeEmbeddings();
   }
 
   /**
