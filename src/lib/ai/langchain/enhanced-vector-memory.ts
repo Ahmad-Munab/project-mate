@@ -7,7 +7,7 @@
 import { BufferMemory, ChatMessageHistory } from "langchain/memory";
 import { AIMessage as LangChainAIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { GroqEmbeddings } from "@langchain/groq";
+import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
 import { createClient } from "@/utils/supabase/server";
@@ -49,7 +49,7 @@ export enum MemorySegmentType {
 export class EnhancedVectorMemory {
   private projectId: string;
   private vectorStore: SupabaseVectorStore | null = null;
-  private embeddings: GroqEmbeddings;
+  private embeddings: HuggingFaceInferenceEmbeddings;
   private messageHistory: ChatMessageHistory;
   private supabase: any;
 
@@ -57,11 +57,10 @@ export class EnhancedVectorMemory {
     this.projectId = projectId;
     this.messageHistory = new ChatMessageHistory();
 
-    // Create embeddings model using Groq
-    this.embeddings = new GroqEmbeddings({
-      apiKey: process.env.GROQ_API_KEY!,
-      model: "llama3-70b-8192", // Use the same model as the LLM
-      dimensions: 1536, // Match the dimensions expected by Supabase Vector Store
+    // Create embeddings model using HuggingFace
+    this.embeddings = new HuggingFaceInferenceEmbeddings({
+      apiKey: process.env.HUGGINGFACE_API_KEY || process.env.GROQ_API_KEY!, // Fallback to GROQ key if HF key not available
+      model: "sentence-transformers/all-MiniLM-L6-v2", // Small, efficient model that works well
     });
   }
 
