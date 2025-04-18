@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware'
 
 export type AIMessage = {
   role: 'user' | 'assistant' | 'system'
-  content: string
+  content: string | any // Allow different content types
   timestamp: Date
 }
 
@@ -22,7 +22,7 @@ export const useAIStore = create<AIState>()(
     (set) => ({
       messages: {},
       isTyping: false,
-      addMessage: (projectId, message) => 
+      addMessage: (projectId, message) =>
         set((state) => ({
           messages: {
             ...state.messages,
@@ -45,13 +45,13 @@ export const useAIStore = create<AIState>()(
     }),
     {
       name: 'ai-storage',
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         messages: Object.fromEntries(
           Object.entries(state.messages).map(([key, messages]) => [
-            key, 
+            key,
             messages.filter(m => m.role !== 'system').slice(-20) // Only store last 20 non-system messages
           ])
-        ) 
+        )
       }),
     }
   )

@@ -1,7 +1,11 @@
+/**
+ * AI Chat API Route
+ * This file implements a simplified API route for the AI chat
+ */
+
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
-// Import from the new multi-agent system
-import { processUserMessage, processConversation } from "@/lib/ai/multi-agent";
+import { runAgent } from "@/lib/ai/agent";
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     // Get request body
-    const { message, projectId, detectOnly, integrated, conversational } = await request.json();
+    const { message, projectId } = await request.json();
 
     if (!message || !projectId) {
       return NextResponse.json(
@@ -26,107 +30,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // If detectOnly or integrated is true, use the proper multi-agent system
-    if (detectOnly || integrated) {
-      try {
-        // Try to use the proper multi-agent system first
-        const properMultiAgentResponse = await processUserMessage(projectId, message);
-
-        return NextResponse.json({
-          message: properMultiAgentResponse,
-          timestamp: new Date(),
-          properMultiAgent: true
-        });
-      } catch (properMultiAgentError) {
-        console.error("Error using proper multi-agent system:", properMultiAgentError);
-
-        // Use the new agent implementation as a fallback
-        try {
-          const { runAgent } = await import("@/lib/ai/agent");
-          const agentResponse = await runAgent(projectId, message);
-
-          return NextResponse.json({
-            message: agentResponse,
-            timestamp: new Date(),
-            agent: true,
-            fallback: true
-          });
-        } catch (agentError) {
-          console.error("Error using agent:", agentError);
-
-          // Return a fallback error message
-          return NextResponse.json({
-            message: "I'm sorry, I encountered an error while processing your message. Please try again.",
-            timestamp: new Date(),
-            error: true,
-            fallback: true
-          });
-        }
-      }
-    }
-
-    // If conversational is true, use the proper multi-agent system with context
-    if (conversational) {
-      // Get recent messages for context
-      const { db } = await import("@/db");
-      const { messages } = await import("@/db/schema");
-      const { desc, eq } = await import("drizzle-orm");
-
-      const recentMessages = await db.query.messages.findMany({
-        where: eq(messages.project_id, projectId),
-        orderBy: [desc(messages.created_at)],
-        limit: 10,
-      });
-
-      // Format the conversation history
-      const conversationHistory = recentMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-
-      try {
-        // Try to use the proper multi-agent conversation system first
-        const properConversationResponse = await processConversation(projectId, message, conversationHistory);
-
-        return NextResponse.json({
-          message: properConversationResponse,
-          timestamp: new Date(),
-          conversational: true,
-          properMultiAgent: true
-        });
-      } catch (properConversationError) {
-        console.error("Error using proper multi-agent conversation system:", properConversationError);
-
-        // Use the new agent implementation as a fallback
-        try {
-          const { runAgent } = await import("@/lib/ai/agent");
-          const agentResponse = await runAgent(projectId, message);
-
-          return NextResponse.json({
-            message: agentResponse,
-            timestamp: new Date(),
-            conversational: true,
-            agent: true,
-            fallback: true
-          });
-        } catch (agentError) {
-          console.error("Error using agent:", agentError);
-
-          // Return a fallback error message
-          return NextResponse.json({
-            message: "I'm sorry, I encountered an error while processing your message. Please try again.",
-            timestamp: new Date(),
-            conversational: true,
-            error: true,
-            fallback: true
-          });
-        }
-      }
-    }
-
-    // Use the new agent implementation as the default
+    // Use the agent implementation
     try {
-      const { runAgent } = await import("@/lib/ai/agent");
       const agentResponse = await runAgent(projectId, message);
 
       // Return response
@@ -136,14 +41,13 @@ export async function POST(request: Request) {
         agent: true
       });
     } catch (agentError) {
-      console.error("Error using agent as default:", agentError);
+      console.error("Error using agent:", agentError);
 
       // Return a fallback error message
       return NextResponse.json({
         message: "I'm sorry, I encountered an error while processing your message. Please try again.",
         timestamp: new Date(),
-        error: true,
-        fallback: true
+        error: true
       });
     }
   } catch (error) {

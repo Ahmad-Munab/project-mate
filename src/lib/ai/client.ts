@@ -34,22 +34,15 @@ export async function initializeProjectContext(projectId: string): Promise<boole
  * Send a message to the AI
  * @param projectId - The ID of the project
  * @param message - The message to send
- * @param options - Options for the AI
  * @returns The AI's response
  */
 export async function sendMessage(
   projectId: string,
-  message: string,
-  options: {
-    conversational?: boolean;
-    detectOnly?: boolean;
-    integrated?: boolean;
-    useAgent?: boolean;
-  } = {}
+  message: string
 ) {
   try {
-    // Use the agent API if specified
-    const endpoint = options.useAgent ? '/api/ai/agent' : '/api/ai/chat';
+    // Use the chat API endpoint
+    const endpoint = '/api/ai/chat';
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -59,7 +52,6 @@ export async function sendMessage(
       body: JSON.stringify({
         projectId,
         message,
-        ...options,
       }),
     });
 

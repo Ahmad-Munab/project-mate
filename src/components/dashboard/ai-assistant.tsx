@@ -13,29 +13,7 @@ import { toast } from "sonner"
 import { useAIStore } from "@/store/aiStore"
 import { createTaskViaAI, performAIAction, createColumnViaAI } from "@/actions/ai/actions"
 
-// Helper function to get a human-readable description of an action
-function getActionDescription(actionType: string): string {
-  switch (actionType) {
-    case "CREATE_TASK":
-      return "create a new task";
-    case "CREATE_COLUMN":
-      return "create a new column";
-    case "MOVE_TASK":
-      return "move a task to a different column";
-    case "UPDATE_TASK":
-      return "update a task";
-    case "DELETE_TASK":
-      return "delete a task";
-    case "DELETE_COLUMN":
-      return "delete a column";
-    case "SHOW_TASKS":
-      return "show tasks";
-    case "SHOW_COLUMNS":
-      return "show columns";
-    default:
-      return "perform an action";
-  }
-}
+
 
 type Project = {
   id: string;
@@ -55,7 +33,22 @@ interface AIAssistantProps {
 
 export default function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
   const [input, setInput] = useState("")
-  const [pendingAction, setPendingAction] = useState<{ type: string; data: Record<string, unknown> } | null>(null)
+  // Define a type for the pending action
+  type PendingAction = {
+    type: string;
+    parameters: {
+      description?: string;
+      taskDescription?: string;
+      taskId?: string;
+      columnId?: string;
+      columnName?: string;
+      addSolutions?: boolean;
+      [key: string]: string | boolean | number | undefined; // Allow other properties
+    };
+    needsConfirmation?: boolean;
+  }
+
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const { messages: storedMessages, isTyping, setIsTyping, addMessage } = useAIStore()
   const projectMessages = useMemo(() => {
@@ -344,121 +337,102 @@ How can I assist you today?`,
     }
 
     try {
-      // Send message to API first to detect actions
-      const response = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: currentInput,
-          projectId: project.id,
-          detectOnly: true, // Just detect actions, don't generate a full response
-        }),
-      })
+      // Analyze the message to determine if it's a direct action request
+      if (currentInput.toLowerCase().includes("create task") ||
+          currentInput.toLowerCase().includes("add task")) {
+        await handleCreateMultipleTasks(currentInput);
+        return;
+      } else if (currentInput.toLowerCase().includes("create column") ||
+                 currentInput.toLowerCase().includes("add column")) {
+        // Extract column name if possible
+        const columnNameMatch = currentInput.match(/column[:\s]+([\w\s]+)/i);
+        const columnName = columnNameMatch ? columnNameMatch[1].trim() : "New Column";
+        await handleCreateColumn(columnName, "blue");
+        return;
+      } else if (currentInput.toLowerCase().includes("delete task") ||
+                 currentInput.toLowerCase().includes("remove task")) {
+        // For delete task actions, ask for confirmation
+        let confirmationMessage = "";
 
-      if (!response.ok) {
-        throw new Error("Failed to get AI response")
-      }
-
-      const data = await response.json()
-
-      // Check if an action was detected
-      if (data.detectedAction) {
-        const action = data.detectedAction
-
-        // If the action needs confirmation, show a confirmation dialog
-        if (action.needsConfirmation) {
-          // For delete actions, provide more specific confirmation messages
-          let confirmationMessage = action.confirmationMessage || `Are you sure you want to ${getActionDescription(action.type)}?`;
-
-          // For delete task actions, be more specific
-          if (action.type === "DELETE_TASK") {
-            // If we're deleting useless tasks
-            if (currentInput.toLowerCase().includes("useless")) {
-              // First, preview the useless tasks
-              const previewResult = await performAIAction(project.id, `Preview delete task: useless`);
-              if (previewResult.error) {
-                confirmationMessage = "I'll analyze your project and delete tasks that appear to be useless or unnecessary (like test tasks, placeholders, or duplicates). Are you sure you want me to proceed with this cleanup?";
-              } else {
-                confirmationMessage = previewResult.message || "I'll analyze your project and delete tasks that appear to be useless or unnecessary. Are you sure you want to proceed?";
-              }
-            } else {
-              // If we're deleting a specific task
-              const taskDesc = action.parameters.taskDescription || "the specified task";
-              confirmationMessage = `I'll delete the task matching "${taskDesc}". Are you sure you want to proceed?`;
-            }
+        // If we're deleting useless tasks
+        if (currentInput.toLowerCase().includes("useless")) {
+          // First, preview the useless tasks
+          const previewResult = await performAIAction(project.id, `Preview delete task: useless`);
+          if (previewResult.error) {
+            confirmationMessage = "I'll analyze your project and delete tasks that appear to be useless or unnecessary (like test tasks, placeholders, or duplicates). Are you sure you want me to proceed with this cleanup?";
+          } else {
+            confirmationMessage = previewResult.message || "I'll analyze your project and delete tasks that appear to be useless or unnecessary. Are you sure you want to proceed?";
           }
 
-          // For delete column actions, be more specific
-          if (action.type === "DELETE_COLUMN") {
-            const columnDesc = action.parameters.columnName || "the specified column";
-            confirmationMessage = `I'll delete the column matching "${columnDesc}". Any tasks in this column will be moved to the default column. Are you sure you want to proceed?`;
-          }
+          // Store the pending action
+          setPendingAction({
+            type: "DELETE_TASK",
+            parameters: { taskDescription: "useless" }
+          });
+        } else {
+          // Extract task description
+          const taskDescMatch = currentInput.match(/task[:\s]+([\w\s]+)/i);
+          const taskDesc = taskDescMatch ? taskDescMatch[1].trim() : "the specified task";
+          confirmationMessage = `I'll delete the task matching "${taskDesc}". Are you sure you want to proceed?`;
 
-          // For update task actions that add solutions
-          if (action.type === "UPDATE_TASK" &&
-              (currentInput.toLowerCase().includes("solution") ||
-               currentInput.toLowerCase().includes("edit tasks to provide"))) {
-            confirmationMessage = "I'll analyze your tasks and add detailed technical solutions to each one. This will help you understand how to implement each task. Would you like me to proceed?";
-          }
-
-          // Add AI response asking for confirmation
-          addMessage(project.id, {
-            role: "assistant",
-            content: confirmationMessage,
-            timestamp: new Date(),
-          })
-
-          // Store the pending action for later confirmation
-          setPendingAction(action)
-
-          // We'll wait for user confirmation before proceeding
-          return
+          // Store the pending action
+          setPendingAction({
+            type: "DELETE_TASK",
+            parameters: { taskDescription: taskDesc }
+          });
         }
 
-        // Handle different action types
-        switch (action.type) {
-          case "CREATE_TASK":
-            // Handle task creation
-            await handleCreateMultipleTasks(action.parameters.description || currentInput)
-            return
+        // Add AI response asking for confirmation
+        addMessage(project.id, {
+          role: "assistant",
+          content: confirmationMessage,
+          timestamp: new Date(),
+        });
 
-          case "CREATE_COLUMN":
-            // Handle column creation specifically
-            await handleCreateColumn(action.parameters.name || "Project Structure", action.parameters.color || "blue")
-            return
+        return;
+      } else if (currentInput.toLowerCase().includes("delete column") ||
+                 currentInput.toLowerCase().includes("remove column")) {
+        // Extract column name
+        const columnNameMatch = currentInput.match(/column[:\s]+([\w\s]+)/i);
+        const columnDesc = columnNameMatch ? columnNameMatch[1].trim() : "the specified column";
+        const confirmationMessage = `I'll delete the column matching "${columnDesc}". Any tasks in this column will be moved to the default column. Are you sure you want to proceed?`;
 
-          case "DELETE_TASK":
-            // Handle task deletion
-            await handleDeleteTask(action.parameters.taskId || action.parameters.taskDescription)
-            return
+        // Add AI response asking for confirmation
+        addMessage(project.id, {
+          role: "assistant",
+          content: confirmationMessage,
+          timestamp: new Date(),
+        });
 
-          case "DELETE_COLUMN":
-            // Handle column deletion
-            await handleDeleteColumn(action.parameters.columnId || action.parameters.columnName)
-            return
+        // Store the pending action
+        setPendingAction({
+          type: "DELETE_COLUMN",
+          parameters: { columnName: columnDesc }
+        });
 
-          case "MOVE_TASK":
-            // Handle task movement
-            await handlePerformAction(currentInput)
-            return
+        return;
+      } else if (currentInput.toLowerCase().includes("solution") ||
+                 currentInput.toLowerCase().includes("edit tasks to provide")) {
+        const confirmationMessage = "I'll analyze your tasks and add detailed technical solutions to each one. This will help you understand how to implement each task. Would you like me to proceed?";
 
-          case "UPDATE_TASK":
-            // Check if this is a request to add solutions
-            if (currentInput.toLowerCase().includes("solution") ||
-                currentInput.toLowerCase().includes("edit tasks to provide")) {
-              await handleAddSolutionsToTasks()
-            } else {
-              // Handle other update actions
-              await handlePerformAction(currentInput)
-            }
-            return
+        // Add AI response asking for confirmation
+        addMessage(project.id, {
+          role: "assistant",
+          content: confirmationMessage,
+          timestamp: new Date(),
+        });
 
-          default:
-            // For other actions, continue with normal processing
-            break
-        }
+        // Store the pending action
+        setPendingAction({
+          type: "UPDATE_TASK",
+          parameters: { addSolutions: true }
+        });
+
+        return;
+      } else if (currentInput.toLowerCase().includes("move task")) {
+        // For move task actions, directly perform the action
+        await handlePerformAction(currentInput);
+        return;
       }
 
       // If no action was detected or we're continuing with normal processing
@@ -755,8 +729,7 @@ How can I assist you today?`,
         setPendingAction({
           type: "DELETE_TASK",
           parameters: { taskDescription: taskIdentifier },
-          needsConfirmation: true,
-          confidence: 1.0
+          needsConfirmation: true
         })
 
         // Clear loading state
@@ -1083,7 +1056,7 @@ How can I assist you today?`,
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 rounded-full hover:bg-primary/10"
-                      onClick={handlePerformAction}
+                      onClick={() => handlePerformAction()}
                       title="Let AI perform this action"
                     >
                       <Wand2 className="h-4 w-4 text-primary" />
