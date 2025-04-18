@@ -135,126 +135,126 @@ Respond in a natural, conversational way without showing raw JSON data to the us
           const toolMatches = Array.from(content.matchAll(/<tool>(.*?)<\/tool>\s*<parameters>\s*({[\s\S]*?})\s*<\/parameters>/gi));
 
           if (toolMatches.length > 0) {
-            // We'll process just the first tool call for now
-            // In the future, we can enhance this to process multiple tool calls
+            console.log(`Found ${toolMatches.length} tool calls in the response`);
 
-            // Process the first tool call for now (we'll enhance this later)
-            const toolMatch = toolMatches[0];
+            // Process all tool calls
+            const toolResults = [];
 
-            // Extract tool name and parameters
-            const toolName = toolMatch[1];
-            const rawParams = JSON.parse(toolMatch[2]);
-            // Find the tool
-            const tool = tools.find(t => t.name === toolName);
+            for (const toolMatch of toolMatches) {
+              // Extract tool name and parameters
+              const toolName = toolMatch[1];
+              const rawParams = JSON.parse(toolMatch[2]);
+              // Find the tool
+              const tool = tools.find(t => t.name === toolName);
 
-            if (tool) {
-              // Create a mutable copy of the parameters and fix common naming issues
-              const toolParams = { ...rawParams };
+              if (tool) {
+                // Create a mutable copy of the parameters and fix common naming issues
+                const toolParams = { ...rawParams };
 
-              // Fix common parameter naming issues
-              if (toolName === "create_task" && 'name' in toolParams && !('title' in toolParams)) {
-                // If the AI used 'name' instead of 'title', fix it
-                toolParams.title = toolParams.name;
-                delete toolParams.name;
-                console.log("Fixed parameter naming: 'name' -> 'title'");
-              }
-
-              // Fix move_task parameter naming
-              if (toolName === "move_task" && 'columnId' in toolParams && !('targetStatus' in toolParams)) {
-                // If the AI used 'columnId' instead of 'targetStatus', fix it
-                toolParams.targetStatus = toolParams.columnId;
-                delete toolParams.columnId;
-                console.log("Fixed parameter naming: 'columnId' -> 'targetStatus'");
-              }
-
-              // Execute the tool
-              console.log(`Executing tool ${toolName} with parameters:`, toolParams);
-              let toolResult;
-              try {
-                toolResult = await tool.invoke(toolParams);
-              } catch (error) {
-                console.error(`Error executing tool ${toolName}:`, error);
-                return `I'm sorry, I encountered an error while trying to ${toolName.replace('_', ' ')}: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again with different parameters.`;
-              }
-
-              // Parse the tool result
-              let parsedResult;
-              try {
-                parsedResult = JSON.parse(toolResult);
-              } catch (error) {
-                console.warn("Failed to parse tool result as JSON:", error);
-                parsedResult = { message: toolResult };
-              }
-
-              // Generate a response that includes the tool result but in a natural way
-              const successMessage = parsedResult.success === false
-                ? `The tool ${toolName} encountered an issue: ${parsedResult.error || 'Unknown error'}.`
-                : `The tool ${toolName} was executed successfully.`;
-
-              // Create a user-friendly message based on the tool type
-              let userFriendlyMessage = '';
-              if (parsedResult.success !== false) {
-                switch (toolName) {
-                  case 'create_task':
-                    const taskTitle = parsedResult.task?.title || toolParams.title;
-                    userFriendlyMessage = `I've created a new task "${taskTitle}" for you.`;
-                    break;
-                  case 'update_task':
-                    userFriendlyMessage = `I've updated the task for you.`;
-                    break;
-                  case 'delete_task':
-                    userFriendlyMessage = `I've deleted the task for you.`;
-                    break;
-                  case 'create_column':
-                    const columnName = parsedResult.column?.name || toolParams.name;
-                    userFriendlyMessage = `I've created a new column "${columnName}" for you.`;
-                    break;
-                  case 'update_column':
-                    userFriendlyMessage = `I've updated the column for you.`;
-                    break;
-                  case 'delete_column':
-                    userFriendlyMessage = `I've deleted the column for you.`;
-                    break;
-                  case 'move_task':
-                    userFriendlyMessage = `I've moved the task to a different column for you.`;
-                    break;
-                  default:
-                    userFriendlyMessage = `I've completed the ${toolName.replace(/_/g, ' ')} operation successfully.`;
+                // Fix common parameter naming issues
+                if (toolName === "create_task" && 'name' in toolParams && !('title' in toolParams)) {
+                  // If the AI used 'name' instead of 'title', fix it
+                  toolParams.title = toolParams.name;
+                  delete toolParams.name;
+                  console.log("Fixed parameter naming: 'name' -> 'title'");
                 }
-              } else {
-                userFriendlyMessage = `I encountered an issue while trying to ${toolName.replace(/_/g, ' ')}: ${parsedResult.error || 'Unknown error'}.`;
-              }
 
-              // Try to get a follow-up response from the model
-              let followUpContent;
+                // Fix move_task parameter naming
+                if (toolName === "move_task" && 'columnId' in toolParams && !('targetStatus' in toolParams)) {
+                  // If the AI used 'columnId' instead of 'targetStatus', fix it
+                  toolParams.targetStatus = toolParams.columnId;
+                  delete toolParams.columnId;
+                  console.log("Fixed parameter naming: 'columnId' -> 'targetStatus'");
+                }
+
+                // Execute the tool
+                console.log(`Executing tool ${toolName} with parameters:`, toolParams);
+                let toolResult;
+                try {
+                  toolResult = await tool.invoke(toolParams);
+                } catch (error) {
+                  console.error(`Error executing tool ${toolName}:`, error);
+                  toolResults.push(`I'm sorry, I encountered an error while trying to ${toolName.replace('_', ' ')}: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again with different parameters.`);
+                  continue; // Continue with the next tool call
+                }
+
+                // Parse the tool result
+                let parsedResult;
+                try {
+                  parsedResult = JSON.parse(toolResult);
+                } catch (error) {
+                  console.warn("Failed to parse tool result as JSON:", error);
+                  parsedResult = { message: toolResult };
+                }
+
+                // Generate a response that includes the tool result but in a natural way
+                const successMessage = parsedResult.success === false
+                  ? `The tool ${toolName} encountered an issue: ${parsedResult.error || 'Unknown error'}.`
+                  : `The tool ${toolName} was executed successfully.`;
+
+                // Create a user-friendly message based on the tool type
+                let userFriendlyMessage = '';
+                if (parsedResult.success !== false) {
+                  switch (toolName) {
+                    case 'create_task':
+                      const taskTitle = parsedResult.task?.title || toolParams.title;
+                      userFriendlyMessage = `I've created a new task "${taskTitle}" for you.`;
+                      break;
+                    case 'update_task':
+                      userFriendlyMessage = `I've updated the task for you.`;
+                      break;
+                    case 'delete_task':
+                      userFriendlyMessage = `I've deleted the task for you.`;
+                      break;
+                    case 'create_column':
+                      const columnName = parsedResult.column?.name || toolParams.name;
+                      userFriendlyMessage = `I've created a new column "${columnName}" for you.`;
+                      break;
+                    case 'update_column':
+                      userFriendlyMessage = `I've updated the column for you.`;
+                      break;
+                    case 'delete_column':
+                      userFriendlyMessage = `I've deleted the column for you.`;
+                      break;
+                    case 'move_task':
+                      userFriendlyMessage = `I've moved the task to a different column for you.`;
+                      break;
+                    default:
+                      userFriendlyMessage = `I've completed the ${toolName.replace(/_/g, ' ')} operation successfully.`;
+                  }
+                } else {
+                  userFriendlyMessage = `I encountered an issue while trying to ${toolName.replace(/_/g, ' ')}: ${parsedResult.error || 'Unknown error'}.`;
+                }
+
+                // Add the result to our collection
+                toolResults.push(userFriendlyMessage);
+              }
+            }
+
+            // If we have tool results, generate a combined response
+            if (toolResults.length > 0) {
+              // Try to get a follow-up response from the model that summarizes all actions
               try {
                 const followUpResponse = await model.invoke([
                   systemMessage,
                   { role: "user", content: userMessage },
                   { role: "assistant", content: content },
-                  { role: "system", content: `${successMessage} Here's the result: ${JSON.stringify(parsedResult)}.
-                  ${userFriendlyMessage}
-                  Please respond to the user in a natural, conversational way without showing raw JSON data.
-                  Acknowledge what you did (e.g., "I've created the task for you") in a VERY BRIEF way.
+                  { role: "system", content: `I executed ${toolResults.length} actions: ${toolResults.join(" ")}.
+                  Please respond to the user in a natural, conversational way without showing raw data.
+                  Acknowledge what you did in a VERY BRIEF way.
                   Keep your response extremely concise - no more than 1-2 sentences.
-                  Only provide information that was explicitly requested - don't list all tasks or project details unless asked.` }
+                  Only provide information that was explicitly requested.` }
                 ]);
-                followUpContent = followUpResponse.content;
+                return followUpResponse.content;
               } catch (error) {
                 console.error("Error generating follow-up response:", error);
                 // If we can't get a follow-up response, use a fallback
-                followUpContent = userFriendlyMessage || `I've completed the ${toolName.replace('_', ' ')} operation successfully.`;
+                return toolResults.join(" ");
               }
-
-              // If the follow-up content is empty or just whitespace, use a fallback
-              if (!followUpContent || typeof followUpContent === 'string' && followUpContent.trim() === '') {
-                followUpContent = userFriendlyMessage || `I've completed the ${toolName.replace('_', ' ')} operation successfully.`;
-              }
-
-              return followUpContent;
             }
           }
 
+          // If no tool calls were processed, return the original content
           return content;
         } catch (error) {
           console.error("Error processing message:", error);
