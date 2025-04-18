@@ -32,7 +32,7 @@ export interface AIMessage {
 /**
  * Memory segment types for different kinds of information
  */
-enum MemorySegmentType {
+export enum MemorySegmentType {
   CONVERSATION = "conversation",
   PROJECT_INFO = "project_info",
   TASK_INFO = "task_info",

@@ -139,8 +139,8 @@ Created: ${new Date(projectInfo.project.created_at).toLocaleDateString()}
 Last Updated: ${new Date(projectInfo.project.updated_at || projectInfo.project.created_at).toLocaleDateString()}
 Total Tasks: ${projectInfo.stats.total_tasks}
 Total Members: ${projectInfo.stats.total_members}`,
-      MemorySegmentType.PROJECT_INFO,
       {
+        segment_type: MemorySegmentType.PROJECT_INFO,
         source: "project_overview",
         context_type: ProjectContextType.OVERVIEW,
       }
@@ -150,8 +150,8 @@ Total Members: ${projectInfo.stats.total_members}`,
     await memory.storeInVectorStore(
       `Project Task Statuses:
 ${projectInfo.statuses.map(status => `- ${status.name} (${status.key}): ${projectInfo.stats.tasks_by_status.find(s => s.key === status.key)?.count || 0} tasks`).join('\n')}`,
-      MemorySegmentType.PROJECT_INFO,
       {
+        segment_type: MemorySegmentType.PROJECT_INFO,
         source: "task_statuses",
         context_type: ProjectContextType.STATUSES,
       }
@@ -174,8 +174,8 @@ ${chunk.map(task => `- ${task.title} (ID: ${task.id})
   Description: ${task.description || "No description provided"}
   Created: ${new Date(task.created_at).toLocaleDateString()}
   ${task.updated_at ? `Updated: ${new Date(task.updated_at).toLocaleDateString()}` : ""}`).join('\n\n')}`,
-        MemorySegmentType.TASK_INFO,
         {
+          segment_type: MemorySegmentType.TASK_INFO,
           source: `tasks_chunk_${i + 1}`,
           context_type: ProjectContextType.TASKS,
         }
@@ -187,8 +187,8 @@ ${chunk.map(task => `- ${task.title} (ID: ${task.id})
       `Project Members:
 ${projectInfo.members.map(member => `- ${member.name} (${member.email})
   Role: ${member.role}`).join('\n\n')}`,
-      MemorySegmentType.PROJECT_INFO,
       {
+        segment_type: MemorySegmentType.PROJECT_INFO,
         source: "project_members",
         context_type: ProjectContextType.MEMBERS,
       }
@@ -201,8 +201,8 @@ ${projectInfo.recent_activity.recent_tasks.map(task => `- ${task.title} (ID: ${t
   Status: ${task.status}
   Priority: ${task.priority}
   ${task.updated_at ? `Updated: ${new Date(task.updated_at).toLocaleDateString()}` : `Created: ${new Date(task.created_at).toLocaleDateString()}`}`).join('\n\n')}`,
-      MemorySegmentType.PROJECT_INFO,
       {
+        segment_type: MemorySegmentType.PROJECT_INFO,
         source: "recent_activity",
         context_type: ProjectContextType.RECENT_ACTIVITY,
       }
@@ -244,7 +244,7 @@ export async function getComprehensiveProjectContext(
     // If we don't have much context, try to store project context first
     if (context.length < 200) {
       await storeProjectContext(projectId);
-      
+
       // Try again with the newly stored context
       return await memory.getContext(
         query,
@@ -261,7 +261,7 @@ export async function getComprehensiveProjectContext(
     return context;
   } catch (error) {
     console.error("Failed to get comprehensive project context:", error);
-    
+
     // Try to get basic project info as a fallback
     try {
       const projectInfo = await getComprehensiveProjectInfo(projectId);
@@ -285,7 +285,7 @@ export async function initializeProjectContext(projectId: string): Promise<boole
   try {
     // Store project context
     await storeProjectContext(projectId);
-    
+
     return true;
   } catch (error) {
     console.error("Failed to initialize project context:", error);
