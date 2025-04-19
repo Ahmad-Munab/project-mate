@@ -198,32 +198,47 @@ Respond in a natural, conversational way without showing raw JSON data to the us
                   switch (toolName) {
                     case 'create_task':
                       const taskTitle = parsedResult.task?.title || toolParams.title;
-                      userFriendlyMessage = `I've created a new task "${taskTitle}" for you.`;
+                      const taskStatus = parsedResult.task?.status || toolParams.status || 'BACKLOG';
+                      userFriendlyMessage = `Created task "${taskTitle}" in ${taskStatus}.`;
                       break;
                     case 'update_task':
-                      userFriendlyMessage = `I've updated the task for you.`;
+                      const updatedTaskTitle = parsedResult.task?.title || toolParams.title || 'the task';
+                      userFriendlyMessage = `Updated task "${updatedTaskTitle}".`;
                       break;
                     case 'delete_task':
-                      userFriendlyMessage = `I've deleted the task for you.`;
+                      const taskId = toolParams.taskId || 'the specified task';
+                      userFriendlyMessage = `Deleted task ${taskId}.`;
                       break;
                     case 'create_column':
                       const columnName = parsedResult.column?.name || toolParams.name;
-                      userFriendlyMessage = `I've created a new column "${columnName}" for you.`;
+                      userFriendlyMessage = `Created column "${columnName}".`;
                       break;
                     case 'update_column':
-                      userFriendlyMessage = `I've updated the column for you.`;
+                      const updatedColumnName = parsedResult.column?.name || toolParams.name || 'the column';
+                      userFriendlyMessage = `Updated column "${updatedColumnName}".`;
                       break;
                     case 'delete_column':
-                      userFriendlyMessage = `I've deleted the column for you.`;
+                      const columnId = toolParams.columnId || 'the specified column';
+                      userFriendlyMessage = `Deleted column ${columnId}.`;
                       break;
                     case 'move_task':
-                      userFriendlyMessage = `I've moved the task to a different column for you.`;
+                      const movedTaskTitle = parsedResult.task?.title || 'the task';
+                      const targetStatus = parsedResult.task?.status || toolParams.targetStatus || 'a different column';
+                      userFriendlyMessage = `Moved task "${movedTaskTitle}" to ${targetStatus}.`;
+                      break;
+                    case 'get_project_tasks':
+                      const taskCount = parsedResult.tasks?.length || 0;
+                      userFriendlyMessage = `Retrieved ${taskCount} tasks from the project.`;
+                      break;
+                    case 'get_task_statuses':
+                      const statusCount = parsedResult.statuses?.length || 0;
+                      userFriendlyMessage = `Retrieved ${statusCount} columns from the project.`;
                       break;
                     default:
-                      userFriendlyMessage = `I've completed the ${toolName.replace(/_/g, ' ')} operation successfully.`;
+                      userFriendlyMessage = `Completed ${toolName.replace(/_/g, ' ')} operation.`;
                   }
                 } else {
-                  userFriendlyMessage = `I encountered an issue while trying to ${toolName.replace(/_/g, ' ')}: ${parsedResult.error || 'Unknown error'}.`;
+                  userFriendlyMessage = `Error ${toolName.replace(/_/g, ' ')}: ${parsedResult.error || 'Unknown error'}.`;
                 }
 
                 // Add the result to our collection
@@ -233,30 +248,57 @@ Respond in a natural, conversational way without showing raw JSON data to the us
 
             // If we have tool results, generate a combined response
             if (toolResults.length > 0) {
+              // Remove duplicate messages from tool results
+              const uniqueToolResults = [...new Set(toolResults)];
+
               // Try to get a follow-up response from the model that summarizes all actions
               try {
                 const followUpResponse = await model.invoke([
                   systemMessage,
                   { role: "user", content: userMessage },
                   { role: "assistant", content: content },
-                  { role: "system", content: `I executed ${toolResults.length} actions: ${toolResults.join(" ")}.
+                  { role: "system", content: `I executed ${uniqueToolResults.length} actions: ${uniqueToolResults.join(" ")}.
                   Please respond to the user in a natural, conversational way without showing raw data.
                   Acknowledge what you did in a VERY BRIEF way.
                   Keep your response extremely concise - no more than 1-2 sentences.
-                  Only provide information that was explicitly requested.` }
+                  Only provide information that was explicitly requested.
+                  DO NOT repeat the same information multiple times.
+                  DO NOT say "I've completed the operation successfully" - be specific about what you did.
+                  If you deleted a task, specify which task was deleted.
+                  If you moved a task, specify which task was moved and where.
+                  If you created a task, mention the task title.
+                  If you're answering a question, provide the specific information requested.` }
                 ]);
+
                 // Make sure we have a valid response
-                if (followUpResponse && followUpResponse.content) {
+                if (followUpResponse && followUpResponse.content && followUpResponse.content.trim()) {
+                  // Check if the response is generic
+                  const genericResponses = [
+                    "I've completed the operation successfully",
+                    "I've processed your request",
+                    "I've executed the action",
+                    "I've performed the operation"
+                  ];
+
+                  const isGeneric = genericResponses.some(phrase =>
+                    followUpResponse.content.toLowerCase().includes(phrase.toLowerCase())
+                  );
+
+                  if (isGeneric) {
+                    // If the response is generic, use a more specific response
+                    return uniqueToolResults.join(". ");
+                  }
+
                   return followUpResponse.content;
                 } else {
                   // If the follow-up response is empty, use the tool results
                   console.warn("Follow-up response was empty, using tool results instead");
-                  return toolResults.join(" ");
+                  return uniqueToolResults.join(". ");
                 }
               } catch (error) {
                 console.error("Error generating follow-up response:", error);
                 // If we can't get a follow-up response, use a fallback
-                return toolResults.join(" ");
+                return uniqueToolResults.join(". ");
               }
             }
           }
