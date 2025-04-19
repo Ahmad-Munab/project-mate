@@ -1911,7 +1911,12 @@ export async function performAIAction(
       `For the project "${projectInfo.project.name}", please perform the following action: ${actionDescription}. Be specific to this project and its current state.`
     );
 
-    return { success: true, message: response };
+    // Ensure we have a valid response
+    const finalResponse = typeof response === 'string' && response.trim() ?
+      response :
+      "I've processed your request successfully.";
+
+    return { success: true, message: finalResponse };
   } catch (error) {
     console.error("Failed to perform AI action:", error);
     return { error: "Failed to perform AI action" };

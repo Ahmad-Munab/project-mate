@@ -34,9 +34,14 @@ export async function POST(request: Request) {
     try {
       const agentResponse = await runAgent(projectId, message);
 
+      // Ensure we have a valid response
+      const finalResponse = typeof agentResponse === 'string' && agentResponse.trim() ?
+        agentResponse :
+        "I've processed your request, but I don't have a detailed response to provide at this moment.";
+
       // Return response
       return NextResponse.json({
-        message: agentResponse,
+        message: finalResponse,
         timestamp: new Date(),
         agent: true
       });

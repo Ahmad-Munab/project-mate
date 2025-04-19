@@ -245,7 +245,14 @@ Respond in a natural, conversational way without showing raw JSON data to the us
                   Keep your response extremely concise - no more than 1-2 sentences.
                   Only provide information that was explicitly requested.` }
                 ]);
-                return followUpResponse.content;
+                // Make sure we have a valid response
+                if (followUpResponse && followUpResponse.content) {
+                  return followUpResponse.content;
+                } else {
+                  // If the follow-up response is empty, use the tool results
+                  console.warn("Follow-up response was empty, using tool results instead");
+                  return toolResults.join(" ");
+                }
               } catch (error) {
                 console.error("Error generating follow-up response:", error);
                 // If we can't get a follow-up response, use a fallback
@@ -292,17 +299,22 @@ export async function runAgent(projectId: string, userMessage: string) {
     // Process the message with the agent
     const response = await agent.processMessage(userMessage);
 
+    // Ensure we have a valid response
+    const finalResponse = typeof response === 'string' && response.trim() ?
+      response :
+      "I've processed your request, but I don't have a detailed response to provide at this moment.";
+
     // Store the assistant message
     await storeEnhancedMessage(
       projectId,
       {
         role: "assistant",
-        content: typeof response === 'string' ? response : JSON.stringify(response),
+        content: finalResponse,
         timestamp: new Date(),
       }
     );
 
-    return response;
+    return finalResponse;
   } catch (error) {
     console.error("Failed to run agent:", error);
 
