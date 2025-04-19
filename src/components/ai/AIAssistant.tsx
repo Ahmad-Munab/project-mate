@@ -160,20 +160,17 @@ export function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
     addAssistantMessage,
     setIsTyping,
     setPendingAction,
-    handleCreateMultipleTasks,
-    handleCreateColumn,
-    handleDeleteTask,
-    handleDeleteColumn,
-    handleAddSolutionsToTasks,
-    handlePerformAction,
-    handleConfirmAction
+    setInput
   ]);
 
   // Handle suggestion click
   const handleSuggestionClick = useCallback((suggestion: string) => {
     setInput(suggestion);
-    handleSendMessage();
-  }, [setInput, handleSendMessage]);
+    // Use setTimeout to ensure the input is set before sending
+    setTimeout(() => {
+      handleSendMessage();
+    }, 0);
+  }, [setInput]);
 
   // Handle creating a task
   const handleCreateTask = useCallback(async () => {
