@@ -44,7 +44,7 @@ export async function getProjectInfo(projectId: string) {
     }
 
     // Get the project tasks
-    let projectTasks = [];
+    let projectTasks: Array<any> = [];
     try {
       projectTasks = await db
         .select()
@@ -55,7 +55,7 @@ export async function getProjectInfo(projectId: string) {
     }
 
     // Get the project members
-    let members = [];
+    let members: Array<any> = [];
     try {
       const memberResults = await db
         .select({
@@ -63,15 +63,21 @@ export async function getProjectInfo(projectId: string) {
           role: projectMembers.role,
         })
         .from(projectMembers)
-        .where(eq(projectMembers.project_id, projectId))
-        .innerJoin(users, eq(users.id, projectMembers.user_id));
+        .where(eq(projectMembers.projectId, projectId))
+        .innerJoin(users, eq(users.id, projectMembers.userId));
 
-      members = memberResults.map(m => ({
-        id: m.user?.id,
-        name: m.user?.name,
-        email: m.user?.email,
-        role: m.role,
-      }));
+      members = memberResults.map(m => {
+        const metadata = m.user?.metadata ?
+          (typeof m.user.metadata === 'string' ? JSON.parse(m.user.metadata) : m.user.metadata) :
+          {};
+
+        return {
+          id: m.user?.id,
+          name: metadata?.full_name || metadata?.email?.split('@')[0] || 'Unknown User',
+          email: metadata?.email || '',
+          role: m.role,
+        };
+      });
     } catch (memberError) {
       console.error("Error fetching project members:", memberError);
     }
@@ -234,9 +240,9 @@ export async function updateTask(
       let validatedUpdates = { ...updates };
 
       if (updates.status) {
-        validatedUpdates.status = updates.status === "BACKLOG" || updates.status === "TODO" ||
-                                updates.status === "IN_PROGRESS" || updates.status === "DONE" ?
-                                updates.status : task.status_key;
+        validatedUpdates.status = (updates.status === "BACKLOG" || updates.status === "TODO" ||
+                                updates.status === "IN_PROGRESS" || updates.status === "DONE") ?
+                                updates.status as "BACKLOG" | "TODO" | "IN_PROGRESS" | "DONE" : undefined;
       }
 
       if (updates.priority) {

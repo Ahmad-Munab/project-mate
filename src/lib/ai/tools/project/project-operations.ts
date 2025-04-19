@@ -100,7 +100,7 @@ export function updateProjectTool(projectId: string) {
       try {
         // Update the project
         const project = await updateProject(projectId, name, description);
-        
+
         return project;
       } catch (error) {
         console.error("Failed to update project:", error);
@@ -129,7 +129,7 @@ export async function addProjectMember(
       .values({
         projectId,
         userId,
-        role,
+        role: role as "OWNER" | "MANAGER" | "MEMBER",
       })
       .returning();
 
@@ -157,7 +157,7 @@ export function addProjectMemberTool(projectId: string) {
       try {
         // Add the project member
         const member = await addProjectMember(projectId, userId, role);
-        
+
         return member;
       } catch (error) {
         console.error("Failed to add project member:", error);
@@ -212,7 +212,7 @@ export function removeProjectMemberTool(projectId: string) {
       try {
         // Remove the project member
         const member = await removeProjectMember(projectId, userId);
-        
+
         return member;
       } catch (error) {
         console.error("Failed to remove project member:", error);

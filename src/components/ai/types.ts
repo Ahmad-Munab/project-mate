@@ -11,6 +11,11 @@ export type Project = {
   created_at?: Date | string | null;
   updated_at?: Date | string | null;
   readme?: string | null;
+  members?: Array<{ id: string; name: string; role: string }>;
+  tasks?: Array<any>;
+  status?: string;
+  progress?: number;
+  dueDate?: string;
 };
 
 export interface AIAssistantProps {

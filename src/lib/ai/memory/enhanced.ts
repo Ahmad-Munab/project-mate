@@ -10,8 +10,7 @@ import { useAIStore, type AIMessage } from "@/store/aiStore";
 // Maximum number of messages to include in context
 const MAX_CONTEXT_MESSAGES = 10;
 
-// Maximum number of messages to store in the database
-const MAX_STORED_MESSAGES = 100;
+
 
 /**
  * Store a message in the enhanced memory system
@@ -23,7 +22,6 @@ const MAX_STORED_MESSAGES = 100;
 export async function storeEnhancedMessage(
   projectId: string,
   message: AIMessage,
-  relatedEntityId?: string
 ): Promise<boolean> {
   try {
     // Store in client-side store for immediate access
@@ -110,7 +108,7 @@ export async function getEnhancedProjectContext(
           content: msg.content,
           timestamp: new Date(msg.created_at),
           id: msg.id,
-          metadata: null
+          metadata: {} as Record<string, any>
         })).reverse(); // Reverse to get chronological order
       }
 
@@ -145,121 +143,8 @@ export async function getEnhancedProjectContext(
 
 
 
-/**
- * Get a summary of the recent conversation
- * @param projectId - The ID of the project
- * @param maxMessages - Maximum number of messages to include
- * @returns A summary of the recent conversation
- */
-export async function getConversationSummary(
-  projectId: string,
-  maxMessages: number = MAX_CONTEXT_MESSAGES
-): Promise<string> {
-  try {
-    const messages = await getEnhancedProjectContext(projectId, maxMessages);
+// Removed unused getConversationSummary function
 
-    if (messages.length === 0) {
-      return "No previous conversation.";
-    }
+// Removed unused getRecentUserQuery function
 
-    // Format messages into a readable summary
-    return messages.map(msg => {
-      const role = msg.role === 'user' ? 'User' :
-                  msg.role === 'assistant' ? 'Assistant' :
-                  'System';
-
-      const timestamp = new Date(msg.timestamp).toLocaleTimeString();
-      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-
-      return `[${timestamp}] ${role}: ${content}`;
-    }).join('\n\n');
-  } catch (error) {
-    console.error("Error getting conversation summary:", error);
-    return "Error retrieving conversation history.";
-  }
-}
-
-/**
- * Get the most recent user query
- * @param projectId - The ID of the project
- * @returns The most recent user query
- */
-export async function getRecentUserQuery(projectId: string): Promise<string | null> {
-  try {
-    const supabase = await createClient();
-
-    const { data: messages, error } = await supabase
-      .from('ai_messages')
-      .select('content')
-      .eq('project_id', projectId)
-      .eq('role', 'user')
-      .order('timestamp', { ascending: false })
-      .limit(1);
-
-    if (error || !messages || messages.length === 0) {
-      return null;
-    }
-
-    return messages[0].content;
-  } catch (error) {
-    console.error("Error getting recent user query:", error);
-    return null;
-  }
-}
-
-/**
- * Get the conversation tone based on recent messages
- * @param projectId - The ID of the project
- * @returns The detected conversation tone
- */
-export async function getConversationTone(projectId: string): Promise<'formal' | 'casual' | 'technical' | 'neutral'> {
-  try {
-    const messages = await getEnhancedProjectContext(projectId, 5);
-
-    if (messages.length === 0) {
-      return 'neutral';
-    }
-
-    // Extract user messages
-    const userMessages = messages.filter(msg => msg.role === 'user');
-
-    if (userMessages.length === 0) {
-      return 'neutral';
-    }
-
-    // Simple tone detection based on keywords and patterns
-    const combinedText = userMessages.map(msg =>
-      typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-    ).join(' ').toLowerCase();
-
-    // Check for technical terms
-    const technicalTerms = ['code', 'function', 'api', 'bug', 'error', 'implementation', 'database', 'algorithm'];
-    const hasTechnicalTerms = technicalTerms.some(term => combinedText.includes(term));
-
-    if (hasTechnicalTerms) {
-      return 'technical';
-    }
-
-    // Check for casual language
-    const casualPatterns = ['hey', 'thanks', 'cool', 'awesome', 'great', 'nice', 'yeah', 'ok', 'okay', 'sure'];
-    const hasCasualPatterns = casualPatterns.some(pattern => combinedText.includes(pattern));
-
-    if (hasCasualPatterns) {
-      return 'casual';
-    }
-
-    // Check for formal language
-    const formalPatterns = ['please', 'would you', 'could you', 'kindly', 'appreciate', 'request'];
-    const hasFormalPatterns = formalPatterns.some(pattern => combinedText.includes(pattern));
-
-    if (hasFormalPatterns) {
-      return 'formal';
-    }
-
-    // Default to neutral
-    return 'neutral';
-  } catch (error) {
-    console.error("Error detecting conversation tone:", error);
-    return 'neutral';
-  }
-}
+// Removed unused getConversationTone function

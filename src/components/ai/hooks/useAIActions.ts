@@ -34,15 +34,15 @@ export function useAIActions(projectId: string | undefined) {
 
     // Set processing state
     setIsProcessing(prev => ({ ...prev, [actionType]: true }));
-    
+
     // Show loading toast
     const toastId = toast.loading(loadingMessage);
-    
+
     try {
       const result = await promise;
       toast.dismiss(toastId);
       toast.success(successMessage);
-      
+
       // Add AI response to state if result has a message property
       if (result && typeof result === 'object' && 'message' in result) {
         addMessage(projectId, {
@@ -51,23 +51,23 @@ export function useAIActions(projectId: string | undefined) {
           timestamp: new Date(),
         });
       }
-      
+
       return { success: true, data: result };
     } catch (error) {
       toast.dismiss(toastId);
       console.error(errorMessage, error);
       toast.error(errorMessage);
-      
+
       // Add error message
       addMessage(projectId, {
         role: "assistant",
         content: `I'm sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         timestamp: new Date(),
       });
-      
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : "Unknown error" 
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
       };
     } finally {
       // Clear processing state
@@ -148,26 +148,26 @@ export function useAIActions(projectId: string | undefined) {
             if ('error' in result && result.error) {
               return null;
             }
-            
+
             // Track any new column that was created
             if (result.newColumn) {
               newColumns.add(result.newColumn);
             }
-            
+
             return result.task;
           }).catch(error => {
             console.error(`Error creating task ${i+1}:`, error);
             return null;
           });
-          
+
           remainingTaskPromises.push(promise);
         }
-        
+
         // Process tasks in batches of 3
         for (let i = 0; i < remainingTaskPromises.length; i += 3) {
           const batch = remainingTaskPromises.slice(i, i + 3);
           const results = await Promise.all(batch);
-          
+
           // Add successful tasks to the list
           results.forEach(task => {
             if (task) {
@@ -191,19 +191,20 @@ export function useAIActions(projectId: string | undefined) {
 
           // Add AI response with task details
           const taskListMessage = `${columnMessage}I've created ${tasksCreated.length} tasks for you:\n\n` +
-            tasksCreated.map((task, index) =>
-              `**Task ${index+1}: ${task.title}**\n` +
-              `* Status: ${task.status}\n` +
-              `* Priority: ${task.priority}\n` +
-              `* Description: ${task.description}\n`
-            ).join('\n');
+            tasksCreated.map((task, index) => {
+              if (!task) return `**Task ${index+1}: Not created**\n`;
+              return `**Task ${index+1}: ${task.title}**\n` +
+                `* Status: ${task.status}\n` +
+                `* Priority: ${task.priority}\n` +
+                `* Description: ${task.description}\n`;
+            }).join('\n');
 
           addMessage(projectId, {
             role: "assistant",
             content: taskListMessage,
             timestamp: new Date(),
           });
-          
+
           return { success: true, tasksCreated, newColumns: Array.from(newColumns) };
         }
 
@@ -225,7 +226,7 @@ export function useAIActions(projectId: string | undefined) {
         content: "I'm sorry, I encountered an error creating the tasks. Please try again.",
         timestamp: new Date(),
       });
-      
+
       return { success: false, error: "Failed to create tasks" };
     }
   };
@@ -271,7 +272,7 @@ export function useAIActions(projectId: string | undefined) {
         // Add AI response with preview
         addMessage(projectId, {
           role: "assistant",
-          content: previewResult.message || "I've identified some tasks that match your criteria. Would you like me to delete them?",
+          content: ('message' in previewResult && previewResult.message) || "I've identified some tasks that match your criteria. Would you like me to delete them?",
           timestamp: new Date(),
         });
 
@@ -284,11 +285,11 @@ export function useAIActions(projectId: string | undefined) {
 
         // Clear loading state
         toast.dismiss();
-        return { 
-          success: true, 
-          needsConfirmation: true, 
-          message: previewResult.message || "Tasks identified for deletion", 
-          taskDescription: taskIdentifier 
+        return {
+          success: true,
+          needsConfirmation: true,
+          message: ('message' in previewResult && previewResult.message) || "Tasks identified for deletion",
+          taskDescription: taskIdentifier
         };
       }
 
@@ -310,7 +311,7 @@ export function useAIActions(projectId: string | undefined) {
         content: "I'm sorry, I encountered an error deleting the task. Please try again.",
         timestamp: new Date(),
       });
-      
+
       return { success: false, error: "Failed to delete task" };
     }
   };
@@ -365,7 +366,7 @@ export function useAIActions(projectId: string | undefined) {
     try {
       // Get project-specific suggestions
       const result = await performAIAction(
-        projectId, 
+        projectId,
         "Generate 6 short, specific suggestions for prompts that would be helpful for this project. Each suggestion should be a single sentence and focus on technical aspects. Return ONLY the list of suggestions separated by '|' characters with no additional text."
       );
 
@@ -382,15 +383,15 @@ export function useAIActions(projectId: string | undefined) {
         }
       }
 
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: "Failed to generate suggestions",
         suggestions: defaultSuggestions
       };
     } catch (error) {
       console.error("Error getting suggestions:", error);
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: "Failed to generate suggestions",
         suggestions: defaultSuggestions
       };

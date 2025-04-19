@@ -11,17 +11,17 @@ import { PendingAction } from "../types";
 export function useAIMessages(projectId: string | undefined, open: boolean) {
   const [input, setInput] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
-  
-  const { 
-    messages: storedMessages, 
-    isTyping, 
-    setIsTyping, 
-    addMessage, 
-    pendingAction, 
+
+  const {
+    messages: storedMessages,
+    isTyping,
+    setIsTyping,
+    addMessage,
+    pendingAction,
     setPendingAction,
-    getProjectMessages 
+    getProjectMessages
   } = useAIStore();
-  
+
   const projectMessages = projectId ? getProjectMessages(projectId) : [];
 
   // Scroll to bottom when new messages arrive or typing state changes
@@ -69,7 +69,7 @@ How can I assist you today?`,
             // Use the AI-generated welcome message
             addMessage(projectId, {
               role: "assistant",
-              content: result.message,
+              content: ('message' in result && result.message) ? result.message : 'Hello! I\'m Mate, your AI project assistant.',
               timestamp: new Date(),
             });
           }
@@ -103,7 +103,7 @@ How can I assist you today?`,
   // Add a user message
   const addUserMessage = (message: string) => {
     if (!projectId) return;
-    
+
     addMessage(projectId, {
       role: "user",
       content: message,
@@ -114,7 +114,7 @@ How can I assist you today?`,
   // Add an assistant message
   const addAssistantMessage = (message: string) => {
     if (!projectId) return;
-    
+
     addMessage(projectId, {
       role: "assistant",
       content: message,

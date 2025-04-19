@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 // Import the necessary functions
-import { storeEnhancedMessage } from "@/lib/ai";
+import { storeEnhancedMessage } from "@/lib/ai/memory/enhanced";
 
 /**
  * POST: Initialize project context

@@ -101,7 +101,7 @@ export async function createTask(
         status_key: statusKey, // Store the custom status key
         priority,
         project_id: projectId,
-        assignee_id: assigneeId,
+        created_by: assigneeId || 'unknown',
         due_date: dueDate,
       })
       .returning();
@@ -212,7 +212,7 @@ export async function updateTask(
                status === "DONE" ? "DONE" : task.status, // Map to enum values for backward compatibility
         status_key: statusKey, // Store the custom status key
         priority,
-        assignee_id: assigneeId,
+        // assignee_id is not in the schema, using created_by instead
         due_date: dueDate,
       })
       .where(eq(tasks.id, taskId))

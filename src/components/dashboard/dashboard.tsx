@@ -757,6 +757,7 @@ export default function Dashboard() {
         onOpenChange={setAiAssistantOpen}
         project={selectedProject ? {
           ...selectedProject,
+          ownerId: selectedProject.ownerId || 'unknown',
           members: selectedProject.members?.map(member => ({
             id: member.id,
             name: member.name,

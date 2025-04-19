@@ -34,7 +34,7 @@ const CACHE_EXPIRATION = 5 * 60 * 1000;
  * @param params - The parameters to check
  * @returns An array of missing parameter names
  */
-function checkRequiredParameters(toolName: string, params: Record<string, any>): string[] {
+function checkRequiredParameters(toolName: string, params: Record<string, unknown>): string[] {
   const missingParams: string[] = [];
 
   switch (toolName) {
@@ -85,7 +85,7 @@ function checkRequiredParameters(toolName: string, params: Record<string, any>):
  * @param toolName - The name of the tool
  * @param params - The parameters to validate and fix
  */
-function validateAndFixParameters(toolName: string, params: Record<string, any>): void {
+function validateAndFixParameters(toolName: string, params: Record<string, unknown>): void {
   // Fix common parameter naming issues across all tools
   if ('name' in params && !('title' in params) && (toolName === 'create_task' || toolName === 'update_task')) {
     params.title = params.name;
@@ -103,10 +103,8 @@ function validateAndFixParameters(toolName: string, params: Record<string, any>)
       // Ensure priority is valid
       if (params.priority && typeof params.priority === 'string') {
         const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
-        params.priority = params.priority.toUpperCase();
-        if (!validPriorities.includes(params.priority)) {
-          params.priority = 'MEDIUM';
-        }
+        const priorityStr = params.priority.toUpperCase();
+        params.priority = validPriorities.includes(priorityStr) ? priorityStr : 'MEDIUM';
       }
       break;
 
@@ -118,10 +116,8 @@ function validateAndFixParameters(toolName: string, params: Record<string, any>)
       // Ensure priority is valid
       if (params.priority && typeof params.priority === 'string') {
         const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT'];
-        params.priority = params.priority.toUpperCase();
-        if (!validPriorities.includes(params.priority)) {
-          params.priority = 'MEDIUM';
-        }
+        const priorityStr = params.priority.toUpperCase();
+        params.priority = validPriorities.includes(priorityStr) ? priorityStr : 'MEDIUM';
       }
       break;
 
@@ -154,10 +150,8 @@ function validateAndFixParameters(toolName: string, params: Record<string, any>)
       // Ensure color is valid
       if (params.color && typeof params.color === 'string') {
         const validColors = ['blue', 'green', 'red', 'yellow', 'purple', 'gray', 'pink', 'orange'];
-        params.color = params.color.toLowerCase();
-        if (!validColors.includes(params.color)) {
-          params.color = 'blue';
-        }
+        const colorStr = params.color.toLowerCase();
+        params.color = validColors.includes(colorStr) ? colorStr : 'blue';
       }
       break;
 
@@ -165,10 +159,8 @@ function validateAndFixParameters(toolName: string, params: Record<string, any>)
       // Ensure color is valid
       if (params.color && typeof params.color === 'string') {
         const validColors = ['blue', 'green', 'red', 'yellow', 'purple', 'gray', 'pink', 'orange'];
-        params.color = params.color.toLowerCase();
-        if (!validColors.includes(params.color)) {
-          params.color = 'blue';
-        }
+        const colorStr = params.color.toLowerCase();
+        params.color = validColors.includes(colorStr) ? colorStr : 'blue';
       }
       break;
   }
@@ -314,8 +306,8 @@ export async function createAgent(projectId: string) {
     const { getTaskStatuses } = await import("../langchain/tools");
 
     // Get task statuses for context
-    let taskStatuses = [];
-    let columnNames = [];
+    let taskStatuses: Array<{name: string; key: string; color?: string}> = [];
+    let columnNames: string[] = [];
     try {
       taskStatuses = await getTaskStatuses(projectId);
       columnNames = taskStatuses.map(status => status.name);
@@ -328,75 +320,76 @@ export async function createAgent(projectId: string) {
 
     // Load optimized system prompt template with examples of multiple tool usage and natural conversation
     const systemPromptTemplate = `
-${getEnhancedBasePrompt()}
+  ${getEnhancedBasePrompt()}
 
-${getEnhancedProjectContextSection(projectInfo, taskStatuses, columnNames, projectContext)}
+  ${getEnhancedProjectContextSection(projectInfo, taskStatuses, columnNames, projectContext)}
 
-Available Tools:
-${tools.map(t => `- ${t.name}: ${t.description}`).join('\n')}
+  Available Tools:
+  ${tools.map(t => `- ${t.name}: ${t.description}`).join('\n')}
 
-Rules:
-- Use tools for actions (create_task, move_task, etc.)
-- You can and should use MULTIPLE TOOLS in sequence when needed
-- Be conversational and natural in your responses
-- Use contractions, varied sentence structures, and natural language
-- Show personality and empathy in your responses
-- Format tool calls as: <tool>name</tool><parameters>{...}</parameters>
-- Never show raw JSON to users
+  Rules:
+  - Use tools for actions (create_task, move_task, etc.).
+  - You can and should use MULTIPLE TOOLS in sequence when needed.
+  - Be conversational and natural in your responses.
+  - Use contractions, varied sentence structures, and natural language.
+  - Show personality and empathy in your responses.
+  - Format tool calls as: <tool>name</tool><parameters>{...}</parameters>.
+  - Never show raw JSON to users.
+  - Make action decisions with caution and more context.
 
-${getEnhancedIntelligenceGuidelines()}
+  ${getEnhancedIntelligenceGuidelines()}
 
-Examples of tool usage:
+  Examples of tool usage:
 
-1. Creating a task:
-<tool>create_task</tool>
-<parameters>
-{
-  "title": "Implement login page",
-  "description": "Create a login page with email and password fields",
-  "status": "BACKLOG",
-  "priority": "HIGH"
-}
-</parameters>
+  1. Creating a task:
+  <tool>create_task</tool>
+  <parameters>
+  {
+    "title": "Implement login page",
+    "description": "Create a login page with email and password fields",
+    "status": "BACKLOG",
+    "priority": "HIGH"
+  }
+  </parameters>
 
-2. Moving a task:
-<tool>move_task</tool>
-<parameters>
-{
-  "taskId": "task-123",
-  "targetStatus": "DONE"
-}
-</parameters>
+  2. Moving a task:
+  <tool>move_task</tool>
+  <parameters>
+  {
+    "taskId": "task-123",
+    "targetStatus": "DONE"
+  }
+  </parameters>
 
-3. Creating a column:
-<tool>create_column</tool>
-<parameters>
-{
-  "name": "Testing",
-  "color": "purple"
-}
-</parameters>
+  3. Creating a column:
+  <tool>create_column</tool>
+  <parameters>
+  {
+    "name": "Testing",
+    "color": "purple"
+  }
+  </parameters>
 
-4. Using multiple tools in sequence (example):
-User: "Create a Testing column and then create a task for writing unit tests"
+  4. Using multiple tools in sequence (example):
+  User: "Create a Testing column and then create a task for writing unit tests."
 
-<tool>create_column</tool>
-<parameters>
-{
-  "name": "Testing",
-  "color": "purple"
-}
-</parameters>
+  <tool>create_column</tool>
+  <parameters>
+  {
+    "name": "Testing",
+    "color": "purple"
+  }
+  </parameters>
 
-<tool>create_task</tool>
-<parameters>
-{
-  "title": "Write unit tests",
-  "description": "Create comprehensive unit tests for the application",
-  "status": "TESTING",
-  "priority": "HIGH"
-}
-</parameters>
+  <tool>create_task</tool>
+  <parameters>
+  {
+    "title": "Write unit tests",
+    "description": "Create comprehensive unit tests for the application",
+    "status": "TESTING",
+    "priority": "HIGH"
+  }
+  </parameters>
     `.trim();
 
     // Create the system message with optimized instructions
@@ -553,9 +546,7 @@ User: "Create a Testing column and then create a task for writing unit tests"
                 }
 
                 // Generate a response that includes the tool result but in a natural way
-                const successMessage = parsedResult.success === false
-                  ? `The tool ${toolName} encountered an issue: ${parsedResult.error || 'Unknown error'}.`
-                  : `The tool ${toolName} was executed successfully.`;
+                // (Success message is handled by the user-friendly message generation)
 
                 // Create a user-friendly message based on the tool type with natural language variations
                 let userFriendlyMessage = '';
@@ -590,7 +581,7 @@ User: "Create a Testing column and then create a task for writing unit tests"
                       userFriendlyMessage = getRandomVariation(updateTaskVariations);
                       break;
                     case 'delete_task':
-                      const taskId = toolParams.taskId || 'the specified task';
+                      // Task ID is not needed in the response
                       const deleteTaskVariations = [
                         `I've removed that task for you.`,
                         `The task has been deleted.`,
@@ -623,7 +614,7 @@ User: "Create a Testing column and then create a task for writing unit tests"
                       userFriendlyMessage = getRandomVariation(updateColumnVariations);
                       break;
                     case 'delete_column':
-                      const columnId = toolParams.columnId || 'the specified column';
+                      // Column ID is not needed in the response
                       const deleteColumnVariations = [
                         `I've removed that column for you.`,
                         `The column has been deleted.`,
@@ -701,29 +692,12 @@ User: "Create a Testing column and then create a task for writing unit tests"
 
               // Check if we're likely to hit a rate limit before trying to get a follow-up response
               try {
-                // If we have tool results, we can just use those directly
-                // This avoids making an additional API call that might hit rate limits
-                if (uniqueToolResults.length > 0) {
-                  // Format the tool results into a natural response
-                  if (uniqueToolResults.length === 1) {
-                    return uniqueToolResults[0]; // Just return the single result directly
-                  } else {
-                    // For multiple results, create a more natural response
-                    const multipleActionsIntro = "I've completed multiple actions: ";
-                    const numberedResults = uniqueToolResults.map((result, index) =>
-                      `${index + 1}) ${result}`
-                    ).join("\n");
-                    return `${multipleActionsIntro}\n${numberedResults}`;
-                  }
-                }
-
-                // Skip follow-up response generation entirely to save tokens
-                // Just return the tool results directly
-
-                // Create the final response
-                let finalResponse;
+                // Simplified response generation to reduce code duplication and API calls
+                // Format the tool results into a natural response
                 if (uniqueToolResults.length === 1) {
-                  finalResponse = uniqueToolResults[0]; // Just return the single result directly
+                  // Cache and return the single result directly
+                  cacheResponse(cacheKey, uniqueToolResults[0]);
+                  return uniqueToolResults[0];
                 } else {
                   // For multiple results, create a more natural response with variations
                   const multipleActionsIntros = [
@@ -735,23 +709,23 @@ User: "Create a Testing column and then create a task for writing unit tests"
                   ];
                   const multipleActionsIntro = multipleActionsIntros[Math.floor(Math.random() * multipleActionsIntros.length)];
 
-                  // If there are only 2 actions, use a more natural format
+                  // Create the response based on number of actions
+                  let finalResponse;
                   if (uniqueToolResults.length === 2) {
                     finalResponse = `${multipleActionsIntro}\n\n1) ${uniqueToolResults[0]}\n2) ${uniqueToolResults[1]}\n\nIs there anything else you'd like me to help with?`;
                   } else {
-                    // For 3+ actions, use numbered list
                     const numberedResults = uniqueToolResults.map((result, index) =>
                       `${index + 1}) ${result}`
                     ).join("\n");
                     finalResponse = `${multipleActionsIntro}\n\n${numberedResults}\n\nIs there anything else you'd like me to do?`;
                   }
+
+                  // Cache the response
+                  cacheResponse(cacheKey, finalResponse);
+                  return finalResponse;
                 }
-
-                // Cache the response
-                cacheResponse(cacheKey, finalResponse);
-
-                return finalResponse;
-              } catch (error) {
+              }
+              catch (error) {
                 // Check if it's a rate limit error
                 const errorStr = String(error);
                 if (errorStr.includes('429') || errorStr.includes('rate_limit')) {

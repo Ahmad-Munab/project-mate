@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
       }
 
       // Set status to a valid enum value
-      updateData.status = enumStatus;
+      updateData.status = enumStatus as "BACKLOG" | "TODO" | "IN_PROGRESS" | "DONE";
 
       // If status_key is explicitly provided, use it, otherwise use status
       updateData.status_key = status_key || status;

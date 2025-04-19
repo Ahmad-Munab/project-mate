@@ -87,7 +87,8 @@ export async function createProject(formData: FormData) {
         console.error(`Error creating column ${column.name} (${column.key}):`, columnError);
 
         // If it's a duplicate key error, try to fetch the existing column
-        if (columnError.toString().includes('duplicate key value')) {
+        const errorMessage = columnError instanceof Error ? columnError.message : String(columnError);
+        if (errorMessage.includes('duplicate key value')) {
           console.log(`Column ${column.key} might already exist due to a race condition`);
         }
       }
@@ -152,7 +153,7 @@ export async function createProject(formData: FormData) {
     console.log(`Created ${createdTasks.length} tasks for project ${newProject.id}`);
 
     // Log task distribution across columns
-    const taskDistribution = {};
+    const taskDistribution: Record<string, number> = {};
     validColumnKeys.forEach(key => taskDistribution[key] = 0);
 
     createdTasks.forEach(task => {

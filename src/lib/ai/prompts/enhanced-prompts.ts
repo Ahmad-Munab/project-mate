@@ -46,38 +46,38 @@ When the user asks you to perform an action, do it immediately rather than just 
  * @returns Enhanced project context section
  */
 export function getEnhancedProjectContextSection(
-  projectInfo: Record<string, any> = {},
-  taskStatuses: Record<string, any>[] = [],
+  projectInfo: Record<string, unknown> = {},
+  taskStatuses: Array<{name: string; key: string; color?: string}> = [],
   columnNames: string[] = [],
   vectorContext?: string
 ): string {
   // Ensure tasks array exists
-  const tasks = Array.isArray(projectInfo?.tasks) ? projectInfo.tasks : [];
+  const tasks = Array.isArray((projectInfo as any).tasks) ? (projectInfo as any).tasks : [];
 
   // Calculate task statistics
   const totalTasks = tasks.length;
-  const tasksByStatus = {};
+  const tasksByStatus: Record<string, number> = {};
 
   if (Array.isArray(taskStatuses)) {
     taskStatuses.forEach(status => {
       if (status && status.name && status.key) {
-        tasksByStatus[status.name] = tasks.filter(task => task && task.status_key === status.key).length;
+        tasksByStatus[status.name] = tasks.filter((task: any) => task && task.status_key === status.key).length;
       }
     });
   }
 
   const tasksByPriority = {
-    LOW: tasks.filter(task => task && task.priority === "LOW").length,
-    MEDIUM: tasks.filter(task => task && task.priority === "MEDIUM").length,
-    HIGH: tasks.filter(task => task && task.priority === "HIGH").length,
-    URGENT: tasks.filter(task => task && task.priority === "URGENT").length,
+    LOW: tasks.filter((task: any) => task && task.priority === "LOW").length,
+    MEDIUM: tasks.filter((task: any) => task && task.priority === "MEDIUM").length,
+    HIGH: tasks.filter((task: any) => task && task.priority === "HIGH").length,
+    URGENT: tasks.filter((task: any) => task && task.priority === "URGENT").length,
   };
 
   // Get recent tasks (last 5)
   const recentTasks = tasks.length > 0 ?
     [...tasks]
-      .filter(task => task && (task.updated_at || task.created_at))
-      .sort((a, b) => {
+      .filter((task: any) => task && (task.updated_at || task.created_at))
+      .sort((a: any, b: any) => {
         const dateA = a.updated_at || a.created_at;
         const dateB = b.updated_at || b.created_at;
         return new Date(dateB).getTime() - new Date(dateA).getTime();
@@ -86,13 +86,13 @@ export function getEnhancedProjectContextSection(
     [];
 
   return `
-You are currently assisting with the project "${projectInfo?.project?.name || 'Unnamed Project'}".
+You are currently assisting with the project "${(projectInfo as any)?.project?.name || 'Unnamed Project'}".
 
-Project description: ${projectInfo?.project?.description || "No description provided"}
+Project description: ${(projectInfo as any)?.project?.description || "No description provided"}
 
 Project overview:
 - ${totalTasks} total tasks
-- ${Array.isArray(projectInfo?.members) ? projectInfo.members.length : 0} team members
+- ${Array.isArray((projectInfo as any).members) ? (projectInfo as any).members.length : 0} team members
 - ${taskStatuses.length} workflow columns: ${columnNames.join(', ')}
 
 Task distribution:
@@ -107,7 +107,7 @@ ${Object.entries(tasksByPriority).filter(([, count]) => count > 0).length > 0 ?
 
 Recent activity:
 ${recentTasks.length > 0 ?
-  recentTasks.map(task => `- ${task.title || 'Untitled'} (${task.status || 'Unknown'}, ${task.priority || 'Medium'})`).join('\n') :
+  recentTasks.map((task: any) => `- ${task.title || 'Untitled'} (${task.status || 'Unknown'}, ${task.priority || 'Medium'})`).join('\n') :
   "No recent activity"}
 
 ${vectorContext ? `Relevant project context:\n${vectorContext}` : ""}
@@ -140,35 +140,7 @@ INTELLIGENCE GUIDELINES:
   `.trim();
 }
 
-/**
- * Get enhanced contextual instruction
- * @param conversationSummary Summary of the recent conversation
- * @param userMessage The current user message
- * @returns Enhanced contextual instruction
- */
-export function getEnhancedContextualInstruction(
-  conversationSummary: string,
-  userMessage: string
-): string {
-  return `
-CONVERSATION CONTEXT:
-${conversationSummary}
-
-CURRENT USER MESSAGE: "${userMessage}"
-
-RESPONSE GUIDELINES:
-1. Analyze the conversation flow and user's intent deeply
-2. Respond directly to the current message while maintaining perfect context awareness
-3. Be exceptionally natural, intelligent, and helpful
-4. If the user seems frustrated, be extra precise and helpful
-5. If appropriate, take immediate action rather than just responding
-6. Show your understanding of the project context in your response
-7. Be concise but thorough - address exactly what the user is asking
-8. Use natural, conversational language as a brilliant colleague would
-9. If technical details are requested, provide accurate, specific information
-10. If the user is asking for an opinion or recommendation, provide one confidently
-  `.trim();
-}
+// Removed unused getEnhancedContextualInstruction function
 
 /**
  * Get enhanced agent type instructions
@@ -203,46 +175,7 @@ Balance creativity with practicality to ensure suggestions are valuable and impl
     `,
   };
 
-  return (instructions[agentType.toLowerCase()] || instructions.conversational).trim();
+  return (instructions[agentType.toLowerCase() as keyof typeof instructions] || instructions.conversational).trim();
 }
 
-/**
- * Get enhanced multi-agent system prompt
- * @param projectInfo Project information
- * @param agentType Agent type
- * @param projectContext Project context
- * @returns Enhanced multi-agent system prompt
- */
-export function getEnhancedMultiAgentPrompt(
-  projectInfo: Record<string, any> = {},
-  agentType: string = 'conversational',
-  projectContext: string = ''
-): string {
-  // Base prompt that all agents share
-  const basePrompt = getEnhancedBasePrompt();
-
-  // Project context section
-  const projectContextSection = `
-Project: ${projectInfo?.project?.name || "Unknown Project"}
-Description: ${projectInfo?.project?.description || "No description provided"}
-
-${projectContext ? `Project Context:\n${projectContext}\n\n` : ''}
-  `.trim();
-
-  // Agent type specific instructions
-  const agentTypeInstructions = getEnhancedAgentTypeInstructions(agentType);
-
-  // Intelligence guidelines
-  const intelligenceGuidelines = getEnhancedIntelligenceGuidelines();
-
-  // Combine all sections
-  return `
-${basePrompt}
-
-${projectContextSection}
-
-${agentTypeInstructions}
-
-${intelligenceGuidelines}
-  `.trim();
-}
+// Removed unused getEnhancedMultiAgentPrompt function

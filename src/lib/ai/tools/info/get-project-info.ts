@@ -32,18 +32,18 @@ export function getProjectInfoTool(projectId: string) {
         // Format the response to be more user-friendly
         const taskCount = info.tasks ? info.tasks.length : 0;
         const memberCount = info.members ? info.members.length : 0;
-        
+
         // Calculate task distribution by status
-        const tasksByStatus = {};
+        const tasksByStatus: Record<string, number> = {};
         if (info.tasks && info.tasks.length > 0) {
           info.tasks.forEach(task => {
             const status = task.status || 'Unknown';
             tasksByStatus[status] = (tasksByStatus[status] || 0) + 1;
           });
         }
-        
+
         // Calculate task distribution by priority
-        const tasksByPriority = {};
+        const tasksByPriority: Record<string, number> = {};
         if (info.tasks && info.tasks.length > 0) {
           info.tasks.forEach(task => {
             const priority = task.priority || 'Unknown';

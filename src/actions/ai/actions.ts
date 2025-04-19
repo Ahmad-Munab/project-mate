@@ -114,8 +114,10 @@ export async function createTaskViaAI(
               );
 
               // Add the new column to our options
-              columnOptions.push(`"${newColumn.key}": "${newColumn.name}"`);
-              newColumnKey = newColumn.key;
+              if (newColumn) {
+                columnOptions.push(`"${newColumn.key}": "${newColumn.name}"`);
+                newColumnKey = newColumn.key;
+              }
             } else {
               // Use the existing similar column
               newColumnKey = similarColumn.key;
@@ -191,7 +193,7 @@ export async function createTaskViaAI(
     );
 
     // Prepare the response message
-    let responseMessage = `I've created a new task:\n\nTitle: ${task.title}\nDescription: ${task.description}\nStatus: ${task.status}\nPriority: ${task.priority}`;
+    let responseMessage = task ? `I've created a new task:\n\nTitle: ${task.title}\nDescription: ${task.description}\nStatus: ${task.status}\nPriority: ${task.priority}` : "Failed to create task";
 
     // Add information about the column if a new one was created
     if (shouldCreateNewColumn && newColumnName) {
@@ -199,15 +201,26 @@ export async function createTaskViaAI(
     }
 
     // Store the action in memory
-    await storeEnhancedMessage(
-      projectId,
-      {
-        role: "assistant",
-        content: responseMessage,
-        timestamp: new Date(),
-      },
-      task.id
-    );
+    if (task) {
+      await storeEnhancedMessage(
+        projectId,
+        {
+          role: "assistant",
+          content: responseMessage,
+          timestamp: new Date(),
+        },
+        task.id.toString()
+      );
+    } else {
+      await storeEnhancedMessage(
+        projectId,
+        {
+          role: "assistant",
+          content: responseMessage,
+          timestamp: new Date(),
+        }
+      );
+    }
 
     // Return success with task details
     return {
@@ -346,7 +359,7 @@ export async function createColumnViaAI(
       projectId,
       {
         role: "assistant",
-        content: `I've created a new column:\n\nName: ${column.name}\nColor: ${column.color}`,
+        content: column ? `I've created a new column:\n\nName: ${column.name}\nColor: ${column.color}` : "Failed to create column",
         timestamp: new Date(),
       }
     );
@@ -355,7 +368,7 @@ export async function createColumnViaAI(
     return {
       success: true,
       column,
-      message: `I've created a new column:\n\nName: ${column.name}\nColor: ${column.color}`
+      message: column ? `I've created a new column:\n\nName: ${column.name}\nColor: ${column.color}` : "Failed to create column"
     };
   } catch (error) {
     console.error("Failed to create column via AI:", error);
@@ -1051,7 +1064,11 @@ export async function updateTasksWithSolutionsViaAI(
 
     // List the tasks with solutions
     updatedTasks.forEach((task, index) => {
-      message += `${index + 1}. **"${task.title}"** (${task.status}, ${task.priority})\n`;
+      if (task) {
+        message += `${index + 1}. **"${task.title}"** (${task.status}, ${task.priority})\n`;
+      } else {
+        message += `${index + 1}. **Task not found**\n`;
+      }
     });
 
     return {
@@ -1627,7 +1644,11 @@ export async function updateAllTasksWithSolutions(
 
     // List the tasks with solutions
     updatedTasks.forEach((task, index) => {
-      message += `${index + 1}. **"${task.title}"** (${task.status}, ${task.priority})\n`;
+      if (task) {
+        message += `${index + 1}. **"${task.title}"** (${task.status}, ${task.priority})\n`;
+      } else {
+        message += `${index + 1}. **Task not found**\n`;
+      }
     });
 
     return {

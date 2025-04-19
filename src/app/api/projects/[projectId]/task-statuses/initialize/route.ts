@@ -81,7 +81,8 @@ export async function POST(
         console.error(`Error creating status ${status.key}:`, statusError);
 
         // If it's a duplicate key error, try to fetch the existing status
-        if (statusError.toString().includes('duplicate key value violates unique constraint')) {
+        const errorMessage = statusError instanceof Error ? statusError.message : String(statusError);
+        if (errorMessage.includes('duplicate key value violates unique constraint')) {
           try {
             // Fetch the existing status
             const existingStatus = await db.query.projectTaskStatuses.findFirst({

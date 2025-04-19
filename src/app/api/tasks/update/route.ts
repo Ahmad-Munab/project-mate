@@ -78,7 +78,7 @@ export async function PATCH(request: Request) {
     const [updatedTask] = await db.update(tasks)
       .set({
         // For the enum field, use a mapped value that's in the enum
-        status: enumStatus,
+        status: enumStatus as "BACKLOG" | "TODO" | "IN_PROGRESS" | "DONE",
         // Always update the status_key to the requested value - this is what we actually use
         status_key: status
       })

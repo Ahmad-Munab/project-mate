@@ -49,9 +49,21 @@ export async function GET(request: NextRequest) {
             const membersWithDefaults = members.map((member) => {
                 // Handle potentially undefined metadata
                 const metadata = member.metadata || {};
-                const email = typeof metadata === 'string' ? JSON.parse(metadata)?.email || '' : metadata?.email || '';
-                const fullName = typeof metadata === 'string' ? JSON.parse(metadata)?.full_name || '' : metadata?.full_name || '';
-                const avatarUrl = typeof metadata === 'string' ? JSON.parse(metadata)?.avatar_url || '' : metadata?.avatar_url || '';
+                let parsedMetadata: Record<string, any> = {};
+
+                if (typeof metadata === 'string') {
+                    try {
+                        parsedMetadata = JSON.parse(metadata) || {};
+                    } catch (e) {
+                        console.error('Failed to parse metadata string:', e);
+                    }
+                } else {
+                    parsedMetadata = metadata as Record<string, any>;
+                }
+
+                const email = parsedMetadata.email || '';
+                const fullName = parsedMetadata.full_name || '';
+                const avatarUrl = parsedMetadata.avatar_url || '';
 
                 return {
                     ...member,

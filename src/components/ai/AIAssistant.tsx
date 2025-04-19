@@ -189,7 +189,7 @@ export function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
 
     const result = await createMultipleTasks(taskDescription);
 
-    if (result.success) {
+    if (result && result.success) {
       setInput("");
     }
   }, [project?.id, createMultipleTasks, setInput]);
@@ -215,7 +215,7 @@ export function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
 
     const result = await deleteTask(taskDesc);
 
-    if (result.success && result.needsConfirmation) {
+    if (result && result.success && 'needsConfirmation' in result && result.needsConfirmation) {
       // Store the pending action
       setPendingAction({
         type: "DELETE_TASK",
