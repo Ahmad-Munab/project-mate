@@ -7,7 +7,6 @@
 import { BufferMemory, ChatMessageHistory } from "langchain/memory";
 import { AIMessage as LangChainAIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { OpenAIEmbeddings } from "@langchain/openai";
 import { GroqEmbeddings } from "@langchain/groq";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
