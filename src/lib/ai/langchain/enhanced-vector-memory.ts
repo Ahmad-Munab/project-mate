@@ -15,7 +15,6 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { aiSuggestions } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { ChatGroq } from "@langchain/groq";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RunnableSequence } from "@langchain/core/runnables";
