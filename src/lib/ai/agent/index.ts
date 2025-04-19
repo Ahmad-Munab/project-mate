@@ -29,12 +29,12 @@ const modelConfig = {
  */
 export async function createAgent(projectId: string) {
   try {
-    // Get project context using the enhanced vector memory system
-    const { createEnhancedMemory } = await import("../langchain/enhanced-vector-memory");
-    const memory = await createEnhancedMemory(projectId);
+    // Get project context using the simple memory system
+    const { createSimpleMemory } = await import("../langchain/simple-memory");
+    const memory = await createSimpleMemory(projectId);
     await memory.initialize();
 
-    // Get context from the vector memory
+    // Get context from the memory
     const projectContext = await memory.getContext("What is the current state of the project?");
 
     // Get project info

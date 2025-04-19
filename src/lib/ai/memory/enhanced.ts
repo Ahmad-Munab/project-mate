@@ -3,13 +3,13 @@
  * Uses LangChain for memory management and RAG
  */
 
-import { getProjectInfo, getTaskStatuses } from "../langchain/tools";
+import { getProjectInfo } from "../langchain/tools";
 
 /**
  * AI Message interface
  */
 export interface AIMessage {
-  role: string;
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
 }
@@ -43,14 +43,14 @@ export async function storeEnhancedMessage(
       }
     }
 
-    // Store in vector memory
+    // Store in simple memory
     try {
-      const { createEnhancedMemory, MemorySegmentType } = await import("../langchain/enhanced-vector-memory");
-      const memory = await createEnhancedMemory(projectId);
+      const { createSimpleMemory } = await import("../langchain/simple-memory");
+      const memory = await createSimpleMemory(projectId);
       await memory.initialize();
-      await memory.storeMessage(message, MemorySegmentType.CONVERSATION, taskId);
-    } catch (vectorError) {
-      console.error("Error storing message in vector memory:", vectorError);
+      await memory.storeMessage(message, taskId);
+    } catch (memoryError) {
+      console.error("Error storing message in memory:", memoryError);
     }
 
     return true;
@@ -63,16 +63,16 @@ export async function storeEnhancedMessage(
 // Get project context for a query
 export async function getEnhancedProjectContext(projectId: string, query: string = "What is the current state of the project?"): Promise<string> {
   try {
-    // Use the enhanced vector memory to get context
-    const { createEnhancedMemory } = await import("../langchain/enhanced-vector-memory");
-    const memory = await createEnhancedMemory(projectId);
+    // Use the simple memory to get context
+    const { createSimpleMemory } = await import("../langchain/simple-memory");
+    const memory = await createSimpleMemory(projectId);
     await memory.initialize();
 
-    // Get context from the vector memory
-    const vectorContext = await memory.getContext(query);
+    // Get context from the memory
+    const memoryContext = await memory.getContext(query);
 
-    if (vectorContext) {
-      return vectorContext;
+    if (memoryContext) {
+      return memoryContext;
     }
 
     // Fallback to basic context if vector memory fails
@@ -83,9 +83,7 @@ export async function getEnhancedProjectContext(projectId: string, query: string
       return "You are an AI project assistant named 'Mate'. I couldn't retrieve the project information.";
     }
 
-    // Get task statuses (columns)
-    const taskStatuses = await getTaskStatuses(projectId) || [];
-    const columnNames = taskStatuses.map(status => status.name || 'Unnamed');
+    // No need to get task statuses for basic context
 
     // Create a basic system message with minimal context
     const systemMessage = `

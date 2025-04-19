@@ -8,7 +8,6 @@ import {
     uniqueIndex,
     boolean,
     integer,
-    jsonb,
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", ["OWNER", "MANAGER", "MEMBER"]);
@@ -172,20 +171,4 @@ export const messages = pgTable("messages", {
     created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Custom vector type for pgvector extension
-export const vector = () => {
-    return text("embedding").$type<string>();
-};
 
-// AI embeddings table for vector search
-export const aiEmbeddings = pgTable("ai_embeddings", {
-    id: uuid("id").primaryKey().defaultRandom(),
-    project_id: uuid("project_id")
-        .references(() => projects.id)
-        .notNull(),
-    task_id: uuid("task_id").references(() => tasks.id),
-    content: text("content").notNull(),
-    embedding: vector(), // Vector embedding
-    metadata: jsonb("metadata"),
-    created_at: timestamp("created_at").defaultNow(),
-});
