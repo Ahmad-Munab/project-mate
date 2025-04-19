@@ -44,9 +44,15 @@ export const generateProjectPlan = async (
     // Use the LangChain-based project structure generator
     const result = await aiGenerateProjectPlan(idea);
 
+    // If the AI generation failed completely, throw an error
+    if (!result) {
+      throw new Error("Failed to generate project plan");
+    }
+
     // Validate basic structure
-    if (!result.columns || !result.tasks) {
-      throw new Error("Response missing required fields");
+    if (!result.columns || !Array.isArray(result.columns) || !result.tasks || !Array.isArray(result.tasks)) {
+      console.error("Missing or invalid structure in AI response");
+      throw new Error("AI failed to generate a valid project structure. Please try again with a more detailed description.");
     }
 
     // Use the name and description from the AI response, or fall back to defaults

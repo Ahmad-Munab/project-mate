@@ -40,7 +40,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
-import AIAssistant from "./ai-assistant"
+import AIAssistant from "@/components/ai/AIAssistant"
 
 import { getProjects } from "@/app/actions/projects";
 import { useProjectStore } from "@/store/projectStore";

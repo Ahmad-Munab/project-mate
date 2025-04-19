@@ -1,6 +1,6 @@
 "use client"
 
-import AIFloatingButton from "./ai-floating-button"
+import AIFloatingButton from "@/components/ai/AIFloatingButton"
 
 type Project = {
   id: string;

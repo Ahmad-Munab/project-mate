@@ -46,16 +46,21 @@ export async function GET(request: NextRequest) {
                 return NextResponse.json([]);
             }
 
-            const membersWithDefaults = members.map((member) => ({
-                ...member,
-                email: member.metadata?.email || "",
-                name:
-                    member.metadata?.full_name ||
-                    member.metadata?.email?.split("@")?.[0] ||
-                    "Unknown User",
-                avatar: member.metadata?.avatar_url || "",
-                metadata: undefined,
-            }));
+            const membersWithDefaults = members.map((member) => {
+                // Handle potentially undefined metadata
+                const metadata = member.metadata || {};
+                const email = typeof metadata === 'string' ? JSON.parse(metadata)?.email || '' : metadata?.email || '';
+                const fullName = typeof metadata === 'string' ? JSON.parse(metadata)?.full_name || '' : metadata?.full_name || '';
+                const avatarUrl = typeof metadata === 'string' ? JSON.parse(metadata)?.avatar_url || '' : metadata?.avatar_url || '';
+
+                return {
+                    ...member,
+                    email: email,
+                    name: fullName || email.split('@')[0] || 'Unknown User',
+                    avatar: avatarUrl,
+                    metadata: undefined,
+                };
+            });
 
             console.log(
                 `API: Found ${membersWithDefaults.length} members for project ${projectId}`

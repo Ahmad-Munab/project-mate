@@ -1,16 +1,8 @@
 /**
- * Info Tools
- * This file exports all info-related tools
+ * Info Tools Index
+ * This file exports all information-related tools
  */
 
-export {
-  getProjectInfo,
-  getProjectInfoTool,
-} from './project-info';
-
-export {
-  searchTasks,
-  searchTasksTool,
-  searchTasksByDescription,
-  searchTasksByDescriptionTool,
-} from './search';
+export { getProjectInfoTool } from './get-project-info';
+export { getProjectTasksTool } from './get-project-tasks';
+export { getTaskStatusesTool } from './get-task-statuses';

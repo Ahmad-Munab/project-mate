@@ -1,28 +1,9 @@
 /**
- * Task Tools
+ * Task Tools Index
  * This file exports all task-related tools
  */
 
-export {
-  getTaskStatuses,
-  getTaskStatusesTool,
-  createTaskStatus,
-  createTaskStatusTool,
-  updateTaskStatus,
-  updateTaskStatusTool,
-  deleteTaskStatus,
-  deleteTaskStatusTool,
-} from './task-status';
-
-export {
-  getProjectTasks,
-  getProjectTasksTool,
-  createTask,
-  createTaskTool,
-  updateTask,
-  updateTaskTool,
-  deleteTask,
-  deleteTaskTool,
-  moveTask,
-  moveTaskTool,
-} from './task-operations';
+export { createTaskTool } from './create-task';
+export { updateTaskTool } from './update-task';
+export { deleteTaskTool } from './delete-task';
+export { moveTaskTool } from './move-task';

@@ -136,6 +136,16 @@ export async function sendMessage(
       };
     }
 
+    // Check for rate limit errors
+    const errorStr = String(error);
+    if (errorStr.includes('429') || errorStr.includes('rate_limit')) {
+      return {
+        message: 'Rate limit reached. Please try again in a few minutes or use a shorter message.',
+        timestamp: new Date(),
+        error: true,
+      };
+    }
+
     return {
       message: 'Sorry, I encountered an error while processing your message. Please try again.',
       timestamp: new Date(),
@@ -209,6 +219,16 @@ export async function performAction(
     if (error instanceof DOMException && error.name === 'AbortError') {
       return {
         message: 'The action took too long to process. Please try a simpler action or try again later.',
+        timestamp: new Date(),
+        error: true,
+      };
+    }
+
+    // Check for rate limit errors
+    const errorStr = String(error);
+    if (errorStr.includes('429') || errorStr.includes('rate_limit')) {
+      return {
+        message: 'Rate limit reached. Please try again in a few minutes or use a simpler action.',
         timestamp: new Date(),
         error: true,
       };

@@ -7,12 +7,69 @@ import { ChatGroq } from "@langchain/groq";
 import { storeEnhancedMessage } from "../memory/enhanced";
 
 /**
+ * Retry AI generation with a minimal prompt when initial generation fails
+ * @param projectDescription - The description of the project
+ * @param model - The ChatGroq model instance
+ * @returns A project plan or null if generation fails
+ */
+async function retryAIGeneration(projectDescription: string, model: ChatGroq) {
+  try {
+    console.log("Retrying AI generation with minimal prompt...");
+
+    // Create a more structured prompt for retry that ensures multiple columns and tasks
+    const retryPrompt = `JSON project plan for "${projectDescription}":
+{
+  "name": "${projectDescription.split(' ').slice(0, 3).join(' ')}",
+  "description": "${projectDescription}",
+  "columns": [
+    {"name": "Backlog", "key": "BACKLOG", "color": "bg-gray-50 dark:bg-gray-900"},
+    {"name": "Planning", "key": "PLANNING", "color": "bg-blue-50 dark:bg-blue-900/20"},
+    {"name": "Frontend", "key": "FRONTEND", "color": "bg-indigo-50 dark:bg-indigo-900/20"},
+    {"name": "Backend", "key": "BACKEND", "color": "bg-green-50 dark:bg-green-900/20"},
+    {"name": "Testing", "key": "TESTING", "color": "bg-purple-50 dark:bg-purple-900/20"},
+    {"name": "Done", "key": "DONE", "color": "bg-emerald-50 dark:bg-emerald-900/20"}
+  ],
+  "tasks": [
+    {"title": "Initial project setup", "description": "Set up project structure and dependencies", "status": "BACKLOG", "priority": "HIGH"},
+    {"title": "Create database models", "description": "Design and implement database schema", "status": "PLANNING", "priority": "HIGH"},
+    {"title": "Implement user authentication", "description": "Set up user login and registration", "status": "BACKEND", "priority": "HIGH"},
+    {"title": "Design UI components", "description": "Create reusable UI components", "status": "FRONTEND", "priority": "MEDIUM"},
+    {"title": "Write unit tests", "description": "Create tests for core functionality", "status": "TESTING", "priority": "MEDIUM"},
+    {"title": "Project documentation", "description": "Create comprehensive documentation", "status": "DONE", "priority": "LOW"}
+  ]
+}`;
+
+    // Call the model with the minimal prompt
+    const response = await model.invoke(retryPrompt);
+    const content = response.content as string;
+
+    // Try to extract JSON
+    const jsonMatch = content.match(/{[\s\S]*?}/);
+    if (jsonMatch) {
+      try {
+        const result = JSON.parse(jsonMatch[0]);
+        if (result && result.name && result.columns && result.tasks) {
+          return result;
+        }
+      } catch (e) {
+        console.error("Failed to parse retry response:", e);
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Retry AI generation failed:", error);
+    return null;
+  }
+}
+
+/**
  * Configuration for the project creator
  */
 const projectCreatorConfig = {
   model: "llama3-70b-8192",
   temperature: 0.7,
-  maxTokens: 2000,
+  maxTokens: 1000, // Reduced token limit to save on usage
 };
 
 /**
@@ -30,52 +87,34 @@ export async function generateProjectPlan(projectDescription: string) {
       maxTokens: projectCreatorConfig.maxTokens,
     });
 
-    // Create the prompt
+    // Create a comprehensive prompt to generate technical tasks and columns
     const prompt = `
-You are an expert project planner. You need to create a detailed project plan based on the following description:
+Create a detailed technical project plan for: "${projectDescription}"
 
-${projectDescription}
-
-Generate a project plan with the following:
-1. A concise project name (3-5 words)
-2. A brief project description (2-3 sentences)
-3. At least 4-6 different columns (task statuses) for organizing tasks (e.g., Backlog, Planning, Frontend, Backend, Testing, Done)
-4. A list of 10-15 tasks distributed across these columns (not all in Backlog)
-
-Format your response as JSON with the following structure:
+Return JSON with:
 {
-  "name": "Project Name",
-  "description": "Brief project description (2-3 sentences)",
+  "name": "Short name",
+  "description": "Brief description",
   "columns": [
-    {
-      "name": "Column name",
-      "key": "COLUMN_KEY", // Uppercase with underscores, e.g., BACKLOG, IN_PROGRESS, DONE
-      "color": "blue" // or green, red, yellow, purple, etc.
-    }
+    {"name": "Column name", "key": "COLUMN_KEY", "color": "blue"}
   ],
   "tasks": [
-    {
-      "title": "Task title",
-      "description": "Task description",
-      "status": "COLUMN_KEY", // Must match the key of one of the columns above
-      "priority": "HIGH" // or MEDIUM, LOW, URGENT
-    }
+    {"title": "Task title", "description": "Technical description with implementation details", "status": "COLUMN_KEY", "priority": "HIGH"}
   ]
 }
 
-Make sure to create appropriate columns beyond just "Backlog" and organize tasks into these columns.
-Create at least 3-5 columns and 10-15 tasks.
-Be specific and technical in your task descriptions.
-
-IMPORTANT RULES:
-1. You MUST include both "name" and "description" fields in your JSON response
-2. You MUST create at least 4-6 different columns (not just Backlog and Done)
-3. Each column MUST have a unique "key" field that is UPPERCASE with underscores (e.g., BACKLOG, FRONTEND, BACKEND, TESTING, DONE)
-4. Each task's "status" field MUST match the "key" of one of the columns (not the name)
-5. Tasks MUST be distributed across different columns (not all in Backlog)
-6. Always include a "BACKLOG" column
-7. Valid colors are: blue, green, red, yellow, purple, gray, pink, orange
-    `.trim();
+Rules:
+- Include 5-6 columns (MUST include BACKLOG, PLANNING, FRONTEND, BACKEND, TESTING, DONE)
+- Create 10-15 specific technical tasks distributed across all columns
+- Tasks should be detailed and technical, not generic
+- Include frontend tasks (UI components, state management, etc.)
+- Include backend tasks (API endpoints, database models, etc.)
+- Include testing tasks (unit tests, integration tests, etc.)
+- Keys must be UPPERCASE with underscores for spaces
+- Task status must match column keys exactly
+- Every column must have at least 1-2 tasks
+- BACKLOG column is required and should have 2-3 tasks
+`.trim();
 
     // Call the model
     const response = await model.invoke(prompt);
@@ -84,31 +123,71 @@ IMPORTANT RULES:
     const content = response.content as string;
     console.log("Raw AI response:", content.substring(0, 200) + "...");
 
-    const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/) || content.match(/```\n([\s\S]*?)\n```/) || content.match(/{[\s\S]*?}/);
+    // Improved JSON extraction with multiple regex patterns
+    let jsonString = "";
+    let parsedResult = null;
 
-    let parsedResult;
-    if (jsonMatch) {
-      const jsonString = jsonMatch[0].replace(/```json\n|```\n|```/g, '');
-      try {
-        parsedResult = JSON.parse(jsonString);
-      } catch (error) {
-        console.error("Failed to parse JSON from match:", error);
-        console.error("JSON string:", jsonString.substring(0, 200) + "...");
-        return null;
+    // Try different regex patterns to extract JSON
+    const patterns = [
+      /```json\n([\s\S]*?)\n```/, // ```json\n...\n```
+      /```\n([\s\S]*?)\n```/,     // ```\n...\n```
+      /```([\s\S]*?)```/,       // ```...```
+      /{[\s\S]*?"tasks":[\s\S]*?}/  // Raw JSON with tasks field
+    ];
+
+    // Try each pattern until we find a match
+    for (const pattern of patterns) {
+      const match = content.match(pattern);
+      if (match) {
+        // If the pattern has a capture group, use that, otherwise use the full match
+        jsonString = match[1] ? match[1] : match[0];
+        jsonString = jsonString.replace(/```json\n|```\n|```/g, '').trim();
+
+        try {
+          parsedResult = JSON.parse(jsonString);
+          if (parsedResult && typeof parsedResult === 'object') {
+            break; // Successfully parsed, exit the loop
+          }
+        } catch (e) {
+          console.log(`Failed to parse with pattern ${pattern}:`, e);
+          // Continue to the next pattern
+        }
       }
-    } else {
+    }
+
+    // If no pattern worked, try to find and extract just the JSON object
+    if (!parsedResult) {
+      try {
+        // Look for a JSON object with the expected structure
+        const jsonObjectMatch = content.match(/{[\s\S]*?"name"[\s\S]*?"description"[\s\S]*?"columns"[\s\S]*?"tasks"[\s\S]*?}/);
+        if (jsonObjectMatch) {
+          jsonString = jsonObjectMatch[0];
+          parsedResult = JSON.parse(jsonString);
+        }
+      } catch (error) {
+        console.error("Failed to extract JSON object:", error);
+      }
+    }
+
+    // Last resort: try to parse the entire content
+    if (!parsedResult) {
       try {
         parsedResult = JSON.parse(content);
       } catch (error) {
-        console.error("Failed to parse project plan:", error);
-        console.error("Content:", content.substring(0, 200) + "...");
-        return null;
+        console.error("Failed to parse entire content as JSON:", error);
+        console.error("Content sample:", content.substring(0, 300));
       }
+    }
+
+    // If we still don't have a valid result, retry with a simplified prompt
+    if (!parsedResult) {
+      console.warn("Initial AI generation failed, retrying with simplified prompt");
+      parsedResult = await retryAIGeneration(projectDescription, model);
     }
 
     // Validate the result has the required structure
     if (!parsedResult || !parsedResult.columns || !parsedResult.tasks) {
-      console.error("Invalid project plan structure:", parsedResult);
+      console.error("AI generation failed completely");
       return null;
     }
 
@@ -141,7 +220,7 @@ IMPORTANT RULES:
       ];
 
       // Get existing column keys
-      const existingKeys = parsedResult.columns.map(col => col.key);
+      const existingKeys = parsedResult.columns.map((col: {key: string}) => col.key);
 
       // Add missing columns
       for (const col of defaultColumns) {
@@ -151,23 +230,27 @@ IMPORTANT RULES:
       }
     }
 
+    // Define types for columns and tasks
+    type Column = { name: string; key: string; color?: string };
+    type Task = { title: string; description: string; status: string; priority: string };
+
     // Ensure tasks are distributed across columns
-    const columnKeys = parsedResult.columns.map(col => col.key);
+    const columnKeys = parsedResult.columns.map((col: Column) => col.key);
     const tasksPerColumn: Record<string, number> = {};
 
     // Initialize task counts
-    columnKeys.forEach(key => {
+    columnKeys.forEach((key: string) => {
       tasksPerColumn[key] = 0;
     });
 
     // Count tasks per column
-    parsedResult.tasks.forEach(task => {
+    parsedResult.tasks.forEach((task: Task) => {
       if (tasksPerColumn[task.status] !== undefined) {
         tasksPerColumn[task.status]++;
       } else {
         // If task has invalid status, set it to BACKLOG
         task.status = "BACKLOG";
-        tasksPerColumn["BACKLOG"]++;
+        tasksPerColumn["BACKLOG"] = (tasksPerColumn["BACKLOG"] || 0) + 1;
       }
     });
 
@@ -179,7 +262,7 @@ IMPORTANT RULES:
       console.log("Tasks not distributed, redistributing...");
 
       // Distribute tasks across columns
-      parsedResult.tasks.forEach((task, index) => {
+      parsedResult.tasks.forEach((task: Task, index: number) => {
         // Simple distribution algorithm
         const columnIndex = index % columnKeys.length;
         task.status = columnKeys[columnIndex];
@@ -187,7 +270,7 @@ IMPORTANT RULES:
     }
 
     // Ensure all columns have keys
-    parsedResult.columns = parsedResult.columns.map(column => {
+    parsedResult.columns = parsedResult.columns.map((column: Column) => {
       if (!column.key) {
         // Generate a key from the name if missing
         column.key = column.name.toUpperCase().replace(/\s+/g, '_');
@@ -249,12 +332,8 @@ export async function generateProjectDescription(projectTitle: string) {
       maxTokens: 200,
     });
 
-    // Create the prompt
-    const prompt = `
-Generate a brief but detailed project description for a project titled "${projectTitle}".
-The description should be 2-3 sentences long and explain what the project is about.
-Focus on technical aspects and be specific.
-    `.trim();
+    // Create a concise prompt
+    const prompt = `Write a 1-2 sentence technical description for: "${projectTitle}"`.trim();
 
     // Call the model
     const response = await model.invoke(prompt);

@@ -336,7 +336,7 @@ export function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-md p-0 flex flex-col h-full border-l"
+        className="w-full sm:max-w-md p-0 flex flex-col h-[100dvh] border-l overflow-hidden"
       >
         <AIHeader onClose={() => onOpenChange(false)} />
 
@@ -374,3 +374,6 @@ export function AIAssistant({ open, onOpenChange, project }: AIAssistantProps) {
     </Sheet>
   );
 }
+
+// Also export as default for easier imports
+export default AIAssistant;

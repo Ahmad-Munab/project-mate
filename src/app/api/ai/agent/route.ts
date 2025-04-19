@@ -50,9 +50,26 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Error processing message with agent:", error);
-    
+
+    // Check if it's a rate limit error
+    const errorStr = String(error);
+    if (errorStr.includes('429') || errorStr.includes('rate_limit')) {
+      return NextResponse.json(
+        {
+          message: "Rate limit reached. Please try again in a few minutes or use a shorter message.",
+          timestamp: new Date(),
+          error: true
+        },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Failed to process message" },
+      {
+        message: "Failed to process message. Please try again.",
+        timestamp: new Date(),
+        error: true
+      },
       { status: 500 }
     );
   }

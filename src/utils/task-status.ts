@@ -6,7 +6,7 @@ import { eq, and } from "drizzle-orm";
 import { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey } from "./task-status-client";
 import type { ValidStatusEnum } from "./task-status-client";
 
-// Server-side default statuses with more columns for better task organization
+// Minimal default statuses for when AI generation fails
 const SERVER_DEFAULT_STATUSES = [
   {
     name: "Backlog",
@@ -16,38 +16,17 @@ const SERVER_DEFAULT_STATUSES = [
     is_default: true,
   },
   {
-    name: "Planning",
-    key: "PLANNING",
+    name: "In Progress",
+    key: "IN_PROGRESS",
     color: "bg-blue-50 dark:bg-blue-900/20",
     order: 1,
-    is_default: false,
-  },
-  {
-    name: "Frontend",
-    key: "FRONTEND",
-    color: "bg-indigo-50 dark:bg-indigo-900/20",
-    order: 2,
-    is_default: false,
-  },
-  {
-    name: "Backend",
-    key: "BACKEND",
-    color: "bg-green-50 dark:bg-green-900/20",
-    order: 3,
-    is_default: false,
-  },
-  {
-    name: "Testing",
-    key: "TESTING",
-    color: "bg-purple-50 dark:bg-purple-900/20",
-    order: 4,
     is_default: false,
   },
   {
     name: "Done",
     key: "DONE",
     color: "bg-emerald-50 dark:bg-emerald-900/20",
-    order: 5,
+    order: 2,
     is_default: false,
   },
 ];
@@ -104,9 +83,14 @@ export async function moveTasksToStatus(
   fromStatusKey: string,
   toStatusKey: string
 ) {
+  // Map the custom status key to one of the enum values if possible, or use BACKLOG as default
+  const statusEnumValue = (['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE'].includes(toStatusKey))
+    ? toStatusKey as 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE'
+    : 'BACKLOG';
+
   await tx.update(tasks)
     .set({
-      status: isValidStatusEnum(toStatusKey) ? toStatusKey as ValidStatusEnum : 'BACKLOG',
+      status: statusEnumValue,
       status_key: toStatusKey
     })
     .where(and(

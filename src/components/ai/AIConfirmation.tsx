@@ -5,8 +5,10 @@
 
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Check, X } from "lucide-react";
+import { AlertCircle, Check, X, Trash, AlertTriangle } from "lucide-react";
 import { PendingAction } from "./types";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface AIConfirmationProps {
   pendingAction: PendingAction;
@@ -16,23 +18,60 @@ interface AIConfirmationProps {
 }
 
 // Use memo to prevent unnecessary re-renders
-export const AIConfirmation = memo(function AIConfirmation({ 
-  pendingAction, 
-  onConfirm, 
+export const AIConfirmation = memo(function AIConfirmation({
+  pendingAction,
+  onConfirm,
   onCancel,
   isProcessing = false
 }: AIConfirmationProps) {
+  const isDestructive = pendingAction.type?.includes("delete");
+
   return (
-    <div className="p-3 border-t">
-      <div className="flex items-center mb-2">
-        <AlertCircle className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
-        <h3 className="text-xs font-medium">Confirm Action</h3>
+    <motion.div
+      className="p-1.5 sm:p-2 border-t bg-white dark:bg-background"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="flex items-center mb-2.5">
+        {isDestructive ? (
+          <div className="relative mr-1.5">
+            <div className="absolute -inset-0.5 rounded-full bg-red-300 opacity-75 blur-[1px] animate-pulse"></div>
+            <div className="relative">
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+            </div>
+          </div>
+        ) : (
+          <div className="relative mr-1.5">
+            <div className="absolute -inset-0.5 rounded-full bg-green-200/70 opacity-75 blur-[1px] animate-pulse"></div>
+            <div className="relative">
+              <AlertCircle className="h-3.5 w-3.5 text-green-500" />
+            </div>
+          </div>
+        )}
+        <h3 className={cn(
+          "text-xs font-medium",
+          isDestructive ? "text-red-600" : "text-green-600 dark:text-green-400"
+        )}>
+          {isDestructive ? "Confirm Deletion" : "Confirm Action"}
+        </h3>
       </div>
-      <div className="flex gap-2 mt-2">
+
+      <motion.div
+        className="flex gap-2 mt-3"
+        initial={{ scale: 0.95, opacity: 0.8 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.2 }}
+      >
         <Button
           variant="outline"
           size="sm"
-          className="flex-1 h-8 text-xs border-muted hover:bg-destructive/10 hover:text-destructive transition-colors"
+          className={cn(
+            "flex-1 h-9 text-xs border-border/50 transition-all duration-200",
+            "hover:shadow-sm",
+            isProcessing && "opacity-50"
+          )}
           onClick={onCancel}
           disabled={isProcessing}
         >
@@ -40,9 +79,13 @@ export const AIConfirmation = memo(function AIConfirmation({
           Cancel
         </Button>
         <Button
-          variant="outline"
+          variant={isDestructive ? "destructive" : "outline"}
           size="sm"
-          className="flex-1 h-8 text-xs border-muted hover:bg-primary/10 hover:text-primary transition-colors"
+          className={cn(
+            "flex-1 h-9 text-xs transition-all duration-200",
+            isDestructive ? "" : "shadow-sm hover:shadow bg-green-500 text-white hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700",
+            isProcessing && "opacity-80"
+          )}
           onClick={onConfirm}
           disabled={isProcessing}
         >
@@ -50,12 +93,16 @@ export const AIConfirmation = memo(function AIConfirmation({
             <span className="animate-pulse">Processing...</span>
           ) : (
             <>
-              <Check className="h-3.5 w-3.5 mr-1.5" />
-              Confirm
+              {isDestructive ? (
+                <Trash className="h-3.5 w-3.5 mr-1.5" />
+              ) : (
+                <Check className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              {isDestructive ? "Delete" : "Confirm"}
             </>
           )}
         </Button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 });

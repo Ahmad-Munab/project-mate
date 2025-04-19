@@ -2,14 +2,8 @@
  * AI System
  * This file exports the main functions for interacting with the AI system
  * using a proper agent architecture with tools properly connected to the agent
+ * following the single responsibility principle
  */
-
-// Export the multi-agent orchestrator
-export {
-  processUserMessage,
-  processConversation,
-  AgentType
-} from './multi-agent';
 
 // Export the project creator
 export {
@@ -18,46 +12,39 @@ export {
   generateProjectDescription
 } from './tools/project-creator';
 
-// Export memory functions
-export {
-  storeEnhancedMessage,
-  getEnhancedProjectContext,
-  type AIMessage
-} from './memory/enhanced';
-
-// Export project info functions
-export {
-  getProjectInfo,
-} from './langchain/tools';
-
-// Export new agent implementation
+// Export agent implementation
 export {
   createAgent,
   runAgent,
   getAgentTools
 } from './agent/index';
 
-// Export tools
+// Export task tools
 export {
-  getProjectTools,
   createTaskTool,
   updateTaskTool,
   deleteTaskTool,
+  moveTaskTool
+} from './tools/task';
+
+// Export column tools
+export {
   createColumnTool,
   updateColumnTool,
-  deleteColumnTool,
-  moveTaskTool,
+  deleteColumnTool
+} from './tools/column';
+
+// Export info tools
+export {
   getProjectInfoTool,
-  getTaskStatuses,
-  createTask,
-  updateTask,
-  deleteTask,
-  getProjectTasks,
-  createTaskStatus,
-  updateTaskStatus,
-  deleteTaskStatus,
-  moveTask
-} from './langchain/tools';
+  getProjectTasksTool,
+  getTaskStatusesTool
+} from './tools/info';
+
+// Export all tools function
+export {
+  getAllTools
+} from './tools';
 
 // Export client-side functions
 export {
