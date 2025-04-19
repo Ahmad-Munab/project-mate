@@ -7,7 +7,7 @@
 import { BufferMemory, ChatMessageHistory } from "langchain/memory";
 import { AIMessage as LangChainAIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { OpenAIEmbeddings } from "@langchain/openai";
+import { OpenTextEmbeddings } from "./open-text-embeddings";
 import { ChatGroq } from "@langchain/groq";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
@@ -49,7 +49,7 @@ export enum MemorySegmentType {
 export class EnhancedVectorMemory {
   private projectId: string;
   private vectorStore: SupabaseVectorStore | null = null;
-  private embeddings: OpenAIEmbeddings;
+  private embeddings: OpenTextEmbeddings;
   private messageHistory: ChatMessageHistory;
   private supabase: any;
 
@@ -57,10 +57,8 @@ export class EnhancedVectorMemory {
     this.projectId = projectId;
     this.messageHistory = new ChatMessageHistory();
 
-    // Create OpenAI embeddings model using Open Text Embeddings API
-    this.embeddings = new OpenAIEmbeddings({
-      openAIApiKey: "free", // Not actually used by the API but required by the SDK
-      openAIApiBase: "https://api.opentextembeddings.com/v1",
+    // Create custom embeddings model using Open Text Embeddings API
+    this.embeddings = new OpenTextEmbeddings({
       modelName: "bge-large-en", // Using bge-large-en which has 1024 dimensions
       dimensions: 1024, // bge-large-en has 1024 dimensions
     });
@@ -530,10 +528,6 @@ export async function storeMessage(
   taskId?: string
 ): Promise<boolean> {
   try {
-    // Get the current user
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
     // Insert the message into the database as an AI suggestion
     await db.insert(aiSuggestions).values({
       projectId: projectId,
