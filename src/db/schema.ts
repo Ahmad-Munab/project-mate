@@ -8,6 +8,8 @@ import {
     uniqueIndex,
     boolean,
     integer,
+    jsonb,
+    index,
 } from "drizzle-orm/pg-core";
 
 export const userRoleEnum = pgEnum("user_role", ["OWNER", "MANAGER", "MEMBER"]);
@@ -170,3 +172,24 @@ export const messages = pgTable("messages", {
     created_by: uuid("created_by").references(() => authUsers.id),
     created_at: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Custom vector type for pgvector extension
+export const vector = (dimensions: number) => {
+    return text("embedding").$type<string>();
+};
+
+// AI embeddings table for vector search
+export const aiEmbeddings = pgTable("ai_embeddings", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    project_id: uuid("project_id")
+        .references(() => projects.id)
+        .notNull(),
+    task_id: uuid("task_id").references(() => tasks.id),
+    content: text("content").notNull(),
+    embedding: vector(1536), // OpenAI embeddings are 1536 dimensions
+    metadata: jsonb("metadata"),
+    created_at: timestamp("created_at").defaultNow(),
+}, (table) => ({
+    // Create an index for similarity search
+    embeddingIndex: index("ai_embeddings_embedding_idx").on(table.embedding),
+}));

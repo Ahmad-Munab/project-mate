@@ -7,8 +7,8 @@
 import { BufferMemory, ChatMessageHistory } from "langchain/memory";
 import { AIMessage as LangChainAIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { FakeEmbeddings } from "@langchain/core/utils/testing";
 import { OpenAIEmbeddings } from "@langchain/openai";
+import { GroqEmbeddings } from "@langchain/groq";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
 import { createClient } from "@/utils/supabase/server";
@@ -50,7 +50,7 @@ export enum MemorySegmentType {
 export class EnhancedVectorMemory {
   private projectId: string;
   private vectorStore: SupabaseVectorStore | null = null;
-  private embeddings: FakeEmbeddings;
+  private embeddings: GroqEmbeddings;
   private messageHistory: ChatMessageHistory;
   private supabase: any;
 
@@ -58,8 +58,10 @@ export class EnhancedVectorMemory {
     this.projectId = projectId;
     this.messageHistory = new ChatMessageHistory();
 
-    // Create fake embeddings model (no API key needed)
-    this.embeddings = new FakeEmbeddings();
+    // Create Groq embeddings model
+    this.embeddings = new GroqEmbeddings({
+      apiKey: process.env.GROQ_API_KEY!,
+    });
   }
 
   /**
@@ -90,7 +92,7 @@ export class EnhancedVectorMemory {
       // Create vector store
       const vectorStore = new SupabaseVectorStore(this.embeddings, {
         client: this.supabase,
-        tableName: "documents",
+        tableName: "ai_embeddings",
         queryName: "match_documents",
         filter: {
           project_id: this.projectId,
