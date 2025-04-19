@@ -7,7 +7,8 @@
 import { BufferMemory, ChatMessageHistory } from "langchain/memory";
 import { AIMessage as LangChainAIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { SupabaseVectorStore } from "@langchain/community/vectorstores/supabase";
-import { GroqEmbeddings } from "@langchain/groq";
+import { OpenAIEmbeddings } from "@langchain/openai";
+import { ChatGroq } from "@langchain/groq";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Document } from "@langchain/core/documents";
 import { createClient } from "@/utils/supabase/server";
@@ -49,7 +50,7 @@ export enum MemorySegmentType {
 export class EnhancedVectorMemory {
   private projectId: string;
   private vectorStore: SupabaseVectorStore | null = null;
-  private embeddings: GroqEmbeddings;
+  private embeddings: OpenAIEmbeddings;
   private messageHistory: ChatMessageHistory;
   private supabase: any;
 
@@ -57,9 +58,11 @@ export class EnhancedVectorMemory {
     this.projectId = projectId;
     this.messageHistory = new ChatMessageHistory();
 
-    // Create Groq embeddings model
-    this.embeddings = new GroqEmbeddings({
-      apiKey: process.env.GROQ_API_KEY!,
+    // Create OpenAI embeddings model
+    this.embeddings = new OpenAIEmbeddings({
+      openAIApiKey: process.env.OPENAI_API_KEY!,
+      modelName: "text-embedding-3-small",
+      dimensions: 1536,
     });
   }
 
