@@ -57,11 +57,12 @@ export class EnhancedVectorMemory {
     this.projectId = projectId;
     this.messageHistory = new ChatMessageHistory();
 
-    // Create OpenAI embeddings model
+    // Create OpenAI embeddings model using Open Text Embeddings API
     this.embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENAI_API_KEY!,
-      modelName: "text-embedding-3-small",
-      dimensions: 1536,
+      openAIApiKey: "free", // Not actually used by the API but required by the SDK
+      openAIApiBase: "https://api.opentextembeddings.com/v1",
+      modelName: "bge-large-en", // Using bge-large-en which has 1024 dimensions
+      dimensions: 1024, // bge-large-en has 1024 dimensions
     });
   }
 

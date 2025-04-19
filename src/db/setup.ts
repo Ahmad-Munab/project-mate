@@ -9,14 +9,14 @@ import { sql } from "drizzle-orm";
 async function setup() {
   try {
     console.log("Setting up database...");
-    
+
     // Enable pgvector extension
     console.log("Enabling pgvector extension...");
     await enablePgvector();
-    
+
     // Push schema
     console.log("Pushing schema...");
-    
+
     // Create the ai_embeddings table
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS ai_embeddings (
@@ -24,12 +24,15 @@ async function setup() {
         project_id UUID REFERENCES projects(id) NOT NULL,
         task_id UUID REFERENCES tasks(id),
         content TEXT NOT NULL,
-        embedding TEXT,
+        embedding TEXT, -- Will store vector data as text
         metadata JSONB,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
       );
+
+      -- Create a comment to document the embedding dimensions
+      COMMENT ON COLUMN ai_embeddings.embedding IS 'Vector embedding with 1024 dimensions using bge-large-en model';
     `);
-    
+
     console.log("Database setup complete!");
   } catch (error) {
     console.error("Error setting up database:", error);
