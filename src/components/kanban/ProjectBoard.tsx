@@ -389,39 +389,60 @@ export default function ProjectBoard({
     if (projectId) {
       setIsLoading(true);
 
-      // First fetch tasks
-      fetchProjectTasks(projectId)
-        .then(tasks => {
-          setProjectTasks(tasks);
+      const loadData = async () => {
+        try {
+          // Start both fetches in parallel
+          const taskPromise = initialTasks.length > 0
+            ? Promise.resolve(initialTasks)
+            : fetchProjectTasks(projectId);
 
-          // Then fetch task statuses
-          return fetchProjectTaskStatuses(projectId)
-            .then(statuses => {
-              console.log('Successfully fetched task statuses:', statuses);
-              setTaskStatuses(statuses);
+          const statusPromise = fetchProjectTaskStatuses(projectId);
 
-              // Set active column for mobile view to the first status
-              if (statuses.length > 0) {
-                setActiveColumn(statuses[0].key);
-              }
-            })
-            .catch(error => {
-              console.error("Error fetching task statuses:", error);
-              toast.error("Failed to load task statuses");
+          // Wait for both to complete
+          const [tasks, statuses] = await Promise.allSettled([
+            taskPromise,
+            statusPromise
+          ]);
 
-              // Set default statuses as fallback
-              const defaultStatuses = getDefaultTaskStatuses(projectId);
-              setTaskStatuses(defaultStatuses);
-              setActiveColumn('BACKLOG');
-            });
-        })
-        .catch(error => {
-          console.error("Error loading project tasks:", error);
-          toast.error("Failed to load project tasks");
-        })
-        .finally(() => setIsLoading(false));
+          // Handle tasks result
+          if (tasks.status === 'fulfilled') {
+            setProjectTasks(tasks.value);
+          } else {
+            console.error("Error fetching tasks:", tasks.reason);
+            // Don't show error toast if we already have initial tasks
+            if (initialTasks.length === 0) {
+              toast.error("Failed to load tasks");
+            }
+          }
+
+          // Handle statuses result
+          if (statuses.status === 'fulfilled') {
+            console.log('Successfully fetched task statuses:', statuses.value);
+            setTaskStatuses(statuses.value);
+
+            // Set active column for mobile view to the first status
+            if (statuses.value.length > 0) {
+              setActiveColumn(statuses.value[0].key);
+            }
+          } else {
+            console.error("Error fetching task statuses:", statuses.reason);
+            toast.error("Failed to load task statuses");
+
+            // Set default statuses as fallback
+            const defaultStatuses = getDefaultTaskStatuses(projectId);
+            setTaskStatuses(defaultStatuses);
+            setActiveColumn('BACKLOG');
+          }
+        } catch (error) {
+          console.error("Error loading board data:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadData();
     }
-  }, [projectId]);
+  }, [projectId, initialTasks]);
 
   const handleTaskUpdate = async (updatedTask: Task) => {
     if (!isOwner && !userIsManager && !can("canEdit")) {

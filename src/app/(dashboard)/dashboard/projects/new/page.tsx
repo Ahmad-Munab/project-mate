@@ -88,7 +88,13 @@ export default function NewProjectPage() {
         toast.dismiss();
         toast.success("Project created!");
 
-        router.push(`/dashboard/projects/${data.projectId}`);
+        // Add a small delay before navigation to ensure the toast is visible
+        // and to give the server a moment to complete any background tasks
+        setTimeout(() => {
+          // Use window.location for a full page refresh instead of router.push
+          // This can help with issues where the client-side navigation fails
+          window.location.href = `/dashboard/projects/${data.projectId}`;
+        }, 1500);
       } else {
         throw new Error("No project ID returned");
       }

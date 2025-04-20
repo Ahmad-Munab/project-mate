@@ -30,51 +30,60 @@ export default async function ProjectPage({
 
   console.log(`Project Page: Loading project ${projectId} for user ${user.id}`);
 
-  // Get the project details
-  const [project] = await db
-    .select()
-    .from(projects)
-    .where(eq(projects.id, projectId));
+  try {
+    // Get the project details
+    const [project] = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, projectId));
 
-  if (!project) {
-    console.log(`Project Page: Project ${projectId} not found`);
+    if (!project) {
+      console.log(`Project Page: Project ${projectId} not found`);
+      return (
+        <div className="flex items-center justify-center h-full">
+          <p>Project not found</p>
+        </div>
+      );
+    }
+
+    // Check if current user is the project owner
+    const isOwner = project.ownerId === user.id;
+    console.log(`Project Page: User is owner: ${isOwner}`);
+
+    // Get initial tasks (with a timeout to prevent blocking)
+    let initialTasks = [];
+    try {
+      // Set a timeout for task fetching to prevent blocking the page load
+      const taskPromise = getProjectTasks(projectId);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Task fetch timeout')), 2000)
+      );
+
+      initialTasks = await Promise.race([taskPromise, timeoutPromise]) as any[];
+    } catch (error) {
+      console.log(`Project Page: Error or timeout fetching tasks: ${error}`);
+      // Continue with empty tasks, they'll be loaded client-side
+    }
+
+    return (
+      <ProjectPageWrapper project={project}>
+        <Suspense fallback={<ProjectSkeleton />}>
+          <ProjectBoard
+            projectId={projectId}
+            initialTasks={initialTasks}
+            isOwner={isOwner}
+          />
+        </Suspense>
+      </ProjectPageWrapper>
+    );
+  } catch (error) {
+    console.error(`Project Page: Error loading project: ${error}`);
     return (
       <div className="flex items-center justify-center h-full">
-        <p>Project not found</p>
+        <p>Error loading project. Please try refreshing the page.</p>
       </div>
     );
   }
-
-  // Get the user's role in this project
-  const [membership] = await db
-    .select()
-    .from(projectMembers)
-    .where(
-      and(
-        eq(projectMembers.projectId, projectId),
-        eq(projectMembers.userId, user.id)
-      )
-    );
-
-  console.log(`Project Page: User membership:`, membership || 'none');
-
-  const initialTasks = await getProjectTasks(projectId);
-
-  // Check if current user is the project owner
-  const isOwner = project.ownerId === user.id;
-  console.log(`Project Page: User is owner: ${isOwner}`);
-
-  return (
-    <ProjectPageWrapper project={project}>
-      <Suspense fallback={<ProjectSkeleton />}>
-        <ProjectBoard
-          projectId={projectId}
-          initialTasks={initialTasks}
-          isOwner={isOwner}
-        />
-      </Suspense>
-    </ProjectPageWrapper>
-  );
 }
 
 
