@@ -22,9 +22,22 @@ export async function createProject(formData: FormData) {
   }
 
   try {
-    const plan = await generateProjectPlan(idea);
+    let plan;
+    try {
+      plan = await generateProjectPlan(idea);
+    } catch (planError) {
+      console.error('Error generating project plan:', planError);
+      const errorMessage = planError instanceof Error ? planError.message : 'Unknown error';
 
-    if (!plan.name || !plan.description || !Array.isArray(plan.tasks) || !Array.isArray(plan.columns)) {
+      // Check for rate limit errors
+      if (errorMessage.includes('rate limit') || errorMessage.includes('quota')) {
+        return { error: 'AI service rate limit exceeded. Please try again later.' };
+      }
+
+      return { error: 'Failed to generate project plan. Please try again with a different description.' };
+    }
+
+    if (!plan || !plan.name || !plan.description || !Array.isArray(plan.tasks) || !Array.isArray(plan.columns)) {
       console.error('Invalid plan structure:', plan);
       return { error: 'Invalid AI response structure' };
     }
