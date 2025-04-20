@@ -58,9 +58,28 @@ export default function NewProjectPage() {
         body: formData,
       });
 
-      const data = await response.json();
+      // Handle non-JSON responses
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.error("Error parsing JSON response:", jsonError);
+          throw new Error("Server returned invalid data. Please try again.");
+        }
+      } else {
+        // Handle non-JSON response
+        const textResponse = await response.text();
+        console.error("Non-JSON response received:", textResponse);
+        throw new Error("Server returned an unexpected response. Please try again.");
+      }
 
       if (!response.ok) {
+        // Handle specific status codes
+        if (response.status === 429) {
+          throw new Error("AI service rate limit exceeded. Please try again later.");
+        }
         throw new Error(data.error || "Failed to create project");
       }
 

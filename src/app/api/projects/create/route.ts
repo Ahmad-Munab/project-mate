@@ -36,6 +36,16 @@ export async function POST(request: Request) {
       plan = await generateProjectPlan(idea);
     } catch (planError) {
       console.error("Error generating project plan:", planError);
+      const errorMessage = planError instanceof Error ? planError.message : "Unknown error";
+
+      // Check for rate limit errors
+      if (errorMessage.includes("rate limit") || errorMessage.includes("quota")) {
+        return NextResponse.json(
+          { error: "AI service rate limit exceeded. Please try again later." },
+          { status: 429 }
+        );
+      }
+
       return NextResponse.json(
         { error: "Failed to generate project plan. Please try again with a different description." },
         { status: 500 }

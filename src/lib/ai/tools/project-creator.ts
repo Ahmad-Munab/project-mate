@@ -79,9 +79,15 @@ const projectCreatorConfig = {
  */
 export async function generateProjectPlan(projectDescription: string) {
   try {
+    // Check if API key is available
+    if (!process.env.GROQ_API_KEY) {
+      console.error("GROQ_API_KEY is not defined in environment variables");
+      throw new Error("API key configuration error");
+    }
+
     // Create a model
     const model = new ChatGroq({
-      apiKey: process.env.GROQ_API_KEY!,
+      apiKey: process.env.GROQ_API_KEY,
       model: projectCreatorConfig.model,
       temperature: projectCreatorConfig.temperature,
       maxTokens: projectCreatorConfig.maxTokens,
@@ -281,7 +287,28 @@ Rules:
     return parsedResult;
   } catch (error) {
     console.error("Failed to generate project plan:", error);
-    return null;
+
+    // Check if it's a rate limit error
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("rate limit") || errorMessage.includes("quota")) {
+      throw new Error("AI service rate limit exceeded. Please try again later.");
+    }
+
+    // Return a fallback plan instead of null
+    return {
+      name: "New Project",
+      description: projectDescription.substring(0, 200),
+      columns: [
+        { name: "Backlog", key: "BACKLOG", color: "bg-gray-50 dark:bg-gray-900" },
+        { name: "In Progress", key: "IN_PROGRESS", color: "bg-blue-50 dark:bg-blue-900/20" },
+        { name: "Done", key: "DONE", color: "bg-emerald-50 dark:bg-emerald-900/20" }
+      ],
+      tasks: [
+        { title: "Initial project setup", description: "Set up the project structure and dependencies", status: "BACKLOG", priority: "HIGH" },
+        { title: "Create documentation", description: "Document the project requirements and architecture", status: "BACKLOG", priority: "MEDIUM" },
+        { title: "Implement core features", description: "Develop the main functionality of the project", status: "BACKLOG", priority: "HIGH" }
+      ]
+    };
   }
 }
 
