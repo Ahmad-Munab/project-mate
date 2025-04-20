@@ -3,11 +3,36 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projectTaskStatuses, tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { VALID_STATUS_ENUMS, DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey } from "./task-status-client";
+import { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey } from "./task-status-client";
 import type { ValidStatusEnum } from "./task-status-client";
 
+// Minimal default statuses for when AI generation fails
+const SERVER_DEFAULT_STATUSES = [
+  {
+    name: "Backlog",
+    key: "BACKLOG",
+    color: "bg-gray-50 dark:bg-gray-900",
+    order: 0,
+    is_default: true,
+  },
+  {
+    name: "In Progress",
+    key: "IN_PROGRESS",
+    color: "bg-blue-50 dark:bg-blue-900/20",
+    order: 1,
+    is_default: false,
+  },
+  {
+    name: "Done",
+    key: "DONE",
+    color: "bg-emerald-50 dark:bg-emerald-900/20",
+    order: 2,
+    is_default: false,
+  },
+];
+
 // Re-export for convenience
-export { VALID_STATUS_ENUMS, DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey, ValidStatusEnum };
+export { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey, ValidStatusEnum, SERVER_DEFAULT_STATUSES };
 
 /**
  * Validates user authentication
@@ -58,9 +83,14 @@ export async function moveTasksToStatus(
   fromStatusKey: string,
   toStatusKey: string
 ) {
+  // Map the custom status key to one of the enum values if possible, or use BACKLOG as default
+  const statusEnumValue = (['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE'].includes(toStatusKey))
+    ? toStatusKey as 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE'
+    : 'BACKLOG';
+
   await tx.update(tasks)
     .set({
-      status: isValidStatusEnum(toStatusKey) ? toStatusKey as ValidStatusEnum : 'BACKLOG',
+      status: statusEnumValue,
       status_key: toStatusKey
     })
     .where(and(

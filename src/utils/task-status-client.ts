@@ -1,11 +1,27 @@
 /**
- * Valid task status enum values
+ * Base task status enum values
+ * These are just examples - the system supports any valid status key
  */
-export const VALID_STATUS_ENUMS = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE'] as const;
-export type ValidStatusEnum = typeof VALID_STATUS_ENUMS[number];
+export const BASE_STATUS_KEYS = ['BACKLOG', 'DONE'] as const;
+export type ValidStatusEnum = string;
+
+/**
+ * Valid status enum values
+ * This is a more comprehensive list of possible statuses
+ */
+export const VALID_STATUS_ENUMS = [
+  'BACKLOG',
+  'TODO',
+  'IN_PROGRESS',
+  'REVIEW',
+  'TESTING',
+  'DONE',
+  'ARCHIVED'
+] as const;
 
 /**
  * Default task statuses to initialize for a new project
+ * Minimal set of columns as a fallback when AI generation fails
  */
 export const DEFAULT_STATUSES = [
   {
@@ -16,24 +32,17 @@ export const DEFAULT_STATUSES = [
     is_default: true,
   },
   {
-    name: "To Do",
-    key: "TODO",
-    color: "bg-neutral-50 dark:bg-neutral-900",
-    order: 1,
-    is_default: false,
-  },
-  {
     name: "In Progress",
     key: "IN_PROGRESS",
     color: "bg-blue-50 dark:bg-blue-900/20",
-    order: 2,
+    order: 1,
     is_default: false,
   },
   {
     name: "Done",
     key: "DONE",
-    color: "bg-green-50 dark:bg-green-900/20",
-    order: 3,
+    color: "bg-emerald-50 dark:bg-emerald-900/20",
+    order: 2,
     is_default: false,
   },
 ];
@@ -53,5 +62,7 @@ export function normalizeStatusKey(key: string): string {
  * @returns Whether the status is a valid enum value
  */
 export function isValidStatusEnum(status: string): boolean {
-  return VALID_STATUS_ENUMS.includes(status as ValidStatusEnum);
+  // Check if it's a valid format (uppercase with underscores)
+  // This allows any custom statuses created by the AI
+  return /^[A-Z][A-Z0-9_]*$/.test(status);
 }

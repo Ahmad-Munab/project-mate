@@ -49,20 +49,32 @@ export type TaskStatus = {
 // Default column colors (fallback)
 const defaultColumnColors = {
   BACKLOG: "bg-gray-50 dark:bg-gray-900",
-  TODO: "bg-neutral-50 dark:bg-neutral-900",
-  IN_PROGRESS: "bg-blue-50 dark:bg-blue-900/20",
-  DONE: "bg-green-50 dark:bg-green-900/20",
+  ARCHITECTURE: "bg-purple-50 dark:bg-purple-900/20",
+  FRONTEND: "bg-blue-50 dark:bg-blue-900/20",
+  BACKEND: "bg-green-50 dark:bg-green-900/20",
+  DATABASE: "bg-yellow-50 dark:bg-yellow-900/20",
+  API: "bg-indigo-50 dark:bg-indigo-900/20",
+  TESTING: "bg-red-50 dark:bg-red-900/20",
+  DONE: "bg-emerald-50 dark:bg-emerald-900/20",
 };
 
 // Default column headers (fallback)
 const defaultColumnHeaders = {
   BACKLOG: "Backlog",
-  TODO: "To Do",
-  IN_PROGRESS: "In Progress",
+  ARCHITECTURE: "Architecture",
+  FRONTEND: "Frontend",
+  BACKEND: "Backend",
+  DATABASE: "Database",
+  API: "API",
+  TESTING: "Testing",
   DONE: "Done",
 };
 
-// Default task statuses (fallback)
+/**
+ * Get minimal default task statuses as a fallback when API calls fail
+ * @param projectId Project ID
+ * @returns Array of default task statuses
+ */
 const getDefaultTaskStatuses = (projectId: string) => [
   {
     id: 'default-backlog',
@@ -76,24 +88,13 @@ const getDefaultTaskStatuses = (projectId: string) => [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'default-todo',
-    project_id: projectId,
-    name: 'To Do',
-    key: 'TODO',
-    color: 'bg-neutral-50 dark:bg-neutral-900',
-    is_default: false,
-    order: 1,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
     id: 'default-in-progress',
     project_id: projectId,
     name: 'In Progress',
     key: 'IN_PROGRESS',
     color: 'bg-blue-50 dark:bg-blue-900/20',
     is_default: false,
-    order: 2,
+    order: 1,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -102,9 +103,9 @@ const getDefaultTaskStatuses = (projectId: string) => [
     project_id: projectId,
     name: 'Done',
     key: 'DONE',
-    color: 'bg-green-50 dark:bg-green-900/20',
+    color: 'bg-emerald-50 dark:bg-emerald-900/20',
     is_default: false,
-    order: 3,
+    order: 2,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -131,46 +132,92 @@ async function fetchProjectTasks(projectId: string) {
   }
 }
 
+/**
+ * Fetch task statuses for a project with improved error handling
+ * @param projectId Project ID
+ * @returns Array of task statuses
+ */
 async function fetchProjectTaskStatuses(projectId: string) {
   try {
     console.log('Fetching task statuses for project:', projectId);
-    // Fetch existing statuses
-    const response = await fetch(`/api/projects/${projectId}/task-statuses`);
 
-    if (!response.ok) {
-      console.error('Failed to fetch task statuses:', await response.text());
-      throw new Error("Failed to fetch task statuses");
+    if (!projectId) {
+      console.error('Project ID is required');
+      return getDefaultTaskStatuses('default');
     }
 
-    const statuses = await response.json();
-    console.log('Fetched statuses:', statuses.length);
+    // First check if we already have statuses
+    let statuses = [];
 
-    // If no statuses exist, we'll handle this in the useEffect
-    if (statuses.length === 0) {
-      console.log('No statuses found, will use default ones');
-      // Try to initialize default statuses
-      try {
-        const initResponse = await fetch(`/api/projects/${projectId}/task-statuses/initialize`, {
-          method: 'POST',
-        });
+    try {
+      // Fetch existing statuses
+      const response = await fetch(`/api/projects/${projectId}/task-statuses`);
 
-        if (initResponse.ok) {
-          const newStatuses = await initResponse.json();
-          console.log('Initialized statuses:', newStatuses.length);
-          return newStatuses;
-        } else {
-          console.error('Failed to initialize statuses, using defaults');
-          return getDefaultTaskStatuses(projectId);
+      if (response.ok) {
+        statuses = await response.json();
+        console.log('Fetched statuses:', statuses.length);
+
+        // If we have statuses, return them immediately
+        if (statuses && statuses.length > 0) {
+          return statuses;
         }
-      } catch (initError) {
-        console.error('Error initializing statuses:', initError);
-        return getDefaultTaskStatuses(projectId);
+      } else {
+        console.warn('Failed to fetch task statuses, will try to initialize');
       }
+    } catch (fetchError) {
+      console.warn('Error fetching task statuses, will try to initialize:', fetchError);
     }
 
-    return statuses;
+    // If we get here, we need to initialize statuses
+    console.log('No statuses found, will initialize default ones');
+
+    // Try to initialize statuses
+    try {
+      const initResponse = await fetch(`/api/projects/${projectId}/task-statuses/initialize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (initResponse.ok) {
+        const newStatuses = await initResponse.json();
+        console.log('Successfully initialized statuses:', newStatuses.length);
+
+        // If we got statuses back, return them
+        if (newStatuses && newStatuses.length > 0) {
+          return newStatuses;
+        }
+      } else {
+        const errorText = await initResponse.text().catch(() => 'Unknown error');
+        console.warn(`Initialization failed: ${errorText}`);
+      }
+    } catch (initError) {
+      console.error('Error initializing statuses:', initError);
+    }
+
+    // If initialization failed, try one more time with a direct fetch
+    try {
+      console.log('Trying one more direct fetch after initialization attempt');
+      const retryResponse = await fetch(`/api/projects/${projectId}/task-statuses`);
+
+      if (retryResponse.ok) {
+        const retryStatuses = await retryResponse.json();
+        console.log('Retry fetch returned statuses:', retryStatuses.length);
+
+        if (retryStatuses && retryStatuses.length > 0) {
+          return retryStatuses;
+        }
+      }
+    } catch (retryError) {
+      console.error('Retry fetch failed:', retryError);
+    }
+
+    // If we get here, all attempts failed
+    console.error('All status initialization attempts failed, using default statuses');
+    return getDefaultTaskStatuses(projectId);
   } catch (error) {
-    console.error("Error fetching task statuses:", error);
+    console.error("Unexpected error in fetchProjectTaskStatuses:", error);
     return getDefaultTaskStatuses(projectId); // Return default statuses as fallback
   }
 }
@@ -182,23 +229,37 @@ async function fetchProjectTaskStatuses(projectId: string) {
  * @returns Updated task
  */
 async function updateTaskStatus(taskId: string, newStatus: string) {
-  const response = await fetch("/api/tasks/update", {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      taskId,
-      status: newStatus,
-      status_key: newStatus,
-    }),
-  });
+  try {
+    // Validate the status is not empty
+    if (!newStatus) {
+      throw new Error("Status cannot be empty");
+    }
 
-  if (!response.ok) {
-    throw new Error("Failed to update task status");
+    // Make the API call
+    const response = await fetch("/api/tasks/update", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        taskId,
+        status: newStatus,
+        status_key: newStatus,
+      }),
+    });
+
+    // Handle non-OK responses
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to update task status");
+    }
+
+    // Parse and return the response
+    return await response.json();
+  } catch (error) {
+    console.error("Error in updateTaskStatus:", error);
+    throw error;
   }
-
-  return await response.json();
 }
 
 const sortTasks = (
@@ -418,7 +479,8 @@ export default function ProjectBoard({
     }
 
     // Check permissions before allowing drag
-    if (!isOwner && !userIsManager && !can("canEdit") && !can("editTasks")) {
+    const hasPermission = isOwner || userIsManager || can("canEdit") || can("editTasks");
+    if (!hasPermission) {
       toast.error("You don't have permission to move tasks");
       return;
     }
@@ -426,10 +488,25 @@ export default function ProjectBoard({
     const newStatus = destination.droppableId;
     const taskId = draggableId;
 
+    // Validate the new status
+    if (!newStatus) {
+      toast.error("Invalid destination column");
+      return;
+    }
+
+    // Find the task being moved
+    const taskToMove = projectTasks.find(task => task.id === taskId);
+    if (!taskToMove) {
+      toast.error("Task not found");
+      return;
+    }
+
     // Store the original tasks state in case we need to revert
     const originalTasks = [...projectTasks];
 
     try {
+      console.log(`Moving task ${taskId} to ${newStatus}`);
+
       // Optimistically update the UI
       setProjectTasks((prevTasks) =>
         prevTasks.map((task) =>
@@ -445,9 +522,13 @@ export default function ProjectBoard({
 
       // Make the API call to update the status
       await updateTaskStatus(taskId, newStatus);
+
+      // Show success message
+      const targetColumnName = taskStatuses.find(s => s.key === newStatus)?.name || newStatus;
+      toast.success(`Moved "${taskToMove.title}" to ${targetColumnName}`);
     } catch (err) {
       console.error('Error updating task status:', err);
-      toast.error("Failed to update task status");
+      toast.error(err instanceof Error ? err.message : "Failed to update task status");
 
       // Revert to the original state if the API call fails
       setProjectTasks(originalTasks);
@@ -681,7 +762,7 @@ export default function ProjectBoard({
         />
       )}
 
-      <DragDropContext onDragEnd={(isOwner || userIsManager || canDragTasks) ? onDragEnd : () => {}}>
+      <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex-1 overflow-x-auto p-4 md:p-6">
           <div className={`flex h-full ${isMobile ? 'flex-col' : 'flex-row'} gap-4 md:gap-6 ${!isMobile && 'min-w-fit'}`}>
             {isMobile ? (
@@ -707,6 +788,7 @@ export default function ProjectBoard({
                             key={task.id}
                             draggableId={task.id}
                             index={index}
+                            isDragDisabled={!(isOwner || userIsManager || canDragTasks)}
                           >
                             {(provided) => (
                               <div
@@ -781,6 +863,7 @@ export default function ProjectBoard({
                               key={task.id}
                               draggableId={task.id}
                               index={index}
+                              isDragDisabled={!(isOwner || userIsManager || canDragTasks)}
                             >
                               {(provided) => (
                                 <div

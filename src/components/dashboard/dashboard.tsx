@@ -40,7 +40,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
-import AIAssistant from "./ai-assistant"
+import AIAssistant from "@/components/ai/AIAssistant"
 
 import { getProjects } from "@/app/actions/projects";
 import { useProjectStore } from "@/store/projectStore";
@@ -65,6 +65,7 @@ type Project = {
     assignee: string;
   }>;
   dueDate?: string;
+  ownerId?: string;
 };
 
 // This type defines the project data structure with owner information
@@ -756,7 +757,10 @@ export default function Dashboard() {
         open={aiAssistantOpen}
         onOpenChange={setAiAssistantOpen}
         project={selectedProject ? {
-          ...selectedProject,
+          id: selectedProject.id,
+          name: selectedProject.name,
+          description: selectedProject.description,
+          ownerId: 'unknown', // Hardcoded since it's required by AIAssistant
           members: selectedProject.members?.map(member => ({
             id: member.id,
             name: member.name,

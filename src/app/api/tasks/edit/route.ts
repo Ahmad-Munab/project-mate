@@ -34,14 +34,25 @@ export async function PATCH(request: Request) {
 
     // Handle status update
     if (status) {
-      // Check if the status is a valid enum value
-      const validEnum = isValidStatusEnum(status);
+      // Map the status to a valid enum value for the status field
+      let enumStatus = 'BACKLOG';
+      if (status === 'BACKLOG' || status === 'TODO' || status === 'IN_PROGRESS' || status === 'DONE') {
+        // If the status is one of the enum values, use it directly
+        enumStatus = status;
+      } else if (status === 'PLANNING' || status === 'FRONTEND' || status === 'BACKEND' || status === 'TESTING') {
+        // Map custom statuses to the closest enum value
+        enumStatus = 'IN_PROGRESS';
+      } else if (status === 'ARCHIVED') {
+        enumStatus = 'DONE';
+      }
 
-      // Set status based on validity
-      updateData.status = validEnum ? status : 'BACKLOG';
+      // Set status to a valid enum value
+      updateData.status = enumStatus as "BACKLOG" | "TODO" | "IN_PROGRESS" | "DONE";
 
       // If status_key is explicitly provided, use it, otherwise use status
       updateData.status_key = status_key || status;
+
+      console.log(`Editing task ${taskId} with status_key=${updateData.status_key} and status=${updateData.status}`);
     }
 
     // Update the task

@@ -1,117 +1,120 @@
-import { Groq } from "groq-sdk";
 import { z } from "zod";
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY!,
-});
+import { generateProjectPlan as aiGenerateProjectPlan } from "@/lib/ai";
 
 const taskSchema = z.object({
   title: z.string(),
   description: z.string(),
-  status: z.enum(["BACKLOG", "TODO", "IN_PROGRESS", "DONE"]),
+  status: z.string(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
 });
+
+const columnSchema = z.object({
+  name: z.string(),
+  key: z.string(),
+  color: z.string().optional(),
+});
+
+// Define the ProjectPlan type first
+export type ProjectPlan = {
+  name: string;
+  description: string;
+  columns: {
+    name: string;
+    key: string;
+    color?: string;
+  }[];
+  tasks: {
+    title: string;
+    description: string;
+    status: string;
+    priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+  }[];
+};
 
 export const generateProjectPlan = async (
   idea: string
 ): Promise<ProjectPlan> => {
   try {
-    const prompt = `You are a project management expert. Create a project plan for this idea: "${idea}"
+    console.log("Generating project plan in action for idea:", idea);
 
-IMPORTANT: Your response must be a single JSON object with NO additional text or formatting.
-Format:
-{
-  "name": "<project name, max 60 chars>",
-  "description": "<project description, max 200 chars>",
-  "tasks": [
-    {
-      "title": "<task title>",
-      "description": "<task description>",
-      "status": "BACKLOG",
-      "priority": "LOW"|"MEDIUM"|"HIGH"|"URGENT"
-    }
-  ]
-}
-
-Rules:
-- Include exactly 3-5 tasks
-- All tasks must have status "BACKLOG"
-- Each task priority must be one of: "LOW", "MEDIUM", "HIGH", "URGENT"
-- No markdown, no comments, just pure JSON`;
-
-    const completion = await groq.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
-      model: "deepseek-r1-distill-llama-70b",
-      temperature: 0.4,
-      max_tokens: 2048,
-      top_p: 0.95,
-    });
-
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error("No response from AI");
+    if (!idea) {
+      throw new Error("Project idea is required");
     }
 
-    let cleanContent = content;
-    const jsonMatch =
-      content.match(/```json?\s*({[\s\S]*})\s*```/) ||
-      content.match(/`({[\s\S]*})`/) ||
-      content.match(/({[\s\S]*})/);
+    // Use the LangChain-based project structure generator
+    const result = await aiGenerateProjectPlan(idea);
 
-    if (jsonMatch) {
-      cleanContent = jsonMatch[1];
+    // If the AI generation failed completely, throw an error
+    if (!result) {
+      throw new Error("Failed to generate project plan");
     }
 
-    try {
-      const parsed = JSON.parse(cleanContent.trim());
-      console.log("Parsed JSON:", parsed);
-
-      // Validate basic structure
-      if (!parsed.name || !parsed.description || !Array.isArray(parsed.tasks)) {
-        console.error("Invalid structure:", parsed);
-        throw new Error("Response missing required fields");
-      }
-
-      // Validate name and description lengths
-      if (parsed.name.length > 60) {
-        throw new Error("Project name too long");
-      }
-      if (parsed.description.length > 200) {
-        throw new Error("Project description too long");
-      }
-
-      // Validate tasks
-      if (parsed.tasks.length < 3 || parsed.tasks.length > 5) {
-        throw new Error(`Invalid number of tasks: ${parsed.tasks.length}`);
-      }
-
-      for (const task of parsed.tasks) {
-        const result = taskSchema.safeParse(task);
-        if (!result.success) {
-          throw new Error(`Invalid task structure: ${JSON.stringify(task)}`);
-        }
-        if (task.status !== "BACKLOG") {
-          throw new Error(`Invalid task status: ${task.status}`);
-        }
-      }
-
-      return parsed;
-    } catch (parseError) {
-      throw new Error(`Failed to parse AI response: ${parseError}`);
+    // Validate basic structure
+    if (!result.columns || !Array.isArray(result.columns) || !result.tasks || !Array.isArray(result.tasks)) {
+      console.error("Missing or invalid structure in AI response");
+      throw new Error("AI failed to generate a valid project structure. Please try again with a more detailed description.");
     }
+
+    // Use the name and description from the AI response, or fall back to defaults
+    const name = result.name || (result.columns.length > 0 ? result.columns[0].name : idea.substring(0, 60));
+    const description = result.description || idea.substring(0, 200);
+
+    // Validate columns
+    if (result.columns.length < 2) {
+      throw new Error(`Not enough columns: ${result.columns.length}`);
+    }
+
+    // Ensure BACKLOG column exists
+    const hasBacklog = result.columns.some((col: { key: string }) => col.key === "BACKLOG");
+    if (!hasBacklog) {
+      result.columns.push({
+        name: "Backlog",
+        key: "BACKLOG",
+        color: "gray"
+      });
+    }
+
+    // Validate columns
+    for (const column of result.columns) {
+      const validationResult = columnSchema.safeParse(column);
+      if (!validationResult.success) {
+        throw new Error(`Invalid column structure: ${JSON.stringify(column)}`);
+      }
+    }
+
+    // Validate tasks
+    if (result.tasks.length < 5) {
+      throw new Error(`Not enough tasks: ${result.tasks.length}`);
+    }
+
+    // Get all valid column keys
+    const validColumnKeys = result.columns.map((col: { key: string }) => col.key);
+
+    for (const task of result.tasks) {
+      const validationResult = taskSchema.safeParse(task);
+      if (!validationResult.success) {
+        throw new Error(`Invalid task structure: ${JSON.stringify(task)}`);
+      }
+
+      // Ensure task status is a valid column key
+      if (!validColumnKeys.includes(task.status)) {
+        // Default to BACKLOG if invalid
+        task.status = "BACKLOG";
+      }
+    }
+
+    // Create the final project plan
+    const projectPlan: ProjectPlan = {
+      name,
+      description,
+      columns: result.columns,
+      tasks: result.tasks
+    };
+
+    return projectPlan;
   } catch (error) {
     console.error("AI generation error:", error);
     throw error;
   }
 };
 
-export type ProjectPlan = {
-  name: string;
-  description: string;
-  tasks: {
-    title: string;
-    description: string;
-    status: "BACKLOG";
-    priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
-  }[];
-};

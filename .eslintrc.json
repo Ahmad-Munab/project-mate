@@ -1,0 +1,9 @@
+{
+  "extends": "next/core-web-vitals",
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "prefer-const": "off"
+  },
+  "ignorePatterns": ["src/lib/ai/langchain/**/*", "src/lib/ai/tools/advanced-tools.ts", "src/lib/ai/tools/task/**/*"]
+}

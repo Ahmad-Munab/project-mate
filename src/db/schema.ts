@@ -7,16 +7,20 @@ import {
     pgSchema,
     uniqueIndex,
     boolean,
-    integer,
+    integer
 } from "drizzle-orm/pg-core";
 
+// User roles for project membership
 export const userRoleEnum = pgEnum("user_role", ["OWNER", "MANAGER", "MEMBER"]);
+// NOTE: This enum is kept for backward compatibility only.
+// New code should use the dynamic projectTaskStatuses table instead.
 export const taskStatusEnum = pgEnum("task_status", [
     "BACKLOG",
     "TODO",
     "IN_PROGRESS",
     "DONE",
 ]);
+// Task priority levels
 export const priorityLevelEnum = pgEnum("priority_level", [
     "LOW",
     "MEDIUM",
@@ -38,11 +42,13 @@ export type UserMetadata = {
     avatar_url?: string;
 };
 
+// Auth users from Supabase auth schema
 export const authUsers = authSchema.table("users", {
     id: uuid("id").primaryKey(),
     metadata: text("raw_user_meta_data").$type<UserMetadata>(),
 });
 
+// Main projects table
 export const projects = pgTable("projects", {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
@@ -55,6 +61,7 @@ export const projects = pgTable("projects", {
     updated_at: timestamp("updated_at").defaultNow(),
 });
 
+// Project members with roles (junction table)
 export const projectMembers = pgTable(
     "project_members",
     {
@@ -77,7 +84,7 @@ export const projectMembers = pgTable(
     })
 );
 
-// Project task statuses table to store custom statuses for each project
+// Custom task statuses for each project (kanban columns)
 export const projectTaskStatuses = pgTable(
     "project_task_statuses",
     {
@@ -86,10 +93,10 @@ export const projectTaskStatuses = pgTable(
             .references(() => projects.id)
             .notNull(),
         name: text("name").notNull(),
-        key: text("key").notNull(), // A unique identifier for the status (e.g., "BACKLOG", "TODO")
-        color: text("color").notNull().default("bg-gray-50 dark:bg-gray-900"), // CSS class for the column color
-        is_default: boolean("is_default").notNull().default(false), // Whether this is a default status that can't be deleted
-        order: integer("order").notNull(), // The order in which to display the status
+        key: text("key").notNull(), // Unique identifier (e.g., "BACKLOG", "TODO")
+        color: text("color").notNull().default("bg-gray-50 dark:bg-gray-900"), // CSS color class
+        is_default: boolean("is_default").notNull().default(false), // Protected status flag
+        order: integer("order").notNull(), // Display order
         created_at: timestamp("created_at").defaultNow(),
         updated_at: timestamp("updated_at").defaultNow(),
     },
@@ -101,12 +108,13 @@ export const projectTaskStatuses = pgTable(
     })
 );
 
+// Project tasks with status and priority
 export const tasks = pgTable("tasks", {
     id: uuid("id").primaryKey().defaultRandom(),
     title: text("title").notNull(),
     description: text("description"),
-    status: taskStatusEnum("status").notNull().default("BACKLOG"), // Keep using the enum for backward compatibility
-    status_key: text("status_key"), // New field to store the custom status key
+    status: taskStatusEnum("status").notNull().default("BACKLOG"), // Legacy enum field - kept for backward compatibility
+    status_key: text("status_key"), // Reference to projectTaskStatuses.key - this is the preferred field to use
     priority: priorityLevelEnum("priority").notNull().default("MEDIUM"),
     project_id: uuid("project_id")
         .references(() => projects.id)
@@ -118,6 +126,7 @@ export const tasks = pgTable("tasks", {
     due_date: timestamp("due_date"),
 });
 
+// Task assignees junction table
 export const taskAssignees = pgTable("task_assignees", {
     id: uuid("id").primaryKey().defaultRandom(),
     taskId: uuid("task_id")
@@ -128,18 +137,19 @@ export const taskAssignees = pgTable("task_assignees", {
         .notNull(),
 });
 
+// AI-generated suggestions for projects and tasks
 export const aiSuggestions = pgTable("ai_suggestions", {
     id: uuid("id").primaryKey().defaultRandom(),
     projectId: uuid("project_id")
         .references(() => projects.id)
         .notNull(),
     taskId: uuid("task_id").references(() => tasks.id),
-    type: text("type").notNull(),
-    content: text("content").notNull(),
+    type: text("type").notNull(), // Suggestion type (e.g., 'task', 'solution')
+    content: text("content").notNull(), // Suggestion content
     createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Invites table
+// Project invitations for new members
 export const invites = pgTable("invites", {
     id: uuid("id").primaryKey().defaultRandom(),
     email: text("email"),
@@ -156,4 +166,21 @@ export const invites = pgTable("invites", {
     createdBy: uuid("created_by")
         .references(() => authUsers.id)
         .notNull(),
+});
+
+
+// Note: We're using the messages table for AI conversation history
+// AI conversation messages table
+export const messages = pgTable("messages", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    project_id: uuid("project_id")
+        .references(() => projects.id)
+        .notNull(),
+    task_id: uuid("task_id")
+        .references(() => tasks.id),
+    role: text("role").notNull(), // 'user', 'assistant', or 'system'
+    content: text("content").notNull(),
+    created_at: timestamp("created_at").defaultNow(),
+    created_by: uuid("created_by")
+        .references(() => authUsers.id),
 });
