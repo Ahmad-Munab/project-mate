@@ -65,6 +65,7 @@ type Project = {
     assignee: string;
   }>;
   dueDate?: string;
+  ownerId?: string;
 };
 
 // This type defines the project data structure with owner information
@@ -756,8 +757,10 @@ export default function Dashboard() {
         open={aiAssistantOpen}
         onOpenChange={setAiAssistantOpen}
         project={selectedProject ? {
-          ...selectedProject,
-          ownerId: selectedProject.ownerId || 'unknown',
+          id: selectedProject.id,
+          name: selectedProject.name,
+          description: selectedProject.description,
+          ownerId: 'unknown', // Hardcoded since it's required by AIAssistant
           members: selectedProject.members?.map(member => ({
             id: member.id,
             name: member.name,

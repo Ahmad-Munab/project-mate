@@ -201,26 +201,14 @@ export async function createTaskViaAI(
     }
 
     // Store the action in memory
-    if (task) {
-      await storeEnhancedMessage(
-        projectId,
-        {
-          role: "assistant",
-          content: responseMessage,
-          timestamp: new Date(),
-        },
-        task.id.toString()
-      );
-    } else {
-      await storeEnhancedMessage(
-        projectId,
-        {
-          role: "assistant",
-          content: responseMessage,
-          timestamp: new Date(),
-        }
-      );
-    }
+    await storeEnhancedMessage(
+      projectId,
+      {
+        role: "assistant",
+        content: responseMessage,
+        timestamp: new Date(),
+      }
+    );
 
     // Return success with task details
     return {
@@ -518,8 +506,7 @@ export async function moveTaskViaAI(
         role: "assistant",
         content: `I've moved the task "${task.title}" to the "${column.name}" column.`,
         timestamp: new Date(),
-      },
-      task.id
+      }
     );
 
     // Return success with task details
