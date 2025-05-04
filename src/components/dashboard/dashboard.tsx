@@ -40,7 +40,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
-import AIAssistant from "@/components/ai/AIAssistant"
+import { AIAssistant } from "@/components/ai/AIAssistant"
 
 import { getProjects } from "@/app/actions/projects";
 import { useProjectStore } from "@/store/projectStore";
@@ -756,17 +756,7 @@ export default function Dashboard() {
       <AIAssistant
         open={aiAssistantOpen}
         onOpenChange={setAiAssistantOpen}
-        project={selectedProject ? {
-          id: selectedProject.id,
-          name: selectedProject.name,
-          description: selectedProject.description,
-          ownerId: 'unknown', // Hardcoded since it's required by AIAssistant
-          members: selectedProject.members?.map(member => ({
-            id: member.id,
-            name: member.name,
-            role: 'MEMBER' // Adding default role since it's required
-          }))
-        } : null}
+        projectId={selectedProject?.id}
       />
 
       {/* Edit Project Modal */}

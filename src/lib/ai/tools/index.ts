@@ -12,8 +12,55 @@ export * from './column';
 // Export info tools
 export * from './info';
 
-// Export project creator
-export * from './project-creator';
+// Export optimized project creator
+export { createOptimizedProject } from './project-creator/optimized-creator';
+
+// Import tools directly at the module level
+import {
+  createTaskTool,
+  updateTaskTool,
+  deleteTaskTool,
+  moveTaskTool,
+  suggestTechIconsTool,
+  applyTechIconsTool,
+  // New advanced task tools
+  batchCreateTasksTool,
+  batchUpdateTasksTool,
+  assignTaskTool,
+  unassignTaskTool,
+  getTaskAssigneesTool,
+  setTaskDueDateTool,
+  searchTasksTool,
+  bulkMoveTasksTool,
+  suggestTaskPrioritiesTool
+} from './task';
+
+import {
+  createColumnTool,
+  updateColumnTool,
+  deleteColumnTool,
+  // Advanced column tools
+  reorderColumnsTool,
+  moveColumnTool,
+  getColumnDetailsTool,
+  setColumnColorTool,
+  batchCreateColumnsTool
+} from './column';
+
+import {
+  getProjectInfoTool,
+  getProjectTasksTool,
+  getTaskStatusesTool
+} from './info';
+
+import {
+  getProjectMembersTool,
+  updateProjectTool,
+  addProjectMemberTool,
+  removeProjectMemberTool,
+  // New project tools
+  generateProjectReportTool
+} from './project/index';
 
 /**
  * Get all AI tools for a project
@@ -21,26 +68,50 @@ export * from './project-creator';
  * @returns An array of all available tools
  */
 export function getAllTools(projectId: string) {
-  // Import tools from their respective modules
-  const { createTaskTool, updateTaskTool, deleteTaskTool, moveTaskTool } = require('./task');
-  const { createColumnTool, updateColumnTool, deleteColumnTool } = require('./column');
-  const { getProjectInfoTool, getProjectTasksTool, getTaskStatusesTool } = require('./info');
-
   return [
-    // Task management tools
+    // Basic task management tools
     createTaskTool(projectId),
     updateTaskTool(projectId),
     deleteTaskTool(projectId),
     moveTaskTool(projectId),
 
-    // Column management tools
+    // Advanced task management tools
+    batchCreateTasksTool(projectId),
+    batchUpdateTasksTool(projectId),
+    assignTaskTool(projectId),
+    unassignTaskTool(projectId),
+    getTaskAssigneesTool(projectId),
+    setTaskDueDateTool(projectId),
+    searchTasksTool(projectId),
+    bulkMoveTasksTool(projectId),
+    suggestTaskPrioritiesTool(projectId),
+
+    // Basic column management tools
     createColumnTool(projectId),
     updateColumnTool(projectId),
     deleteColumnTool(projectId),
+
+    // Advanced column management tools
+    reorderColumnsTool(projectId),
+    moveColumnTool(projectId),
+    getColumnDetailsTool(projectId),
+    setColumnColorTool(projectId),
+    batchCreateColumnsTool(projectId),
+
+    // Project management tools
+    getProjectMembersTool(projectId),
+    updateProjectTool(projectId),
+    addProjectMemberTool(projectId),
+    removeProjectMemberTool(projectId),
+    generateProjectReportTool(projectId),
 
     // Project information tools
     getProjectInfoTool(projectId),
     getProjectTasksTool(projectId),
     getTaskStatusesTool(projectId),
+
+    // Tech icon tools
+    suggestTechIconsTool(),
+    applyTechIconsTool(),
   ];
 }

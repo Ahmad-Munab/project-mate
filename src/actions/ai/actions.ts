@@ -1,17 +1,19 @@
 'use server'
 
 import { createClient } from "@/utils/supabase/server";
-import {
-  createTask,
-  getProjectInfo,
-  createTaskStatus,
-  getTaskStatuses,
-  moveTask,
-  getProjectTasks,
-  deleteTask,
-  deleteTaskStatus,
-  updateTask
-} from "@/lib/ai/langchain/tools";
+// Import specialized tools from the tools folder
+import { createTask } from "@/lib/ai/tools/task/create-task";
+import { updateTask } from "@/lib/ai/tools/task/update-task";
+import { deleteTask } from "@/lib/ai/tools/task/delete-task";
+import { moveTask } from "@/lib/ai/tools/task/move-task";
+import { getProjectTasks } from "@/lib/ai/tools/task/task-operations";
+
+// Import column tools
+import { createTaskStatus, deleteTaskStatus } from "@/lib/ai/tools/column";
+
+// Import info tools
+import { getProjectInfo } from "@/lib/ai/tools/info/get-project-info";
+import { getTaskStatuses } from "@/lib/ai/tools/task/task-status";
 import { tasks as TaskSchema } from "@/db/schema";
 import { InferSelectModel } from "drizzle-orm";
 import { storeEnhancedMessage } from "@/lib/ai/memory/enhanced";

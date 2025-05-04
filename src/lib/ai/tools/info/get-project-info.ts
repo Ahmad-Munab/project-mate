@@ -6,7 +6,16 @@
 
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import { getProjectInfo } from "../../langchain/tools";
+import { getProjectInfo as getProjectInfoBase } from "../../langchain/tools";
+
+/**
+ * Get project information
+ * @param projectId - The ID of the project
+ * @returns Project information
+ */
+export async function getProjectInfo(projectId: string) {
+  return getProjectInfoBase(projectId);
+}
 
 /**
  * Create a tool for getting project information
@@ -20,7 +29,7 @@ export function getProjectInfoTool(projectId: string) {
     schema: z.object({}),
     func: async () => {
       try {
-        const info = await getProjectInfo(projectId);
+        const info = await getProjectInfoBase(projectId);
 
         if (!info || !info.project) {
           return JSON.stringify({

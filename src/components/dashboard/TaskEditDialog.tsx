@@ -27,7 +27,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Task } from "./ProjectBoard";
+import { tasks } from "@/db/schema";
+import type { InferSelectModel } from "drizzle-orm";
+
+type Task = InferSelectModel<typeof tasks>;
 
 type TaskEditDialogProps = {
   task: Task;

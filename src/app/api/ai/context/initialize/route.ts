@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 // Import the necessary functions
-import { storeEnhancedMessage } from "@/lib/ai/memory/enhanced";
+import { storeOptimizedMessage } from "@/lib/ai/memory/optimized-memory";
 
 /**
  * POST: Initialize project context
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     }
 
     // Initialize the project context by storing a system message
-    const success = await storeEnhancedMessage(
+    const success = await storeOptimizedMessage(
       projectId,
       {
         role: "system",

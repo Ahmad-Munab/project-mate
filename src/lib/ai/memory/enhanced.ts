@@ -1,150 +1,93 @@
 /**
- * Enhanced Memory System
- * This file implements an enhanced memory system for the AI assistant
- * to make conversations more natural and context-aware
+ * Enhanced Memory Module
+ *
+ * This module provides enhanced memory capabilities for the AI assistant,
+ * allowing it to store and retrieve messages for projects.
  */
 
-import { createClient } from "@/utils/supabase/server";
-import { useAIStore, type AIMessage } from "@/store/aiStore";
-
-// Maximum number of messages to include in context
-const MAX_CONTEXT_MESSAGES = 10;
-
-
+import { db } from "@/db";
+import { messages } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 /**
- * Store a message in the enhanced memory system
+ * Message interface for enhanced memory
+ */
+export interface EnhancedMessage {
+  role: string;
+  content: string;
+  timestamp: Date;
+}
+
+/**
+ * Store an enhanced message in the database
+ *
  * @param projectId - The ID of the project
  * @param message - The message to store
- * @param relatedEntityId - Optional related entity ID (task, column, etc.)
- * @returns Whether the message was stored successfully
+ * @returns The stored message
  */
 export async function storeEnhancedMessage(
   projectId: string,
-  message: AIMessage,
-): Promise<boolean> {
+  message: EnhancedMessage
+) {
   try {
-    // Store in client-side store for immediate access
-    if (typeof window !== 'undefined') {
-      const { addMessage } = useAIStore.getState();
-      addMessage(projectId, {
-        ...message,
-        timestamp: new Date(message.timestamp),
-        id: message.id || `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
-      });
-    }
+    // Insert the message into the database
+    const [storedMessage] = await db.insert(messages).values({
+      project_id: projectId,
+      role: message.role,
+      content: message.content,
+      created_at: message.timestamp,
+    }).returning();
 
-    try {
-      // Store in database for persistence
-      const supabase = await createClient();
-
-      // Store in messages table
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          project_id: projectId,
-          role: message.role,
-          content: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
-          created_at: new Date(message.timestamp).toISOString(),
-          task_id: null,
-          created_by: null
-        });
-
-      if (error) {
-        console.error("Failed to store message in database:", error);
-      }
-    } catch (dbError) {
-      console.error("Database error storing message:", dbError);
-      // Continue execution - we still have the client-side store
-    }
-
-    return true;
+    return storedMessage;
   } catch (error) {
-    console.error("Error storing enhanced message:", error);
-    return false;
+    console.error("Failed to store enhanced message:", error);
+    return null;
   }
 }
 
 /**
- * Get enhanced project context for the AI
+ * Retrieve enhanced messages for a project
+ *
  * @param projectId - The ID of the project
- * @param maxMessages - Maximum number of messages to include
- * @returns The enhanced project context
+ * @param limit - The maximum number of messages to retrieve
+ * @returns An array of enhanced messages
  */
-export async function getEnhancedProjectContext(
+export async function getEnhancedMessages(
   projectId: string,
-  maxMessages: number = MAX_CONTEXT_MESSAGES
-): Promise<AIMessage[]> {
+  limit: number = 50
+) {
   try {
-    // Try to get messages from client-side store first
-    if (typeof window !== 'undefined') {
-      try {
-        const { getProjectMessages } = useAIStore.getState();
-        const clientMessages = getProjectMessages(projectId);
-        if (clientMessages && clientMessages.length > 0) {
-          return [...clientMessages].slice(-maxMessages);
-        }
-      } catch (storeError) {
-        console.error("Error getting messages from client store:", storeError);
-      }
-    }
+    // Retrieve messages from the database
+    const storedMessages = await db.select().from(messages)
+      .where(eq(messages.project_id, projectId))
+      .orderBy(messages.created_at)
+      .limit(limit);
 
-    // If client-side store doesn't have messages, try the database
-    try {
-      const supabase = await createClient();
-
-      // Try to get messages from messages table
-      const { data: messages, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false })
-        .limit(maxMessages);
-
-      if (!error && messages && messages.length > 0) {
-        // Convert to AIMessage format
-        return messages.map(msg => ({
-          role: msg.role as 'user' | 'assistant' | 'system',
-          content: msg.content,
-          timestamp: new Date(msg.created_at),
-          id: msg.id,
-          metadata: {} as Record<string, any>
-        })).reverse(); // Reverse to get chronological order
-      }
-
-      // If we get here, database attempt failed or returned no data
-      if (error) {
-        console.error("Failed to get messages from database:", error);
-      }
-    } catch (dbError) {
-      console.error("Database error getting messages:", dbError);
-    }
-
-    // If we reach here, try to get messages from client-side store
-    if (typeof window !== 'undefined') {
-      try {
-        const { getProjectMessages } = useAIStore.getState();
-        const clientMessages = getProjectMessages(projectId);
-        if (clientMessages && clientMessages.length > 0) {
-          return [...clientMessages].slice(-maxMessages);
-        }
-      } catch (storeError) {
-        console.error("Error getting messages from client store:", storeError);
-      }
-    }
-
-    // If all else fails, return an empty array
-    return [];
+    // Convert to enhanced messages
+    return storedMessages.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.created_at,
+    }));
   } catch (error) {
-    console.error("Error getting enhanced project context:", error);
+    console.error("Failed to retrieve enhanced messages:", error);
     return [];
   }
 }
 
-
-
-// Removed unused getConversationSummary function
-
-// Removed unused getRecentUserQuery function
-
-// Removed unused getConversationTone function
+/**
+ * Clear enhanced messages for a project
+ *
+ * @param projectId - The ID of the project
+ * @returns True if successful, false otherwise
+ */
+export async function clearEnhancedMessages(projectId: string) {
+  try {
+    // Delete messages from the database
+    await db.delete(messages).where(eq(messages.project_id, projectId));
+    return true;
+  } catch (error) {
+    console.error("Failed to clear enhanced messages:", error);
+    return false;
+  }
+}

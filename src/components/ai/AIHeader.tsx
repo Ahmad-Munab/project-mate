@@ -25,15 +25,15 @@ export const AIHeader = memo(function AIHeader({ onClose }: AIHeaderProps) {
           transition={{ duration: 0.3 }}
         >
           <div className="relative mr-2.5">
-            <div className="absolute -inset-0.5 rounded-full bg-green-200/70 opacity-75 blur-[1px] animate-pulse"></div>
+            <div className="absolute -inset-0.5 rounded-full bg-green-300/70 opacity-75 blur-[1px] animate-pulse"></div>
             <div className="relative bg-white dark:bg-background rounded-full p-1.5 shadow-sm">
-              <Bot className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <Bot className="h-4 w-4 text-green-700 dark:text-green-500" />
             </div>
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <SheetTitle className="text-sm sm:text-base font-semibold text-green-600 dark:text-green-400">Mate</SheetTitle>
-              <Sparkles className="h-3.5 w-3.5 text-green-500 animate-pulse" />
+              <SheetTitle className="text-sm sm:text-base font-semibold text-green-700 dark:text-green-500">Mate</SheetTitle>
+              <Sparkles className="h-3.5 w-3.5 text-green-700 dark:text-green-500 animate-pulse" />
             </div>
             <p className="text-xs text-muted-foreground hidden xs:block">Your AI Project Assistant</p>
           </div>

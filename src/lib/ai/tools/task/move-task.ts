@@ -6,7 +6,22 @@
 
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import { moveTask, getTaskStatuses, getProjectTasks } from "../../langchain/tools";
+import { moveTask as moveTaskBase, getTaskStatuses as getTaskStatusesBase, getProjectTasks as getProjectTasksBase } from "../../langchain/tools";
+
+/**
+ * Move a task to a different status
+ * @param taskId - The ID of the task to move
+ * @param targetStatus - The key of the status to move the task to
+ * @param projectId - The ID of the project
+ * @returns The updated task
+ */
+export async function moveTask(
+  taskId: string,
+  targetStatus: string,
+  projectId: string
+) {
+  return moveTaskBase(taskId, targetStatus, projectId);
+}
 
 /**
  * Create a tool for moving a task
@@ -24,25 +39,25 @@ export function moveTaskTool(projectId: string) {
     func: async ({ taskId, targetStatus }) => {
       try {
         console.log(`Moving task ${taskId} to status ${targetStatus} in project ${projectId}`);
-        
+
         // Get task details before moving for better feedback
-        const allTasks = await getProjectTasks(projectId);
+        const allTasks = await getProjectTasksBase(projectId);
         const taskToMove = allTasks.find(task => task.id === taskId);
-        
+
         if (!taskToMove) {
           return JSON.stringify({
             success: false,
             error: "Task not found. Please check the task ID and try again.",
           });
         }
-        
+
         // Get all statuses to validate the target status
-        const statuses = await getTaskStatuses(projectId);
-        const validStatus = statuses.find(status => 
-          status.key === targetStatus || 
+        const statuses = await getTaskStatusesBase(projectId);
+        const validStatus = statuses.find(status =>
+          status.key === targetStatus ||
           status.key === targetStatus.toUpperCase()
         );
-        
+
         if (!validStatus) {
           // Suggest valid statuses
           const validStatusNames = statuses.map(s => `${s.name} (${s.key})`).join(", ");
@@ -51,7 +66,7 @@ export function moveTaskTool(projectId: string) {
             error: `Invalid target status. Valid statuses are: ${validStatusNames}`,
           });
         }
-        
+
         // If the task is already in the target status, return early
         if (taskToMove.status_key === targetStatus) {
           return JSON.stringify({
@@ -59,8 +74,8 @@ export function moveTaskTool(projectId: string) {
             message: `Task "${taskToMove.title}" is already in the ${validStatus.name} column.`,
           });
         }
-        
-        const task = await moveTask(taskId, targetStatus, projectId);
+
+        const task = await moveTaskBase(taskId, targetStatus, projectId);
 
         if (!task) {
           return JSON.stringify({

@@ -18,8 +18,8 @@ interface AIInputProps {
   setInput: (input: string) => void;
   isTyping: boolean;
   onSendMessage: (e?: React.FormEvent) => Promise<void>;
-  onCreateTask: () => Promise<void>;
-  onPerformAction: () => Promise<void>;
+  onCreateTask: (taskDescription?: string) => Promise<any>;
+  onPerformAction: () => Promise<any>;
   project: Project | null;
   isProcessing?: Record<string, boolean>;
 }
@@ -103,7 +103,7 @@ export const AIInput = memo(function AIInput({
           <div
             className={cn(
               "relative rounded-md transition-all duration-200 overflow-hidden w-full",
-              isFocused ? "ring-2 ring-green-200/50" : "ring-1 ring-border/50",
+              isFocused ? "ring-2 ring-green-300/50" : "ring-1 ring-border/50",
               isTyping && "opacity-80"
             )}
           >
@@ -139,7 +139,7 @@ export const AIInput = memo(function AIInput({
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 sm:mr-1.5 text-green-500" />
+                  <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 sm:mr-1.5 text-green-700 dark:text-green-500" />
                   <span className="text-xs sm:text-sm">Ask Mate anything...</span>
                 </motion.div>
               )}
@@ -156,12 +156,12 @@ export const AIInput = memo(function AIInput({
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6 sm:h-7 sm:w-7 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800/30 transition-colors duration-200"
-                      onClick={onCreateTask}
+                      onClick={() => onCreateTask(input)}
                       disabled={isCreatingTask}
                     >
                       <PlusCircle className={cn(
                         "h-3 w-3 sm:h-3.5 sm:w-3.5",
-                        isCreatingTask ? "text-muted-foreground animate-pulse" : "text-green-600 dark:text-green-400"
+                        isCreatingTask ? "text-muted-foreground animate-pulse" : "text-green-700 dark:text-green-500"
                       )} />
                     </Button>
                   </TooltipTrigger>
@@ -184,7 +184,7 @@ export const AIInput = memo(function AIInput({
                     >
                       <Wand2 className={cn(
                         "h-3 w-3 sm:h-3.5 sm:w-3.5",
-                        isPerformingAction ? "text-muted-foreground animate-pulse" : "text-green-600 dark:text-green-400"
+                        isPerformingAction ? "text-muted-foreground animate-pulse" : "text-green-700 dark:text-green-500"
                       )} />
                     </Button>
                   </TooltipTrigger>
@@ -203,7 +203,7 @@ export const AIInput = memo(function AIInput({
           disabled={isDisabled}
           className={cn(
             "rounded-full h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-10 p-0 transition-all duration-300 self-end mb-1",
-            isDisabled ? "bg-muted text-muted-foreground" : "bg-green-500 hover:bg-green-600 text-white shadow-md hover:shadow-lg dark:bg-green-600 dark:hover:bg-green-700"
+            isDisabled ? "bg-muted text-muted-foreground" : "bg-green-700 hover:bg-green-800 text-white shadow-md hover:shadow-lg dark:bg-green-700 dark:hover:bg-green-800"
           )}
         >
           {isTyping ? (

@@ -10,17 +10,17 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Suspense fallback={<ProjectSkeleton />}>
         <Sidebar />
       </Suspense>
 
-      <div className="flex-1 flex flex-col">
-        <header className="h-16 border-b bg-card px-6 flex items-center">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-14 md:h-16 border-b bg-card px-4 md:px-6 flex items-center">
           <UserNav />
         </header>
 
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-hidden">{children}</main>
       </div>
     </div>
   );

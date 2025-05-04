@@ -5,7 +5,7 @@
  */
 
 import { createClient } from "@/utils/supabase/server";
-import { getEnhancedProjectContext } from "../memory/enhanced";
+import { getOptimizedProjectContext } from "../memory/optimized-memory";
 
 /**
  * Simple memory interface
@@ -32,14 +32,35 @@ export async function createSimpleMemory(projectId: string): Promise<SimpleMemor
     initialize: async () => {
       try {
         // Load recent messages from the database
-        const recentMessages = await getEnhancedProjectContext(projectId, 10);
+        const contextString = await getOptimizedProjectContext(projectId, 10);
 
-        // Convert to simple format
-        messages = recentMessages.map(msg => ({
-          role: msg.role,
-          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          timestamp: new Date(msg.timestamp)
-        }));
+        // If we have context, parse it into messages
+        if (contextString) {
+          // Split the context string into message blocks
+          const messageBlocks = contextString.split('\n\n');
+
+          // Parse each message block
+          messages = messageBlocks
+            .filter(block => block.includes(':')) // Make sure it's a valid message
+            .map(block => {
+              // Extract role and content
+              const colonIndex = block.indexOf(':');
+              const role = block.substring(0, colonIndex).trim().toLowerCase();
+              const content = block.substring(colonIndex + 1).trim();
+
+              // Map roles to standard format
+              const normalizedRole =
+                role === 'user' || role === 'USER' ? 'user' :
+                role === 'assistant' || role === 'ASSISTANT' ? 'assistant' :
+                'system';
+
+              return {
+                role: normalizedRole,
+                content: content,
+                timestamp: new Date()
+              };
+            });
+        }
       } catch (error) {
         console.error("Failed to initialize simple memory:", error);
         messages = [];
@@ -82,9 +103,9 @@ export async function createSimpleMemory(projectId: string): Promise<SimpleMemor
         timestamp: new Date()
       });
 
-      // Keep only the last 10 messages
-      if (messages.length > 10) {
-        messages = messages.slice(-10);
+      // Keep only the last 25 messages (increased from 10)
+      if (messages.length > 25) {
+        messages = messages.slice(-25);
       }
     }
   };

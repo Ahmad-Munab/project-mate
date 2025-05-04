@@ -201,8 +201,12 @@ export default function UserNav() {
                         <Button
                             variant="ghost"
                             className="flex items-center gap-2 px-2 h-9 hover:bg-accent/50 transition-colors"
+                            aria-label="Open user menu"
                         >
-                            <Avatar className="h-8 w-8 border border-border">
+                            <Avatar
+                                className="h-8 w-8 border border-border cursor-pointer"
+                                onClick={() => router.push("/dashboard")}
+                            >
                                 <AvatarImage
                                     src={userData.avatarUrl}
                                     alt={displayName}
@@ -216,7 +220,7 @@ export default function UserNav() {
                             </span>
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="start">
+                    <DropdownMenuContent className="w-56" align="end">
                         <DropdownMenuLabel className="flex items-center space-x-3">
                             <Avatar className="h-10 w-10 border border-border">
                                 <AvatarImage
@@ -253,22 +257,29 @@ export default function UserNav() {
                 {currentProject && (
                     <div className="flex items-center">
                         <span className="text-muted-foreground mx-2">/</span>
+                        <Button
+                            variant="ghost"
+                            className="flex items-center gap-2 px-2 h-9 hover:bg-accent/50 transition-colors"
+                            onClick={() => router.push(`/dashboard/projects/${currentProject.id}`)}
+                        >
+                            <span className="max-w-[180px] truncate font-medium">
+                                {currentProject.name}
+                            </span>
+                            <RoleBadge role={currentProject.myRole} />
+                        </Button>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
                                     className="flex items-center gap-2 px-2 h-9 hover:bg-accent/50 transition-colors"
+                                    aria-label="Open project menu"
                                 >
-                                    <span className="max-w-[180px] truncate font-medium">
-                                        {currentProject.name}
-                                    </span>
-                                    <RoleBadge role={currentProject.myRole} />
-                                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-1" />
+                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent
                                 className="w-[350px]"
-                                align="start"
+                                align="end"
                             >
                                 <div className="p-1">
                                     {/* Current Project */}

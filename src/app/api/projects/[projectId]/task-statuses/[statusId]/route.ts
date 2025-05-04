@@ -9,21 +9,21 @@ import { validateAuth, getTaskStatus, moveTasksToStatus } from "@/utils/task-sta
  */
 export async function PATCH(
   request: Request,
-  context: { params: Promise<{ projectId: string; statusId: string }> }
+  { params }: { params: Promise<{ projectId: string; statusId: string }> }
 ) {
   try {
     // Validate authentication
     const auth = await validateAuth();
     if (auth.error) return auth.error;
 
-    const { projectId, statusId } = await context.params;
-    
+    const { projectId, statusId } = await params;
+
     // Get and validate task status
     const statusResult = await getTaskStatus(projectId, statusId);
     if (statusResult.error) return statusResult.error;
-    
+
     const existingStatus = statusResult.status;
-    
+
     // Parse request body
     const body = await request.json();
     const { name, color, order } = body;
@@ -32,7 +32,7 @@ export async function PATCH(
     const updateData: Partial<typeof projectTaskStatuses.$inferInsert> = {
       updated_at: new Date(),
     };
-    
+
     // Check if this is a default status (BACKLOG) which should be protected
     if (existingStatus.is_default && existingStatus.key === 'BACKLOG') {
       // For BACKLOG, only allow updating the color and order, not the name
@@ -66,19 +66,19 @@ export async function PATCH(
  */
 export async function DELETE(
   _request: Request,
-  context: { params: Promise<{ projectId: string; statusId: string }> }
+  { params }: { params: Promise<{ projectId: string; statusId: string }> }
 ) {
   try {
     // Validate authentication
     const auth = await validateAuth();
     if (auth.error) return auth.error;
 
-    const { projectId, statusId } = await context.params;
+    const { projectId, statusId } = await params;
 
     // Get and validate task status
     const statusResult = await getTaskStatus(projectId, statusId);
     if (statusResult.error) return statusResult.error;
-    
+
     const existingStatus = statusResult.status;
 
     // Check if this is a default status which should be protected

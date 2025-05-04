@@ -328,7 +328,7 @@ export function deleteTaskTool(_projectId: string) {
  * @param status - The new status of the task
  * @returns The moved task
  */
-export async function moveTask(taskId: string, status: string) {
+export async function moveTask(taskId: string, status: string, projectId?: string) {
   try {
     // Get the task to get the project ID
     const [task] = await db
