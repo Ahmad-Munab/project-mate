@@ -6,7 +6,16 @@
 
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import { deleteTask, getProjectTasks } from "../../langchain/tools";
+import { deleteTask as deleteTaskBase, getProjectTasks as getProjectTasksBase } from "../../langchain/tools";
+
+/**
+ * Delete a task
+ * @param taskId - The ID of the task
+ * @returns True if the task was deleted
+ */
+export async function deleteTask(taskId: string) {
+  return deleteTaskBase(taskId);
+}
 
 /**
  * Create a tool for deleting a task
@@ -23,20 +32,20 @@ export function deleteTaskTool(projectId: string) {
     func: async ({ taskId }) => {
       try {
         console.log(`Deleting task ${taskId} in project ${projectId}`);
-        
+
         // Get task details before deletion for better feedback
-        const allTasks = await getProjectTasks(projectId);
+        const allTasks = await getProjectTasksBase(projectId);
         const taskToDelete = allTasks.find(task => task.id === taskId);
-        
+
         if (!taskToDelete) {
           return JSON.stringify({
             success: false,
             error: "Task not found. Please check the task ID and try again.",
           });
         }
-        
+
         const taskTitle = taskToDelete.title;
-        const result = await deleteTask(taskId);
+        const result = await deleteTaskBase(taskId);
 
         if (!result) {
           return JSON.stringify({

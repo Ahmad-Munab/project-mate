@@ -7,11 +7,11 @@ export type Project = {
   id: string;
   name: string;
   description?: string | null;
-  ownerId: string;
+  ownerId?: string;
   created_at?: Date | string | null;
   updated_at?: Date | string | null;
   readme?: string | null;
-  members?: Array<{ id: string; name: string; role: string }>;
+  members?: Array<{ id: string; name: string; role?: string }>;
   tasks?: Array<any>;
   status?: string;
   progress?: number;
@@ -21,7 +21,7 @@ export type Project = {
 export interface AIAssistantProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  project: Project | null;
+  projectId?: string;
 }
 
 export interface AIFloatingButtonProps {

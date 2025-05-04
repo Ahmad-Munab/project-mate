@@ -13,3 +13,6 @@ export {
   removeProjectMember,
   removeProjectMemberTool,
 } from './project-operations';
+
+// New advanced project tools
+export { generateProjectReportTool } from './generate-report';

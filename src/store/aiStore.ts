@@ -95,7 +95,7 @@ export const useAIStore = create<AIState>()(
         messages: Object.fromEntries(
           Object.entries(state.messages).map(([key, messages]) => [
             key,
-            messages.filter(m => m.role !== 'system').slice(-30) // Store last 30 non-system messages
+            messages.filter(m => m.role !== 'system').slice(-50) // Store last 50 non-system messages
           ])
         )
       }),

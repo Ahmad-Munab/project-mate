@@ -12,15 +12,27 @@ import {
 
 // User roles for project membership
 export const userRoleEnum = pgEnum("user_role", ["OWNER", "MANAGER", "MEMBER"]);
-// NOTE: This enum is kept for backward compatibility only.
-// New code should use the dynamic projectTaskStatuses table instead.
+/**
+ * Task status enum - LEGACY
+ *
+ * IMPORTANT: This enum is kept for backward compatibility only.
+ * New code should use the dynamic projectTaskStatuses table and status_key field instead.
+ * The system supports any valid status key, not just these enum values.
+ */
 export const taskStatusEnum = pgEnum("task_status", [
     "BACKLOG",
     "TODO",
     "IN_PROGRESS",
     "DONE",
 ]);
-// Task priority levels
+
+/**
+ * Task priority levels
+ *
+ * Note: While defined as an enum for database type safety,
+ * the application uses the priorityConfig from dynamic-defaults.ts
+ * to determine available priority levels and their properties.
+ */
 export const priorityLevelEnum = pgEnum("priority_level", [
     "LOW",
     "MEDIUM",
@@ -46,6 +58,16 @@ export type UserMetadata = {
 export const authUsers = authSchema.table("users", {
     id: uuid("id").primaryKey(),
     metadata: text("raw_user_meta_data").$type<UserMetadata>(),
+});
+
+// User profiles table
+export const profiles = pgTable("profiles", {
+    id: uuid("id").primaryKey().references(() => authUsers.id),
+    full_name: text("full_name"),
+    email: text("email").notNull(),
+    avatar_url: text("avatar_url"),
+    created_at: timestamp("created_at").defaultNow(),
+    updated_at: timestamp("updated_at").defaultNow(),
 });
 
 // Main projects table
@@ -124,6 +146,8 @@ export const tasks = pgTable("tasks", {
         .notNull(),
     created_at: timestamp("created_at").defaultNow(),
     due_date: timestamp("due_date"),
+    tech_icon: text("tech_icon"), // Legacy field - kept for backward compatibility
+    tech_icons: text("tech_icons"), // JSON array of Simple-icons slugs for technology icons
 });
 
 // Task assignees junction table

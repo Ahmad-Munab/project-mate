@@ -1,17 +1,24 @@
+"use client";
+
 /**
- * AI Floating Button Component
+ * AI Floating Button
  * This component renders a floating button that opens the AI assistant
  */
 
 import { useState, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, MessageSquare } from "lucide-react";
+import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AIAssistant } from "./AIAssistant";
-import { AIFloatingButtonProps } from "./types";
+
+interface AIFloatingButtonProps {
+  projectId?: string;
+}
 
 // Use memo to prevent unnecessary re-renders
-export const AIFloatingButton = memo(function AIFloatingButton({ project }: AIFloatingButtonProps) {
+export const AIFloatingButton = memo(function AIFloatingButton({
+  projectId
+}: AIFloatingButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   // Handle opening the AI assistant
@@ -49,19 +56,6 @@ export const AIFloatingButton = memo(function AIFloatingButton({ project }: AIFl
                 <span className="sr-only">Open AI Assistant</span>
               </Button>
             </div>
-
-            {/* Floating label */}
-            <motion.div
-              className="absolute -top-9 sm:-top-10 right-0 bg-background border border-border rounded-full px-2 sm:px-3 py-1 shadow-md"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <div className="flex items-center gap-1 sm:gap-1.5">
-                <MessageSquare className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-600 dark:text-green-400" />
-                <span className="text-[10px] sm:text-xs font-medium">Ask Mate</span>
-              </div>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -70,7 +64,7 @@ export const AIFloatingButton = memo(function AIFloatingButton({ project }: AIFl
       <AIAssistant
         open={isOpen}
         onOpenChange={handleCloseAssistant}
-        project={project}
+        projectId={projectId}
       />
     </>
   );

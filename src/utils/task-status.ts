@@ -3,36 +3,28 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
 import { projectTaskStatuses, tasks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey } from "./task-status-client";
+import { isValidStatusEnum } from "./task-status-client";
 import type { ValidStatusEnum } from "./task-status-client";
+import {
+  minimalFallbackColumns,
+  normalizeStatusKey,
+  isValidStatusKey,
+  generateDynamicColumns
+} from "@/config/dynamic-defaults";
 
-// Minimal default statuses for when AI generation fails
-const SERVER_DEFAULT_STATUSES = [
-  {
-    name: "Backlog",
-    key: "BACKLOG",
-    color: "bg-gray-50 dark:bg-gray-900",
-    order: 0,
-    is_default: true,
-  },
-  {
-    name: "In Progress",
-    key: "IN_PROGRESS",
-    color: "bg-blue-50 dark:bg-blue-900/20",
-    order: 1,
-    is_default: false,
-  },
-  {
-    name: "Done",
-    key: "DONE",
-    color: "bg-emerald-50 dark:bg-emerald-900/20",
-    order: 2,
-    is_default: false,
-  },
-];
+// Use dynamic configuration for default statuses
+const SERVER_DEFAULT_STATUSES = minimalFallbackColumns;
 
 // Re-export for convenience
-export { DEFAULT_STATUSES, isValidStatusEnum, normalizeStatusKey, ValidStatusEnum, SERVER_DEFAULT_STATUSES };
+export {
+  minimalFallbackColumns as DEFAULT_STATUSES,
+  isValidStatusEnum,
+  normalizeStatusKey,
+  ValidStatusEnum,
+  SERVER_DEFAULT_STATUSES,
+  generateDynamicColumns,
+  isValidStatusKey
+};
 
 /**
  * Validates user authentication
@@ -83,10 +75,32 @@ export async function moveTasksToStatus(
   fromStatusKey: string,
   toStatusKey: string
 ) {
-  // Map the custom status key to one of the enum values if possible, or use BACKLOG as default
-  const statusEnumValue = (['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE'].includes(toStatusKey))
-    ? toStatusKey as 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE'
-    : 'BACKLOG';
+  // Map the custom status key to the most appropriate enum value for backward compatibility
+  let statusEnumValue: 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE' = 'BACKLOG';
+
+  // If the status key is one of the enum values, use it directly
+  if (['BACKLOG', 'TODO', 'IN_PROGRESS', 'DONE'].includes(toStatusKey)) {
+    statusEnumValue = toStatusKey as 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'DONE';
+  } else {
+    // Otherwise, map to the most appropriate enum value based on semantic meaning
+    const lowerKey = toStatusKey.toLowerCase();
+
+    if (lowerKey.includes('done') || lowerKey.includes('complete') ||
+        lowerKey.includes('finish') || lowerKey.includes('closed')) {
+      statusEnumValue = 'DONE';
+    } else if (lowerKey.includes('progress') || lowerKey.includes('doing') ||
+               lowerKey.includes('working') || lowerKey.includes('develop') ||
+               lowerKey.includes('implement') || lowerKey.includes('coding') ||
+               lowerKey.includes('testing') || lowerKey.includes('review')) {
+      statusEnumValue = 'IN_PROGRESS';
+    } else if (lowerKey.includes('todo') || lowerKey.includes('planned') ||
+               lowerKey.includes('next') || lowerKey.includes('ready')) {
+      statusEnumValue = 'TODO';
+    } else {
+      // Default to BACKLOG for anything else
+      statusEnumValue = 'BACKLOG';
+    }
+  }
 
   await tx.update(tasks)
     .set({

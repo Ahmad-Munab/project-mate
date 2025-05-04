@@ -6,7 +6,22 @@
 
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import { createTaskStatus } from "../../langchain/tools";
+import { createTaskStatus as createTaskStatusBase } from "../../langchain/tools";
+
+/**
+ * Create a task status (column)
+ * @param projectId - The ID of the project
+ * @param name - The name of the status
+ * @param color - The color of the status
+ * @returns The created status
+ */
+export async function createTaskStatus(
+  projectId: string,
+  name: string,
+  color?: string
+) {
+  return createTaskStatusBase(projectId, name, color);
+}
 
 /**
  * Create a tool for creating a column
@@ -25,11 +40,11 @@ export function createColumnTool(projectId: string) {
       try {
         // Validate color
         const validColors = ['blue', 'green', 'red', 'yellow', 'purple', 'gray', 'pink', 'orange'];
-        const validatedColor = color && validColors.includes(color.toLowerCase()) 
-          ? color.toLowerCase() 
+        const validatedColor = color && validColors.includes(color.toLowerCase())
+          ? color.toLowerCase()
           : 'blue';
-        
-        const column = await createTaskStatus(
+
+        const column = await createTaskStatusBase(
           projectId,
           name,
           validatedColor

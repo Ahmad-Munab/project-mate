@@ -6,7 +6,22 @@
 
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
-import { deleteTaskStatus, getTaskStatuses } from "../../langchain/tools";
+import { deleteTaskStatus as deleteTaskStatusBase, getTaskStatuses as getTaskStatusesBase } from "../../langchain/tools";
+
+/**
+ * Delete a task status (column)
+ * @param statusId - The ID of the status to delete
+ * @param projectId - The ID of the project
+ * @param moveTasksTo - The ID of the status to move tasks to
+ * @returns True if the status was deleted
+ */
+export async function deleteTaskStatus(
+  statusId: string,
+  projectId: string,
+  moveTasksTo?: string
+) {
+  return deleteTaskStatusBase(statusId, projectId, moveTasksTo);
+}
 
 /**
  * Create a tool for deleting a column
@@ -24,9 +39,9 @@ export function deleteColumnTool(projectId: string) {
     func: async ({ columnId, moveTasksTo }) => {
       try {
         // Get column details before deleting for better feedback
-        const allColumns = await getTaskStatuses(projectId);
+        const allColumns = await getTaskStatusesBase(projectId);
         const columnToDelete = allColumns.find(col => col.id === columnId);
-        
+
         if (!columnToDelete) {
           // List available columns to help the user
           const availableColumns = allColumns.map(col => `${col.name} (ID: ${col.id})`).join(", ");
@@ -35,7 +50,7 @@ export function deleteColumnTool(projectId: string) {
             error: `Column not found. Available columns: ${availableColumns}`,
           });
         }
-        
+
         // Check if this is a default column that shouldn't be deleted
         if (columnToDelete.is_default) {
           return JSON.stringify({
@@ -43,7 +58,7 @@ export function deleteColumnTool(projectId: string) {
             error: `Cannot delete the default column "${columnToDelete.name}". This column is required for the project.`,
           });
         }
-        
+
         // If moveTasksTo is provided, validate it
         if (moveTasksTo) {
           const targetColumn = allColumns.find(col => col.id === moveTasksTo);
@@ -54,10 +69,10 @@ export function deleteColumnTool(projectId: string) {
             });
           }
         }
-        
-        await deleteTaskStatus(columnId, projectId, moveTasksTo);
 
-        const moveMessage = moveTasksTo 
+        await deleteTaskStatusBase(columnId, projectId, moveTasksTo);
+
+        const moveMessage = moveTasksTo
           ? ` Tasks were moved to ${allColumns.find(col => col.id === moveTasksTo)?.name || "another column"}.`
           : "";
 

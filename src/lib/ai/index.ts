@@ -5,12 +5,15 @@
  * following the single responsibility principle
  */
 
-// Export the project creator
+// Export the optimized project creator
 export {
-  generateProjectPlan,
-  generateProjectTasks,
-  generateProjectDescription
-} from './tools/project-creator';
+  createOptimizedProject
+} from './tools/project-creator/optimized-creator';
+
+// Export the project plan generator
+export {
+  generateProjectPlan
+} from './tools/project-creator/generate-plan';
 
 // Export agent implementation
 export {
@@ -46,8 +49,8 @@ export {
   getAllTools
 } from './tools';
 
-// Export client-side functions
+// Export optimized client-side functions
 export {
-  initializeProjectContext as initializeProjectContextClient,
-  sendMessage
-} from './client';
+  initializeProjectContext,
+  sendOptimizedMessage as sendMessage
+} from './client/optimized-client';

@@ -1,4 +1,13 @@
 /**
+ * Import dynamic configuration
+ */
+import {
+  minimalFallbackColumns,
+  normalizeStatusKey as normalizeKey,
+  isValidStatusKey
+} from "@/config/dynamic-defaults";
+
+/**
  * Base task status enum values
  * These are just examples - the system supports any valid status key
  */
@@ -8,6 +17,7 @@ export type ValidStatusEnum = string;
 /**
  * Valid status enum values
  * This is a more comprehensive list of possible statuses
+ * Note: This is just for reference - the system supports any valid status key
  */
 export const VALID_STATUS_ENUMS = [
   'BACKLOG',
@@ -16,36 +26,27 @@ export const VALID_STATUS_ENUMS = [
   'REVIEW',
   'TESTING',
   'DONE',
-  'ARCHIVED'
+  'ARCHIVED',
+  'PLANNING',
+  'DEVELOPMENT',
+  'DESIGN',
+  'RESEARCH',
+  'ANALYSIS',
+  'DEPLOYMENT',
+  'QA',
+  'BLOCKED',
+  'READY',
+  'WAITING',
+  'REVIEW',
+  'APPROVED',
+  'REJECTED'
 ] as const;
 
 /**
  * Default task statuses to initialize for a new project
- * Minimal set of columns as a fallback when AI generation fails
+ * Using dynamic configuration from central config
  */
-export const DEFAULT_STATUSES = [
-  {
-    name: "Backlog",
-    key: "BACKLOG",
-    color: "bg-gray-50 dark:bg-gray-900",
-    order: 0,
-    is_default: true,
-  },
-  {
-    name: "In Progress",
-    key: "IN_PROGRESS",
-    color: "bg-blue-50 dark:bg-blue-900/20",
-    order: 1,
-    is_default: false,
-  },
-  {
-    name: "Done",
-    key: "DONE",
-    color: "bg-emerald-50 dark:bg-emerald-900/20",
-    order: 2,
-    is_default: false,
-  },
-];
+export const DEFAULT_STATUSES = minimalFallbackColumns;
 
 /**
  * Normalizes a status key (uppercase, no spaces)
@@ -53,7 +54,7 @@ export const DEFAULT_STATUSES = [
  * @returns Normalized status key
  */
 export function normalizeStatusKey(key: string): string {
-  return key.toUpperCase().replace(/\s+/g, '_');
+  return normalizeKey(key);
 }
 
 /**

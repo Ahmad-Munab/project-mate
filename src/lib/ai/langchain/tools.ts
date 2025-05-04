@@ -132,6 +132,7 @@ export async function getTaskStatuses(projectId: string) {
  * @param description - The description of the task
  * @param status - The status of the task
  * @param priority - The priority of the task
+ * @param techIcons - The tech icons for the task (optional)
  * @returns The created task
  */
 export async function createTask(
@@ -139,7 +140,8 @@ export async function createTask(
   title: string,
   description: string,
   status: string = "BACKLOG",
-  priority: string = "MEDIUM"
+  priority: string = "MEDIUM",
+  techIcons?: string[]
 ) {
   try {
     if (!projectId) {
@@ -165,6 +167,20 @@ export async function createTask(
                          priority === "HIGH" || priority === "URGENT" ?
                          priority : "MEDIUM";
 
+    // Import tech icon matcher if tech icons not provided
+    let finalTechIcons = techIcons;
+    if (!finalTechIcons || finalTechIcons.length === 0) {
+      try {
+        // Dynamically import to avoid circular dependencies
+        const { suggestTechIcons } = await import("../tools/task/tech-icon-matcher");
+        finalTechIcons = suggestTechIcons(title, description);
+        console.log(`Auto-suggested tech icons for task "${title}":`, finalTechIcons);
+      } catch (iconError) {
+        console.error("Error suggesting tech icons:", iconError);
+        finalTechIcons = [];
+      }
+    }
+
     // Create the task
     try {
       const [newTask] = await db
@@ -177,6 +193,8 @@ export async function createTask(
           priority: validPriority,
           project_id: projectId,
           created_by: user.id,
+          tech_icons: finalTechIcons && finalTechIcons.length > 0 ? JSON.stringify(finalTechIcons) : null,
+          tech_icon: finalTechIcons && finalTechIcons.length > 0 ? finalTechIcons[0] : null,
         })
         .returning();
 
@@ -205,6 +223,7 @@ export async function updateTask(
     status?: string;
     priority?: string;
     due_date?: Date | null;
+    techIcons?: string[];
   }
 ) {
   try {
@@ -251,6 +270,34 @@ export async function updateTask(
                                   updates.priority : task.priority;
       }
 
+      // Handle tech icons
+      let techIconsJson = null;
+      let primaryTechIcon = null;
+
+      if (updates.techIcons !== undefined) {
+        // If tech icons are explicitly provided
+        if (updates.techIcons && updates.techIcons.length > 0) {
+          techIconsJson = JSON.stringify(updates.techIcons);
+          primaryTechIcon = updates.techIcons[0];
+        }
+      } else if (updates.title || updates.description) {
+        // If title or description is updated but no tech icons provided, auto-suggest
+        try {
+          const { suggestTechIcons } = await import("../tools/task/tech-icon-matcher");
+          const title = updates.title || task.title;
+          const description = updates.description || task.description;
+          const suggestedIcons = suggestTechIcons(title, description);
+
+          if (suggestedIcons.length > 0) {
+            techIconsJson = JSON.stringify(suggestedIcons);
+            primaryTechIcon = suggestedIcons[0];
+            console.log(`Auto-suggested tech icons for updated task "${title}":`, suggestedIcons);
+          }
+        } catch (iconError) {
+          console.error("Error suggesting tech icons for task update:", iconError);
+        }
+      }
+
       // Update the task
       const [updatedTask] = await db
         .update(tasks)
@@ -261,6 +308,8 @@ export async function updateTask(
           status_key: validatedUpdates.status || task.status_key,
           priority: validatedUpdates.priority as any,
           due_date: validatedUpdates.due_date,
+          tech_icons: techIconsJson !== null ? techIconsJson : undefined,
+          tech_icon: primaryTechIcon !== null ? primaryTechIcon : undefined,
         })
         .where(eq(tasks.id, taskId))
         .returning();

@@ -19,9 +19,9 @@ interface ProjectPageWrapperProps {
 
 export default function ProjectPageWrapper({ project, children }: ProjectPageWrapperProps) {
   return (
-    <div className="relative h-full">
+    <div className="relative h-full overflow-hidden">
       {children}
-      <AIFloatingButton project={project} />
+      <AIFloatingButton projectId={project.id} />
     </div>
   )
 }

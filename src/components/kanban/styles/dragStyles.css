@@ -1,0 +1,31 @@
+/* Styles for drag and drop operations */
+.dragging-active {
+  cursor: grabbing !important;
+}
+
+/* Smooth transitions for tasks */
+.task-card {
+  transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+/* Style for the task being dragged */
+.task-card.is-dragging {
+  transform: rotate(1deg) scale(1.02);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+  opacity: 0.9;
+}
+
+/* Disable transitions during drag operations to prevent flickering */
+.dragging-active .task-card:not(.is-dragging) {
+  transition: none !important;
+}
+
+/* Smooth column transitions */
+.kanban-column {
+  transition: background-color 0.2s ease;
+}
+
+/* Disable transitions during drag operations */
+.dragging-active .kanban-column {
+  transition: none !important;
+}

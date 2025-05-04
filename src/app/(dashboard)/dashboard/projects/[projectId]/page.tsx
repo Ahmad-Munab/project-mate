@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getProjectTasks } from "@/lib/tasks";
-import ProjectBoard from "@/components/kanban/ProjectBoard";
+import TrelloBoard from "@/components/kanban/TrelloBoard";
 import ProjectSkeleton from "@/components/kanban/ProjectSkeleton";
 import { createClient } from "@/utils/supabase/server";
 import { db } from "@/db";
@@ -68,10 +68,11 @@ export default async function ProjectPage({
     return (
       <ProjectPageWrapper project={project}>
         <Suspense fallback={<ProjectSkeleton />}>
-          <ProjectBoard
+          <TrelloBoard
             projectId={projectId}
             initialTasks={initialTasks}
             isOwner={isOwner}
+            projectName={project.name}
           />
         </Suspense>
       </ProjectPageWrapper>

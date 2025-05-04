@@ -9,14 +9,14 @@ import { validateAuth, normalizeStatusKey } from "@/utils/task-status";
  */
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     // Validate authentication
     const auth = await validateAuth();
     if (auth.error) return auth.error;
 
-    const { projectId } = await context.params;
+    const { projectId } = await params;
 
     // Fetch all task statuses for the project, ordered by their order field
     const statuses = await db.query.projectTaskStatuses.findMany({
@@ -39,14 +39,14 @@ export async function GET(
  */
 export async function POST(
   request: Request,
-  context: { params: Promise<{ projectId: string }> }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
     // Validate authentication
     const auth = await validateAuth();
     if (auth.error) return auth.error;
 
-    const { projectId } = await context.params;
+    const { projectId } = await params;
 
     // Parse and validate request body
     const body = await request.json();

@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { initializeProjectContextClient } from '@/lib/ai';
+import { initializeProjectContext } from '@/lib/ai';
 // Import dependencies
 
 interface ContextInitializerProps {
@@ -41,7 +41,7 @@ export function ProjectContextInitializer({ projectId }: ContextInitializerProps
         }
 
         // Initialize project context
-        const success = await initializeProjectContextClient(projectId);
+        const success = await initializeProjectContext(projectId);
 
         if (success) {
           console.log('Project context initialized successfully');

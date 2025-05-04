@@ -6,7 +6,7 @@
 import { ChatGroq } from "@langchain/groq";
 import { SystemMessage } from "@langchain/core/messages";
 import { getAgentTools } from "./tools";
-import { storeEnhancedMessage } from "../memory/enhanced";
+import { storeOptimizedMessage } from "../memory/optimized-memory";
 import { getProjectInfo } from "../langchain/tools";
 // No need for complex agent imports with our simplified approach
 
@@ -470,7 +470,7 @@ export async function createAgent(projectId: string) {
                   }
 
                   // Execute the tool with validated parameters
-                  toolResult = await tool.invoke(toolParams);
+                  toolResult = await tool.func(toolParams);
                 } catch (error) {
                   console.error(`Error executing tool ${toolName}:`, error);
 
@@ -790,7 +790,7 @@ export async function runAgent(projectId: string, userMessage: string) {
     const agent = await createAgent(projectId);
 
     // Store the user message
-    await storeEnhancedMessage(
+    await storeOptimizedMessage(
       projectId,
       {
         role: "user",
@@ -808,7 +808,7 @@ export async function runAgent(projectId: string, userMessage: string) {
       "I've processed your request, but I don't have a detailed response to provide at this moment.";
 
     // Store the assistant message
-    await storeEnhancedMessage(
+    await storeOptimizedMessage(
       projectId,
       {
         role: "assistant",
@@ -822,7 +822,7 @@ export async function runAgent(projectId: string, userMessage: string) {
     console.error("Failed to run agent:", error);
 
     // Store the error message
-    await storeEnhancedMessage(
+    await storeOptimizedMessage(
       projectId,
       {
         role: "assistant",

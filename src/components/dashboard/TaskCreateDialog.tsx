@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { tasks } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
+import { priorityConfig } from '@/config/dynamic-defaults';
 
 type Task = InferSelectModel<typeof tasks>;
 
@@ -28,8 +29,11 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
   const [isLoading, setIsLoading] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState<Task['priority']>('MEDIUM');
+  const [priority, setPriority] = useState<Task['priority']>(priorityConfig.default as Task['priority']);
   const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+
+  // Get available priority levels from configuration
+  const priorityLevels = priorityConfig.levels;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,7 +62,7 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
       const newTask = await response.json();
       onTaskCreate(newTask);
       onOpenChange(false);
-      
+
       // Reset form
       setTitle('');
       setDescription('');
@@ -90,7 +94,7 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
                 className="w-full"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
               <Textarea
@@ -114,10 +118,11 @@ export default function TaskCreateDialog({ projectId, open, onOpenChange, onTask
                   <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="LOW">Low</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="HIGH">High</SelectItem>
-                  <SelectItem value="URGENT">Urgent</SelectItem>
+                  {priorityLevels.map(level => (
+                    <SelectItem key={level} value={level}>
+                      {level.charAt(0) + level.slice(1).toLowerCase()}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
